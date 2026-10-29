@@ -13,3 +13,10 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] Review and explicitly approve SQL migrations before any remote apply in Q03/Q05.
 - [ ] Create/link EAS and LiveKit projects only after Q06 compatibility review; keep LiveKit API secret server-side.
 - [ ] Run acceptance tests on at least two physical Android devices before claiming Chat/Audio/Video verification.
+
+## Q01 Android smoke test
+
+- [ ] From `heartsync/`, run `npx expo start --dev-client` with an Android emulator or development-build device.
+- [ ] Open **Xem trước application shell** and visit all four tabs plus Bộ lọc, Hồ sơ người dùng, Match, Chat, Chỉnh sửa hồ sơ, and An toàn.
+- [ ] Verify Android system Back returns through detail screens, the auth keyboard does not cover inputs/actions, and content does not overlap status/navigation bars.
+- [ ] Repeat with Android font size at the largest practical setting and TalkBack enabled. Record screenshots/logcat only if they contain no personal data or credentials.

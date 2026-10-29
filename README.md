@@ -4,17 +4,19 @@ HeartSync is an Android-first dating application built with Expo SDK 58, React N
 
 ## Current status
 
-The repository is in the base implementation queue. Q00 establishes the verified baseline and naming. Authentication, navigation, Supabase schema, realtime chat, and LiveKit calling must not be treated as working until their queue checkpoints and tests are complete.
+Q00 establishes the verified baseline and naming. Q01 adds the typed React Navigation shell, shared light theme, accessible controls, and truthful empty/development states. Authentication, Supabase data, realtime chat, and LiveKit calling must not be treated as working until their later queue checkpoints and tests are complete.
 
 ## Local baseline commands
 
 ```powershell
 cd heartsync
 npm ci
-npx tsc --noEmit
+npm run typecheck
+npm run lint
 npx expo-doctor
+npx expo start --dev-client
 ```
 
-Use Expo Development Build for native calling dependencies. Expo Go is not acceptance evidence for Audio or Video Call.
+On Q01, choose **Xem trước application shell** from the sign-in screen to inspect navigation without creating a fake session. Use Expo Development Build for native calling dependencies. Expo Go is not acceptance evidence for Audio or Video Call.
 
 Progress and blockers are tracked in [`docs/codex/QUEUE_STATUS.md`](docs/codex/QUEUE_STATUS.md). Manual steps are tracked in [`docs/codex/MANUAL_ACTIONS.md`](docs/codex/MANUAL_ACTIONS.md).

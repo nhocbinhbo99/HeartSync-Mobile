@@ -32,3 +32,10 @@
 - **Decision:** Align Expo packages to versions reported by Expo Doctor: Expo `~58.0.21`, Expo Dev Client `~58.0.17`, and React Native `0.88.1`. Do not run `npm audit fix --force`.
 - **Reason:** Expo Doctor initially failed on three patch mismatches and passed 20/20 after the update. npm's proposed vulnerability fix is a breaking downgrade to Expo 51.
 - **Trade-off:** The transitive `@expo/cli`/`zod` chain remains reported as 3 high and 5 low findings. It is tracked for Q07 and must be reevaluated when Expo publishes a compatible fix.
+
+## ADR-006 Q01 navigation and icon surface
+
+- **Status:** Accepted for Q01
+- **Decision:** Use React Navigation 7 native stack plus bottom tabs, `react-native-safe-area-context`, and Expo SDK 58 `expo-symbols`/`expo-font`. Keep auth submit actions disabled until Q02 and provide an explicitly labeled development-only navigation preview.
+- **Reason:** This meets the queue's blank-template constraint, preserves Android-native Back behavior, and avoids fake authentication/data states. Expo's current docs recommend native symbols while marking the older vector-icon path as not recommended.
+- **Trade-off:** The visual shell is code-verified but still needs emulator/device inspection for system bars, keyboard, large text, and TalkBack.

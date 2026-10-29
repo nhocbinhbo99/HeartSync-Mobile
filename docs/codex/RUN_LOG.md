@@ -18,3 +18,15 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-29 | Q00 | `npx expo install --fix` | 0 | Updated Expo, Expo Dev Client, and React Native patch versions |
 | 2026-10-29 | Q00 | `npx tsc --noEmit` and `npx expo-doctor` (repeat) | 0 | TypeScript PASS; Expo Doctor 20/20 PASS |
 | 2026-10-29 | Q00 | `npm audit --json` (read-only) | 1 | 8 findings: 5 low, 3 high, 0 critical; no force fix |
+| 2026-10-29 | Q01 | Install React Navigation packages with `npx expo install` | 0 | Native stack, bottom tabs, screens, and safe-area packages resolved for SDK 58 |
+| 2026-10-29 | Q01 | Install `expo-symbols`; inspect official SDK 58 API | 0 | Cross-platform native symbols selected; deprecated icon path avoided |
+| 2026-10-29 | Q01 | `npm run typecheck` (initial) | 1 | Unsupported `StatusBar.backgroundColor` type found and removed |
+| 2026-10-29 | Q01 | `npm run typecheck` (repeat) | 0 | PASS |
+| 2026-10-29 | Q01 | `npm run lint` setup | 1 | Expo generated flat config; its wrapper misread ESLint 9, so the script now calls `eslint .` directly |
+| 2026-10-29 | Q01 | `npm run lint` | 0 | PASS with no warnings after two style fixes |
+| 2026-10-29 | Q01 | `npx expo-doctor` (initial) | 1 | 19/20; `expo-font` peer required by `expo-symbols` |
+| 2026-10-29 | Q01 | `npx expo install expo-font`; repeat Doctor | 0 | Peer installed; Expo Doctor 20/20 PASS |
+| 2026-10-29 | Q01 | Android export (sandbox) | 1 | Hermes could not write system temporary bytecode (`permission denied`) |
+| 2026-10-29 | Q01 | Android export (approved execution) | 0 | 909 modules; 2.1 MB Hermes bundle; generated output removed after verification |
+| 2026-10-29 | Q01 | UI reviewer pass; feature-first/accessibility corrections; final Android export | 0 | Code/offline review PASS; 915 modules; 2.1 MB Hermes bundle; output removed |
+| 2026-10-29 | Q01 | Impeccable finish review and design-system documentation | 0 | Code review PASS; `DESIGN.md` and schema v2 sidecar review PASS |
