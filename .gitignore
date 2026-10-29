@@ -1,0 +1,19 @@
+# Local extraction/rendering artifacts used during repository audits
+/tmp/
+
+# Local environment files at repository root
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated native/build output in any package
+**/node_modules/
+**/.expo/
+**/dist/
+**/web-build/
+**/android/
+**/ios/
+
+# Local logs and TypeScript caches
+*.log
+*.tsbuildinfo
