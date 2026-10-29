@@ -30,3 +30,10 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-29 | Q01 | Android export (approved execution) | 0 | 909 modules; 2.1 MB Hermes bundle; generated output removed after verification |
 | 2026-10-29 | Q01 | UI reviewer pass; feature-first/accessibility corrections; final Android export | 0 | Code/offline review PASS; 915 modules; 2.1 MB Hermes bundle; output removed |
 | 2026-10-29 | Q01 | Impeccable finish review and design-system documentation | 0 | Code review PASS; `DESIGN.md` and schema v2 sidecar review PASS |
+| 2026-10-29 | Q02 | Inspect official Supabase Expo, auth lifecycle, password reset, Expo SQLite/Linking/Jest docs | 0 | Selected SQLite localStorage only; separate PKCE confirmation/recovery callbacks; Jest 30 |
+| 2026-10-29 | Q02 | Install Supabase, URL polyfill, SQLite, Linking, Jest/Testing Library and required Expo peers | 0 | SDK 58-compatible dependency graph installed; test packages kept in devDependencies |
+| 2026-10-29 | Q02 | Initial TypeScript/lint/Jest | 1 | Found AppState nullable type, React effect rule, missing Expo Asset peer, and async test-act issues; repaired |
+| 2026-10-29 | Q02 | `npm test -- --ci` | 0 | 5 suites, 14 tests PASS |
+| 2026-10-29 | Q02 | TypeScript, ESLint, Expo Doctor, public config | 0 | PASS; Doctor 20/20; scheme/plugins resolved |
+| 2026-10-29 | Q02 | Android production export | 0 | 1,015 modules; 3 MB Hermes bundle; generated output removed |
+| 2026-10-29 | Q02 | `npm audit --json` | 1 | 15 findings: 12 low, 3 high, 0 critical; proposed fixes require incompatible Expo 51/Jest 25 downgrades |

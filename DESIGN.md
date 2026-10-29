@@ -92,7 +92,7 @@ Buttons have a minimum 48 dp target. Primary is filled cyan; secondary and dange
 
 ### Navigation
 
-Primary destinations are Khám phá, Đã lưu, Kết nối, and Hồ sơ. Detail screens use native-stack headers and Android system Back. The auth preview is explicitly development-only and does not create a session.
+Primary destinations are Khám phá, Đã lưu, Kết nối, and Hồ sơ. Detail screens use native-stack headers and Android system Back. A session-aware route gate exposes the main shell only after Supabase reports an authenticated session; missing configuration has its own setup-required state.
 
 ### Sync Line
 

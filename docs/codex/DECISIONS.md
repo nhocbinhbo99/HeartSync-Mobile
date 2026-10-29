@@ -39,3 +39,10 @@
 - **Decision:** Use React Navigation 7 native stack plus bottom tabs, `react-native-safe-area-context`, and Expo SDK 58 `expo-symbols`/`expo-font`. Keep auth submit actions disabled until Q02 and provide an explicitly labeled development-only navigation preview.
 - **Reason:** This meets the queue's blank-template constraint, preserves Android-native Back behavior, and avoids fake authentication/data states. Expo's current docs recommend native symbols while marking the older vector-icon path as not recommended.
 - **Trade-off:** The visual shell is code-verified but still needs emulator/device inspection for system bars, keyboard, large text, and TalkBack.
+
+## ADR-007 Q02 auth persistence and recovery boundary
+
+- **Status:** Accepted for Q02
+- **Decision:** Use the official Expo SQLite `localStorage` polyfill as the only Supabase session adapter, PKCE auth with `detectSessionInUrl: false`, foreground refresh managed once by `AuthProvider`, and separate `heartsync://auth/callback` / `heartsync://auth/recovery` redirects for confirmation and recovery.
+- **Reason:** The current Supabase Expo quickstart documents this SQLite adapter; a stable custom scheme is required for development-build callbacks. This avoids mixing persistence implementations and keeps mobile secret handling at the publishable-key boundary.
+- **Trade-off:** Real email delivery, redirect allowlisting, session restore, and callback behavior cannot be claimed until a user-owned Supabase development project and Android development build are tested.

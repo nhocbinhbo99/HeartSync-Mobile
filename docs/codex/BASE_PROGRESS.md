@@ -2,14 +2,15 @@
 
 ## Current checkpoint
 
-Q00 and Q01 are complete. The verified project root is the Git repository `HeartSync-Mobile`; the Expo application lives at `heartsync/`. Q02 is the next queue checkpoint.
+Q00–Q02 are complete at the offline/code-verified level. The verified project root is the Git repository `HeartSync-Mobile`; the Expo application lives at `heartsync/`. Q03 is the next queue checkpoint.
 
 | Area | Implemented | Tested locally | Tested on Android | Requires user | Next owner |
 |---|---|---|---|---|---|
 | Repository naming | App directory and Expo/npm identity updated | `npm ci`, TypeScript, Expo config, Expo Doctor | No | Confirm Android application ID before EAS link | Công |
 | SRS/SDS comparison | 19 UC, rules, risks, and open decisions recorded | Content extraction verified | N/A | Resolve schema/history decisions | Công + team |
 | Navigation shell + theme | Typed native stack, four bottom tabs, auth entry routes, detail placeholders, shared controls/states | TypeScript, ESLint, Expo Doctor, Android production bundle | No | Run visual/back/keyboard smoke test | Công |
-| Auth/Data/Call services | No | No | No | Future queue/cloud/device steps | Q02-Q06 owners |
+| Auth foundation | Supabase client, SQLite session storage, lifecycle refresh, email/password flows, recovery callback, guarded routes | Jest mocked tests, TypeScript, ESLint, Expo Doctor, Android production bundle | No | Create/configure development Supabase; test real email flow | Công |
+| Domain Data/Chat/Call | No | No | No | Future queue/cloud/device steps | Q03-Q06 owners |
 
 ## Evidence and limitations
 
@@ -18,6 +19,16 @@ Q00 and Q01 are complete. The verified project root is the Git repository `Heart
 - DOCX visual rendering is blocked by missing LibreOffice in the bundled runtime; content extraction succeeded.
 - No Android device test has been run.
 - No Supabase project, remote migration, EAS build, or LiveKit project has been created or changed.
+
+## Q02 validation
+
+- One persistence adapter only: Expo SQLite localStorage polyfill; AsyncStorage is not installed.
+- `npm test -- --ci`: PASS, 5 suites / 14 tests (config, validation, callback allowlist, navigation guard, session transitions, sanitized errors, cleanup).
+- `npm run typecheck` and `npm run lint`: PASS.
+- `npx expo-doctor`: PASS, 20/20.
+- `npx expo config --type public`: PASS; `heartsync` scheme and SQLite/Asset plugins resolved.
+- Android production export: PASS, 1,015 modules bundled to 3 MB Hermes bytecode; generated output removed.
+- Cloud sign-up/sign-in/reset/confirmation and Android callback handling remain MANUAL_REQUIRED because no project credentials or device were provided.
 
 ## Q01 validation
 

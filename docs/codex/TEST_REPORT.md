@@ -19,3 +19,12 @@
 | Q01-UNIT | Q01 | Unit/UI runner | Validation/navigation utility tests | Runner-compatible tests where useful | No runner added; Q01 has no business adapter, and Q02 must add mocked auth tests | DEFERRED |
 | Q01-NAV-DEVICE | Q01 | Android UI smoke | Auth → preview shell → all tabs/details; system Back | All routes open; no overlap/crash | No target connected | BLOCKED |
 | Q01-A11Y-DEVICE | Q01 | Android accessibility | Large font, TalkBack, keyboard/insets | Controls remain usable | No target connected | BLOCKED |
+| Q02-UNIT | Q02 | Jest unit/provider | `npm test -- --ci` | Config/auth/guard/lifecycle tests pass offline | 5 suites, 14 tests PASS | PASS |
+| Q02-TS | Q02 | Type safety | `npm run typecheck` | Exit 0 | Exit 0 | PASS |
+| Q02-LINT | Q02 | Static analysis | `npm run lint` | No errors/warnings | No errors/warnings | PASS |
+| Q02-EXPO | Q02 | Expo health | `npx expo-doctor` | 20 checks pass | 20/20 | PASS |
+| Q02-CONFIG | Q02 | Native config | `npx expo config --type public` | Scheme/plugins resolve | `heartsync`; font/sqlite/asset plugins | PASS |
+| Q02-BUNDLE | Q02 | Android production bundle | `npx expo export --platform android` | Hermes bundle generated without env | 1,015 modules, 3 MB HBC | PASS |
+| Q02-NOCONFIG | Q02 | Safe fallback | Config/provider tests + code route | Missing env shows setup-required, no throw | Mocked/tested | PASS |
+| Q02-CLOUD | Q02 | Real Supabase Auth | Development project/email/callback/device | Sign-up, confirm, sign-in, restore, reset work | No project/env/device supplied | MANUAL_REQUIRED |
+| Q02-AUDIT | Q02 | Dependency security | `npm audit --json` | Record findings without incompatible forced downgrade | 12 low, 3 high, 0 critical | RISK |

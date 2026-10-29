@@ -5,12 +5,15 @@ import { AppButton } from '../../shared/components/AppButton';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
+import { useAuth } from '../auth/AuthProvider';
 
 type Props = CompositeScreenProps<BottomTabScreenProps<MainTabParamList, 'Profile'>, NativeStackScreenProps<RootStackParamList>>;
 export function ProfileScreen({ navigation }: Props) {
+  const { user, signOut } = useAuth();
   return <Screen><StatePanel eyebrow="Hồ sơ của tôi" title="Hồ sơ chưa được đồng bộ"
-    description="Q03 sẽ kết nối hồ sơ thật, ảnh và các ràng buộc 18+." />
+    description={user?.email ? `Đã đăng nhập bằng ${user.email}. Q03 sẽ kết nối hồ sơ thật, ảnh và các ràng buộc 18+.` : 'Q03 sẽ kết nối hồ sơ thật, ảnh và các ràng buộc 18+.'} />
     <AppButton label="Chỉnh sửa hồ sơ" onPress={() => navigation.navigate('EditProfile')} />
     <AppButton label="An toàn & quyền riêng tư" variant="secondary" onPress={() => navigation.navigate('Safety')} />
+    <AppButton label="Đăng xuất" variant="quiet" onPress={() => void signOut()} />
   </Screen>;
 }
