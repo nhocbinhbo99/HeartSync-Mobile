@@ -1,9 +1,11 @@
 -- Manual cloud seed for the three dedicated HeartSync MVP test accounts.
 --
--- Prerequisite: create these *confirmed* Auth users in the Supabase dashboard:
---   heartsync.test.a@example.com
---   heartsync.test.b@example.com
---   heartsync.test.c@example.com
+-- Prerequisite: create and Auto Confirm these synthetic Auth users in the
+-- Supabase dashboard. They are generic test identifiers; never use Invite or
+-- password-reset flows with them because no email delivery is part of this seed.
+--   test1@gmail.com
+--   test2@gmail.com
+--   test3@gmail.com
 --
 -- This is intentionally not a migration and is not enabled for `supabase db reset`.
 -- It contains no password, token, real person, real email, photo, precise location,
@@ -16,15 +18,12 @@ declare
 begin
   select count(*) into found_email_count
   from auth.users
-  where email in (
-    'heartsync.test.a@example.com',
-    'heartsync.test.b@example.com',
-    'heartsync.test.c@example.com'
-  );
+  where email in ('test1@gmail.com', 'test2@gmail.com', 'test3@gmail.com')
+    and email_confirmed_at is not null;
 
   if found_email_count <> expected_email_count then
     raise exception
-      'Create the three confirmed HeartSync synthetic Auth users before running this seed (found %, expected %).',
+      'Create and Auto Confirm the three HeartSync synthetic Auth users before running this seed (found %, expected %).',
       found_email_count,
       expected_email_count;
   end if;
@@ -42,9 +41,9 @@ on conflict (slug) do nothing;
 
 with demo_profiles(email, display_name, gender, bio, occupation, education, public_location) as (
   values
-    ('heartsync.test.a@example.com', 'An Bình', 'man', 'Thích sách, cà phê và những cuộc trò chuyện tử tế.', 'Thiết kế sản phẩm', 'Đại học', 'Quận 1, TP. Hồ Chí Minh'),
-    ('heartsync.test.b@example.com', 'Bảo Chi', 'woman', 'Yêu âm nhạc, ảnh film và chuyến đi cuối tuần.', 'Truyền thông', 'Đại học', 'Quận 3, TP. Hồ Chí Minh'),
-    ('heartsync.test.c@example.com', 'Cẩm Dương', 'nonbinary', 'Hồ sơ synthetic để kiểm thử quyền riêng tư và bộ lọc.', 'Kiểm thử phần mềm', 'Cao đẳng', 'Thủ Đức, TP. Hồ Chí Minh')
+    ('test1@gmail.com', 'An Bình', 'man', 'Thích sách, cà phê và những cuộc trò chuyện tử tế.', 'Thiết kế sản phẩm', 'Đại học', 'Quận 1, TP. Hồ Chí Minh'),
+    ('test2@gmail.com', 'Bảo Chi', 'woman', 'Yêu âm nhạc, ảnh film và chuyến đi cuối tuần.', 'Truyền thông', 'Đại học', 'Quận 3, TP. Hồ Chí Minh'),
+    ('test3@gmail.com', 'Cẩm Dương', 'nonbinary', 'Hồ sơ synthetic để kiểm thử quyền riêng tư và bộ lọc.', 'Kiểm thử phần mềm', 'Cao đẳng', 'Thủ Đức, TP. Hồ Chí Minh')
 )
 insert into public.profiles (
   id,
@@ -79,9 +78,9 @@ set
 
 with demo_private(email, date_of_birth) as (
   values
-    ('heartsync.test.a@example.com', date '1998-05-14'),
-    ('heartsync.test.b@example.com', date '1999-09-22'),
-    ('heartsync.test.c@example.com', date '1997-12-03')
+    ('test1@gmail.com', date '1998-05-14'),
+    ('test2@gmail.com', date '1999-09-22'),
+    ('test3@gmail.com', date '1997-12-03')
 )
 insert into public.profile_private (
   user_id,
@@ -110,11 +109,11 @@ set
 
 with demo_languages(email, language_code) as (
   values
-    ('heartsync.test.a@example.com', 'vi'),
-    ('heartsync.test.a@example.com', 'en'),
-    ('heartsync.test.b@example.com', 'vi'),
-    ('heartsync.test.b@example.com', 'en'),
-    ('heartsync.test.c@example.com', 'vi')
+    ('test1@gmail.com', 'vi'),
+    ('test1@gmail.com', 'en'),
+    ('test2@gmail.com', 'vi'),
+    ('test2@gmail.com', 'en'),
+    ('test3@gmail.com', 'vi')
 )
 insert into public.profile_languages (profile_id, language_code)
 select u.id, d.language_code
@@ -124,11 +123,11 @@ on conflict (profile_id, language_code) do nothing;
 
 with demo_interest_map(email, interest_slug) as (
   values
-    ('heartsync.test.a@example.com', 'books'),
-    ('heartsync.test.a@example.com', 'coffee'),
-    ('heartsync.test.b@example.com', 'music'),
-    ('heartsync.test.b@example.com', 'photography'),
-    ('heartsync.test.c@example.com', 'hiking')
+    ('test1@gmail.com', 'books'),
+    ('test1@gmail.com', 'coffee'),
+    ('test2@gmail.com', 'music'),
+    ('test2@gmail.com', 'photography'),
+    ('test3@gmail.com', 'hiking')
 )
 insert into public.profile_interests (profile_id, interest_id)
 select u.id, i.id
@@ -139,9 +138,9 @@ on conflict (profile_id, interest_id) do nothing;
 
 with demo_preferences(email, age_min, age_max, preferred_genders, preferred_languages) as (
   values
-    ('heartsync.test.a@example.com', 18::smallint, 99::smallint, array['woman']::text[], array['vi', 'en']::text[]),
-    ('heartsync.test.b@example.com', 18::smallint, 99::smallint, array['man']::text[], array['vi', 'en']::text[]),
-    ('heartsync.test.c@example.com', 18::smallint, 99::smallint, array[]::text[], array['vi']::text[])
+    ('test1@gmail.com', 18::smallint, 99::smallint, array['woman']::text[], array['vi', 'en']::text[]),
+    ('test2@gmail.com', 18::smallint, 99::smallint, array['man']::text[], array['vi', 'en']::text[]),
+    ('test3@gmail.com', 18::smallint, 99::smallint, array[]::text[], array['vi']::text[])
 )
 insert into public.user_preferences (
   user_id,
@@ -171,6 +170,7 @@ set
 -- Read-only evidence to capture after the inserts above.
 select
   u.email,
+  u.email_confirmed_at is not null as email_confirmed,
   p.display_name,
   p.gender,
   p.profile_completed_at is not null as profile_completed,
@@ -182,9 +182,5 @@ from auth.users u
 join public.profiles p on p.id = u.id
 join public.profile_private pp on pp.user_id = p.id
 join public.user_preferences pref on pref.user_id = p.id
-where u.email in (
-  'heartsync.test.a@example.com',
-  'heartsync.test.b@example.com',
-  'heartsync.test.c@example.com'
-)
+where u.email in ('test1@gmail.com', 'test2@gmail.com', 'test3@gmail.com')
 order by u.email;

@@ -7,9 +7,9 @@ $seed = Get-Content -Raw $seedPath
 $config = Get-Content -Raw $configPath
 
 $expectedAddresses = @(
-  'heartsync.test.a@example.com',
-  'heartsync.test.b@example.com',
-  'heartsync.test.c@example.com'
+  'test1@gmail.com',
+  'test2@gmail.com',
+  'test3@gmail.com'
 )
 
 foreach ($address in $expectedAddresses) {
@@ -20,6 +20,10 @@ foreach ($address in $expectedAddresses) {
 
 if ($seed -match '(?is)insert\s+into\s+auth\.users') {
   throw 'The manual profile seed must never create Auth users.'
+}
+
+if ($seed -notmatch '(?is)email_confirmed_at\s+is\s+not\s+null') {
+  throw 'The seed must require three email-confirmed Auth users.'
 }
 
 if ($seed -match '(?is)on\s+conflict\s*\([^)]*\)\s+do\s+update\s+do\s+nothing') {
