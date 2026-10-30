@@ -37,3 +37,8 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-29 | Q02 | TypeScript, ESLint, Expo Doctor, public config | 0 | PASS; Doctor 20/20; scheme/plugins resolved |
 | 2026-10-29 | Q02 | Android production export | 0 | 1,015 modules; 3 MB Hermes bundle; generated output removed |
 | 2026-10-29 | Q02 | `npm audit --json` | 1 | 15 findings: 12 low, 3 high, 0 critical; proposed fixes require incompatible Expo 51/Jest 25 downgrades |
+| 2026-10-29 | Q03 | Inspect current official Supabase RLS/function/storage guidance | 0 | Applied explicit grants, RLS role clauses, private helpers, fixed empty search paths, private bucket |
+| 2026-10-29 | Q03 | `supabase --version`; `docker --version`; `docker info`; `psql --version` | mixed | Supabase CLI absent; Docker client 29.3.0 installed but daemon stopped; psql client 16.15 present |
+| 2026-10-29 | Q03 | Prepare three migrations, data model, handwritten contracts and 17 pgTAP cases | 0 | SQL_PREPARED_NOT_APPLIED; no remote operation |
+| 2026-10-29 | Q03 | `supabase/tests/static_migration_checks.ps1` | 0 | 14 RLS tables and 4 authenticated RPC boundaries PASS; explicitly not a SQL execution test |
+| 2026-10-30 | Q03 | Resume final gate: static migration check, TypeScript, ESLint, Jest, diff/quote checks | 0 | All offline gates PASS; 5 Jest suites/14 tests; SQL execution remains blocked and unclaimed |

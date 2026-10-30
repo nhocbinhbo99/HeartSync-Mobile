@@ -29,3 +29,11 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] Open **Authentication → URL Configuration → Additional Redirect URLs** and add exactly `heartsync://auth/callback` (confirmation) and `heartsync://auth/recovery` (password reset) for the development build.
 - [ ] Restart Metro with `npx expo start --dev-client`. Verify: sign-up (18+ confirmation), email confirmation if enabled, sign-in failure, sign-in success, app restart/session restore, sign-out, reset email, callback, and password update.
 - [ ] Mark Q02 cloud evidence complete only after testing on a development-build Android target; Expo Go does not provide the stable callback evidence required here.
+
+## Q03 local SQL review and execution
+
+- [ ] Review `DATA_MODEL.md` and approve: exact public profile fields, terminal unmatch/no-rematch, read-only history after unmatch, hidden history after block, and photo limits.
+- [ ] Start Docker Desktop and wait until the Linux engine reports healthy. Install the Supabase CLI from its official installation method; do not run an unreviewed download-and-execute pipe.
+- [ ] From the repository root, initialize local Supabase config only if absent, then run `supabase start`, `supabase db reset`, `supabase test db`, and `supabase db lint`.
+- [ ] After a successful local reset, generate types with `supabase gen types typescript --local` and replace/augment the clearly handwritten contract. Do not label types as generated before this succeeds.
+- [ ] Review every migration and local test result before linking a remote project. A later remote `db push` requires explicit approval for that exact development project; never apply these prepared migrations to production/shared data by assumption.

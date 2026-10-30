@@ -46,3 +46,10 @@
 - **Decision:** Use the official Expo SQLite `localStorage` polyfill as the only Supabase session adapter, PKCE auth with `detectSessionInUrl: false`, foreground refresh managed once by `AuthProvider`, and separate `heartsync://auth/callback` / `heartsync://auth/recovery` redirects for confirmation and recovery.
 - **Reason:** The current Supabase Expo quickstart documents this SQLite adapter; a stable custom scheme is required for development-build callbacks. This avoids mixing persistence implementations and keeps mobile secret handling at the publishable-key boundary.
 - **Trade-off:** Real email delivery, redirect allowlisting, session restore, and callback behavior cannot be claimed until a user-owned Supabase development project and Android development build are tested.
+
+## ADR-008 Q03 privacy and relationship lifecycle
+
+- **Status:** Proposed/implemented in prepared SQL; requires review before apply
+- **Decision:** Split public profile fields from owner-only DOB/coordinates; keep a current-state swipe row; serialize pair swipes with a transaction advisory lock; make unmatch terminal in BASE; preserve read-only history after unmatch but hide it after block; keep profile photos in a private bucket.
+- **Reason:** RLS cannot hide columns, concurrent likes must not create phantom/duplicate matches, and unresolved rematch/history behavior needs a conservative deterministic base contract.
+- **Trade-off:** Rematch requires a future migration/product decision. Blocking hides client history without deleting evidence. Claimed age is constrained to 18+ but is not identity-verified.

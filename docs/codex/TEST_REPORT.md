@@ -28,3 +28,10 @@
 | Q02-NOCONFIG | Q02 | Safe fallback | Config/provider tests + code route | Missing env shows setup-required, no throw | Mocked/tested | PASS |
 | Q02-CLOUD | Q02 | Real Supabase Auth | Development project/email/callback/device | Sign-up, confirm, sign-in, restore, reset work | No project/env/device supplied | MANUAL_REQUIRED |
 | Q02-AUDIT | Q02 | Dependency security | `npm audit --json` | Record findings without incompatible forced downgrade | 12 low, 3 high, 0 critical | RISK |
+| Q03-STATIC | Q03 | Migration static gate | `supabase/tests/static_migration_checks.ps1` | RLS/grants/search-path/storage/test coverage patterns present | 14 tables + 4 RPCs PASS | PASS_STATIC_ONLY |
+| Q03-CLI | Q03 | Supabase CLI | `supabase --version` | CLI available | Command not found | BLOCKED |
+| Q03-DOCKER | Q03 | Local database runtime | `docker info` | Docker daemon reachable | Docker Desktop Linux pipe absent | BLOCKED |
+| Q03-RESET | Q03 | Migration execution | `supabase db reset` | All migrations apply | Not run | BLOCKED |
+| Q03-RLS | Q03 | pgTAP security | `supabase test db` | 17 cases pass | Prepared, not run | BLOCKED |
+| Q03-LINT | Q03 | Database lint | `supabase db lint` | No schema/security errors | Not run | BLOCKED |
+| Q03-TYPES | Q03 | Generated DB types | `supabase gen types typescript --local` | Types reflect applied schema | Not run; handwritten `domain.types.ts` clearly labeled | BLOCKED |

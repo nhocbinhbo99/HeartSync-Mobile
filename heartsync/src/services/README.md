@@ -1,3 +1,3 @@
 # Service boundary
 
-Q01 intentionally contains no remote service. Q02 adds the Supabase client and auth adapter here; later screens must consume typed repository/gateway boundaries instead of calling remote APIs directly.
+Q02 provides the configured-or-null Supabase singleton and auth provider. Q03 supplies prepared SQL only. Starting in Q04, screens must consume typed repository/gateway boundaries instead of calling Supabase tables, RPCs, Realtime, or media services directly.

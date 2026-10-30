@@ -77,4 +77,8 @@ UC09 contains the two required internal processing steps, reverse-like verificat
 2. Decide whether a previously unmatched pair may match again and whether swipe state is current-state or event history before Q03 is approved.
 3. Decide whether old chat history remains readable after unmatch/block; new messages and calls will be denied regardless.
 4. Approve public profile fields and whether birth date/location live in a separate private table before remote migrations are applied.
+
+## Q03 prepared resolution (not yet applied)
+
+The reviewable Q03 proposal uses a public `profiles` table and owner-only `profile_private` table, current-state swipes, terminal unmatch/no-rematch for BASE, read-only history after unmatch, hidden history after block, and a private photo bucket. These are implementation defaults for parallel work, not a remote database claim. Items 2–4 above remain approval gates before remote apply; see `DATA_MODEL.md` and ADR-008.
 5. Approve maximum photo count, file limits, and Storage bucket visibility before profile upload is considered complete.

@@ -31,3 +31,5 @@ Use Expo Development Build for stable auth callbacks and native calling dependen
 Without these variables, HeartSync intentionally displays a setup-required screen instead of throwing or connecting with fake credentials.
 
 Progress and blockers are tracked in [`docs/codex/QUEUE_STATUS.md`](docs/codex/QUEUE_STATUS.md). Manual steps are tracked in [`docs/codex/MANUAL_ACTIONS.md`](docs/codex/MANUAL_ACTIONS.md).
+
+The Q03 schema is documented in [`DATA_MODEL.md`](DATA_MODEL.md). Its status is **SQL_PREPARED_NOT_APPLIED**: migrations and pgTAP cases are reviewable, but no local/remote database has applied them yet.

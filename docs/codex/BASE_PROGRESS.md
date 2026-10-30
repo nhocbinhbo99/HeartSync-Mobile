@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-Q00–Q02 are complete at the offline/code-verified level. The verified project root is the Git repository `HeartSync-Mobile`; the Expo application lives at `heartsync/`. Q03 is the next queue checkpoint.
+Q00–Q02 are complete at the offline/code-verified level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`), so Q04 may consume its reviewed contracts without claiming a working database.
 
 | Area | Implemented | Tested locally | Tested on Android | Requires user | Next owner |
 |---|---|---|---|---|---|
@@ -10,7 +10,8 @@ Q00–Q02 are complete at the offline/code-verified level. The verified project 
 | SRS/SDS comparison | 19 UC, rules, risks, and open decisions recorded | Content extraction verified | N/A | Resolve schema/history decisions | Công + team |
 | Navigation shell + theme | Typed native stack, four bottom tabs, auth entry routes, detail placeholders, shared controls/states | TypeScript, ESLint, Expo Doctor, Android production bundle | No | Run visual/back/keyboard smoke test | Công |
 | Auth foundation | Supabase client, SQLite session storage, lifecycle refresh, email/password flows, recovery callback, guarded routes | Jest mocked tests, TypeScript, ESLint, Expo Doctor, Android production bundle | No | Create/configure development Supabase; test real email flow | Công |
-| Domain Data/Chat/Call | No | No | No | Future queue/cloud/device steps | Q03-Q06 owners |
+| Database schema/security | 14 tables, public/private split, RLS/grants, atomic swipe/unmatch/block/call RPCs, private photo policies, pgTAP plan | Static migration checks only | N/A | Start Docker/install CLI; reset/lint/test locally; review before remote apply | Công + team |
+| Domain Data/Chat/Call clients | No | No | No | Future queue/cloud/device steps | Q04-Q06 owners |
 
 ## Evidence and limitations
 
@@ -29,6 +30,14 @@ Q00–Q02 are complete at the offline/code-verified level. The verified project 
 - `npx expo config --type public`: PASS; `heartsync` scheme and SQLite/Asset plugins resolved.
 - Android production export: PASS, 1,015 modules bundled to 3 MB Hermes bytecode; generated output removed.
 - Cloud sign-up/sign-in/reset/confirmation and Android callback handling remain MANUAL_REQUIRED because no project credentials or device were provided.
+
+## Q03 validation
+
+- `supabase/tests/static_migration_checks.ps1`: PASS for 14 RLS tables, fixed-search-path definer functions, explicit RPC grants, private bucket limits, and required SQL case names.
+- Three versioned migrations and one 17-case pgTAP file are present.
+- `supabase --version`: BLOCKED (CLI not installed).
+- `docker --version`: PASS (client 29.3.0); `docker info`: BLOCKED (Docker Desktop Linux daemon not running).
+- PostgreSQL execution, `supabase db lint`, pgTAP, and generated database types: NOT RUN. No remote project was linked or changed.
 
 ## Q01 validation
 
