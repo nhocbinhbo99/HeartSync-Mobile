@@ -50,6 +50,7 @@
     "db:start": "supabase --workdir .. start",
     "db:reset": "supabase --workdir .. db reset",
     "db:test": "supabase --workdir .. test db",
+    "db:test:seed-contract": "powershell -ExecutionPolicy Bypass -File ../supabase/tests/static_demo_seed_checks.ps1",
     "db:lint": "supabase --workdir .. db lint",
     "db:types": "supabase --workdir .. gen types typescript --local"
   },

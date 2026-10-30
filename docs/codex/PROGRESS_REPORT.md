@@ -91,3 +91,4 @@ Chi tiết checkpoint: [`QUEUE_STATUS.md`](QUEUE_STATUS.md).
 - Quality gate local mới nhất: `npm run typecheck`, `npm run lint`, `npm test -- --runInBand` (16 suites / 58 tests), `npx expo config --type public` và Android Hermes export đều PASS.
 - Truy vấn chỉ đọc Query7 đã xác nhận RPC/publication/giới hạn ảnh; chưa coi đây là bằng chứng runtime cloud: vẫn cần tạo ba user synthetic A/B/C và thực hiện integration test theo vai trò.
 - Script idempotent [`../../supabase/manual/seed_synthetic_demo_profiles.sql`](../../supabase/manual/seed_synthetic_demo_profiles.sql) đã sẵn sàng để seed hồ sơ synthetic A/B/C sau khi ba Auth user được tạo; script không chứa mật khẩu và không được tự chạy trong `db reset`.
+- Lần chạy Query8 đầu tiên bị dừng bởi lỗi cú pháp seed trước mọi insert; PostgreSQL rollback toàn bộ. Lỗi `ON CONFLICT` đã được sửa và có static contract test; việc chạy lại Query8 vẫn đang chờ bằng chứng cloud.

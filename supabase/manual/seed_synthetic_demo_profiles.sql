@@ -38,8 +38,7 @@ values
   ('hiking', 'Đi bộ'),
   ('music', 'Âm nhạc'),
   ('photography', 'Nhiếp ảnh')
-on conflict (slug) do update
-do nothing;
+on conflict (slug) do nothing;
 
 with demo_profiles(email, display_name, gender, bio, occupation, education, public_location) as (
   values
