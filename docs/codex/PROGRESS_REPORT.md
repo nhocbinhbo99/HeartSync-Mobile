@@ -89,4 +89,4 @@ Chi tiết checkpoint: [`QUEUE_STATUS.md`](QUEUE_STATUS.md).
 - Migration forward [`../../supabase/migrations/20261030150000_mvp_contracts.sql`](../../supabase/migrations/20261030150000_mvp_contracts.sql) đã được áp thủ công một lần vào `heartsync-dev`; Query6 trả về `Success. No rows returned`.
 - Local code cho profile/preferences/saved, discovery/swipe/match, chat/realtime và lifecycle audio call đã được commit tại `81df91e`. Video call được ghi rõ ngoài phạm vi MVP.
 - Quality gate local mới nhất: `npm run typecheck`, `npm run lint`, `npm test -- --runInBand` (16 suites / 58 tests), `npx expo config --type public` và Android Hermes export đều PASS.
-- Chưa coi đây là bằng chứng runtime cloud: vẫn cần chạy truy vấn chỉ đọc xác nhận RPC/publication, tạo ba user synthetic A/B/C và thực hiện integration test theo vai trò.
+- Truy vấn chỉ đọc Query7 đã xác nhận RPC/publication/giới hạn ảnh; chưa coi đây là bằng chứng runtime cloud: vẫn cần tạo ba user synthetic A/B/C và thực hiện integration test theo vai trò.
