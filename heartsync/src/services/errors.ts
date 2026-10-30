@@ -32,7 +32,7 @@ export function mapServiceError(value: unknown): ApiError {
   const status = typeof value.status === 'number' ? value.status : Number.NaN;
   const message = typeof value.message === 'string' ? value.message.toLowerCase() : '';
 
-  if (status === 401 || code === 'PGRST301' || code === 'UNAUTHORIZED') return apiError('unauthorized', false);
+  if (status === 401 || code === '28000' || code === 'PGRST301' || code === 'UNAUTHORIZED') return apiError('unauthorized', false);
   if (status === 403 || code === '42501' || code === 'FORBIDDEN') return apiError('forbidden', false);
   if (status === 404 || code === 'PGRST116' || code === 'NOT_FOUND') return apiError('not_found', false);
   if (status === 409 || code === '23505' || code === 'P0001' || code === 'CONFLICT') return apiError('conflict', false);

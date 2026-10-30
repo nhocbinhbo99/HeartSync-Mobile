@@ -20,6 +20,8 @@ export class LiveKitCallGateway implements CallGateway {
   }
 
   async connect(grant: CallJoinGrant, onMediaEvent: (event: CallMediaEvent) => void): Promise<Result<void>> {
+    const validatedGrant = parseCallJoinGrant(grant);
+    if (!validatedGrant.ok) return validatedGrant;
     if (this.room) {
       return { ok: false, error: { code: 'conflict', message: 'Đã có một phiên media đang hoạt động.', retryable: false } };
     }

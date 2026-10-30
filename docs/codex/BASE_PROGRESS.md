@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q06 are complete at their stated code/offline level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`). LiveKit is `SCAFFOLD_ONLY`: dependency/config/bundle gates pass, while native build and real media remain manual.
+Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complete at their stated code/offline level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`). Q07 audit is complete, not a substitute for the blocked database/cloud/device tests.
 
 | Area | Implemented | Tested locally | Tested on Android | Requires user | Next owner |
 |---|---|---|---|---|---|
@@ -67,6 +67,15 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q06 are complet
 - Expo prebuild: PASS; generated Android manifest contains camera/microphone/audio permissions and JitPack. The verified disposable native directory was removed after inspection and can be regenerated.
 - Android Hermes export: PASS, 1,258 modules / 5 MB; verified disposable export removed.
 - Edge Function is a static template only: not served/deployed, not executed against RLS, and contains no credentials. EAS build, runtime permission flow, audio/video and two-device connectivity are MANUAL_REQUIRED.
+
+## Q07 validation and findings
+
+- TypeScript, ESLint, 14 Jest suites / 53 tests, Expo Doctor 20/20, static SQL and token gates: PASS.
+- Secret scan: no high-confidence key/private-key value; only `.env.example` templates tracked; no `EXPO_PUBLIC_*SECRET` usage; no screen directly calls table/RPC/Realtime/function APIs.
+- Fixed: authentication SQLSTATE `28000` maps to `unauthorized`; local-only `idle` no longer fits persisted call status; join grant is revalidated for expiry immediately before media connect.
+- High-priority blockers: migrations/RLS/pgTAP never executed; discovery has no secure server projection for derived age; chat adapter/Realtime publication/subscription is absent; token function has not run against auth/RLS; Android permission/media behavior is untested.
+- Dependency risk: 13 low / 3 high / 0 critical. High findings remain in the Expo CLI → Zod chain. npm offers Expo 51/Jest 25-level incompatible downgrades, so no automated fix was applied.
+- `docs/DOCUMENTATION_DELTA.md` now names exact SRS/SDS chapters/diagrams/sequences to revise. The source DOCX files remain unchanged.
 
 ## Q01 validation
 

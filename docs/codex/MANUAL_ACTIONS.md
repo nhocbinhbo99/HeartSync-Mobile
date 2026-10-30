@@ -63,3 +63,10 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] Confirm Android application ID and EAS project, then run `npx eas-cli build --profile development --platform android`; install the APK on two physical devices.
 - [ ] On both devices, verify deny/grant behavior for microphone and camera; video turns camera on only after the video call action and permission.
 - [ ] Complete bidirectional audio and video with remote tracks visible/audible, background/foreground, hang-up, network loss, unmatch, and block. Only then may Audio/Video Call be marked working.
+
+## Q07 release-blocker audit follow-up
+
+- [ ] Treat Q03 local reset/lint/pgTAP as the first security blocker; save evidence for all 17 cases before any shared development deployment.
+- [ ] Add/review a server discovery projection/RPC that derives age from private DOB without granting the client access to DOB or precise coordinates.
+- [ ] Configure and test Supabase Realtime publication only for required chat data; verify unsubscribe on route change/unmatch/block and A/B/C denial cases.
+- [ ] Track a compatible Expo SDK 58 fix for the current Zod/CLI audit chain. Do not accept the proposed Expo 51 or Jest 25 downgrade.

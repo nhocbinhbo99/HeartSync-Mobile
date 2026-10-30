@@ -58,3 +58,26 @@
 | Q06-DENO | Q06 | Edge Function runtime | `deno --version` / local serve | Type-check and execute function | Deno and Supabase CLI unavailable | BLOCKED_ENV |
 | Q06-NATIVE-BUILD | Q06 | Android development APK | EAS/local Gradle | Native project compiles and installs | No EAS login/build/device | BLOCKED_MANUAL |
 | Q06-MEDIA | Q06 | Two-device media | audio + video on two physical Android devices | Remote tracks in both directions; permission handling | Not run | BLOCKED_MANUAL |
+| Q07-AUTH-FAIL | Q07 | Auth negative path | mocked provider/Jest | Invalid login is sanitized and guard remains auth-only | Covered; no raw provider message | PASS_OFFLINE |
+| Q07-ROLE-PRIVACY | Q07 | RLS negatives | prepared pgTAP | anon/cross-user/non-match/report privacy enforced | 17 cases present; database runtime unavailable | BLOCKED_ENV |
+| Q07-DUP-MATCH | Q07 | Race/idempotency | static SQL + offline parser/adapter tests | Canonical unique match; no phantom UI | Patterns and client behavior pass; concurrent DB execution absent | PASS_STATIC_ONLY |
+| Q07-CHAT-2USER | Q07 | Authenticated chat | A/B/C integration | active A/B allowed; C and blocked denied; dedupe once | RLS cases prepared, adapter/Realtime and DB execution absent | BLOCKED_ENV |
+| Q07-MEDIA-TOKEN | Q07 | Server token boundary | static function gate | JWT, active participant, canonical room, TTL, server secret | 7 patterns PASS; function not executed/deployed | PASS_STATIC_ONLY |
+| Q07-PERMISSIONS | Q07 | Android camera/mic | development APK/device | deny/grant/retry and video-only camera behavior | Manifest generated; runtime not tested | BLOCKED_MANUAL |
+| Q07-TS-LINT-UNIT | Q07 | Local quality | typecheck/lint/Jest | All exit 0 | 14 suites / 53 tests | PASS |
+| Q07-DOCTOR | Q07 | Expo health | approved `npx expo-doctor` | 20 checks pass | 20/20 | PASS |
+| Q07-AUDIT | Q07 | Dependency security | approved `npm audit --json` | Findings triaged without breaking mutation | 13 low / 3 high / 0 critical; incompatible downgrade only | RISK |
+| Q07-SECRETS | Q07 | Secret/config scan | `rg`, tracked env/key and direct access scans | No credentials/private keys/client secrets | No high-confidence matches; example templates only | PASS |
+
+## Security notes and open quality risks
+
+No production credential was found or introduced. Mobile environment names expose only Supabase URL and publishable key. LiveKit key/secret names occur only in the Edge Function and placeholder documentation; actual values are not present. Auth routes are selected from session/recovery/setup state, and main routes are not registered for unauthenticated users.
+
+The following are release blockers, not accepted residual behavior:
+
+1. **Server enforcement unexecuted:** Q03 SQL/RLS and 17 pgTAP cases have static evidence only. Do not deploy or claim data privacy until a local reset/lint/test succeeds and the exact development project is reviewed.
+2. **Discovery projection missing:** `ProfilePublic.age` is intentionally derived, but no reviewed server view/RPC currently computes age without exposing DOB. Minh must not query `profile_private` from the client.
+3. **Chat not integrated:** no `ChatRepository` adapter, Realtime publication/subscription, pagination, or A/B/C runtime proof exists. RLS policy text alone is insufficient.
+4. **Calling not integrated:** Edge Function lacks Deno/runtime evidence; invitation/accept persistence and runtime permission UX are not implemented; native APK and two-device media remain manual.
+5. **Incomplete adapters/UI:** match listing and most domain adapters return placeholders or do not exist. Existing screens provide loading/empty/error shells, not finished data flows.
+6. **Dependency advisories:** Expo CLI's transitive Zod advisory and low-severity Expo/Jest chains remain. Track compatible upstream releases; do not apply npm's breaking downgrade.

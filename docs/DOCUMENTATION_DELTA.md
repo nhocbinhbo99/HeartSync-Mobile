@@ -82,3 +82,28 @@ UC09 contains the two required internal processing steps, reverse-like verificat
 
 The reviewable Q03 proposal uses a public `profiles` table and owner-only `profile_private` table, current-state swipes, terminal unmatch/no-rematch for BASE, read-only history after unmatch, hidden history after block, and a private photo bucket. These are implementation defaults for parallel work, not a remote database claim. Items 2–4 above remain approval gates before remote apply; see `DATA_MODEL.md` and ADR-008.
 5. Approve maximum photo count, file limits, and Storage bucket visibility before profile upload is considered complete.
+
+## Q07 implementation update (supersedes Q00 “Not started” cells)
+
+The actor/use-case inventory remains **one actor / 19 use cases**. Implementation status is now:
+
+| Use cases | Verified implementation evidence | Still required |
+|---|---|---|
+| UC01–UC04 Auth | Supabase PKCE client, SQLite session persistence, guarded navigation, confirmation/recovery callbacks, sanitized failures; offline Jest PASS | development project, email and Android callback evidence |
+| UC05–UC14 Profile through Unmatch | typed routes, screens/states, repository contracts, prepared 14-table schema/RLS and atomic match/unmatch/block RPCs | adapters/UI completion; local migration, pgTAP and device tests |
+| UC15 Chat | `ChatRepository`, message identity/dedupe rule, active-match insert and participant-history RLS prepared | message adapter, Realtime publication/subscription lifecycle, A/B/C integration test |
+| UC16–UC17 Calls | finite state machine, exact LiveKit packages/plugins/permissions, server-token gateway and Edge Function template; prebuild/bundle PASS | Deno/function execution, EAS APK, runtime permissions and two-device audio/video |
+| UC18–UC19 Block/Report | prepared atomic block RPC and private report RLS/pgTAP cases | executed PostgreSQL tests and feature UI |
+
+The source and tests, rather than placeholder diagrams, now require these document edits:
+
+1. **SRS Chapter 4 / Use Case Diagram:** retain only actor “Người dùng” connected to UC01–UC19. Do not add a separate Auth actor or split reverse-like/match creation from UC09.
+2. **SRS Chapter 5 / BR-12 and UC preconditions:** replace conditional 18+ wording with the enforced eligibility rule; distinguish code/offline evidence from cloud/device acceptance.
+3. **SDS Class Diagram:** replace generic or ambiguous `id2`-style attributes with semantic IDs and associations (`user_id`, `profile_id`, `owner_id`, `target_id`, `match_id`, `caller_id`, `callee_id`, `user_low_id`, `user_high_id`). Keep `ProfilePublic` separate from `ProfilePrivate`; DOB and precise coordinates are not public fields.
+4. **SDS ERD / database chapter:** reflect all 14 prepared public tables, enum/nullability/unique/check constraints, private `profile-photos` bucket, and canonical `(user_low_id, user_high_id)` match key. Label this diagram **prepared, not deployed** until `supabase db reset` and pgTAP pass.
+5. **SDS Sequence — Like/Match:** show client → `record_swipe` security-definer RPC → eligibility/block checks → advisory pair lock → swipe upsert → reverse-like lookup → unique Match insert → discriminated result. The client never inserts Match or shows MatchFound without confirmed `match_id`.
+6. **SDS Sequence — Chat:** database message is source of truth; each send includes `matchId` and `clientMessageId`, RLS verifies an active match, Realtime merges/deduplicates, and subscription cleanup occurs on route/match/unmount. Realtime publication is not implemented yet.
+7. **SDS Sequence/State — Call:** document `idle → ringing → accepted → connecting → connected → ended`, plus rejected/missed/failed. `connected` comes only from a remote media track event. Token flow is app → authenticated Edge Function → active-pair RLS → five-minute LiveKit token; API secret remains server-side.
+8. **SDS UI Navigation figure:** replace placeholder navigation with `RootStack` auth/setup/recovery/main modes, tabs `Discover/Saved/Matches/Profile`, and typed detail routes `EditProfile`, `Filters`, `OtherProfile`, `Chat`, `AudioCall`, `VideoCall`, `MatchFound`, `Safety`.
+
+The Word SRS/SDS files in `docs/reference/` were **not edited**. Their DOCX visual layout also remains unverified because LibreOffice is unavailable. This Markdown delta is the implementation-to-document handoff, not a claim that the source documents have been revised.

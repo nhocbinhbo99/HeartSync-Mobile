@@ -60,3 +60,10 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-30 | Q06 | Android production export | 0 | 1,258 modules; 5 MB Hermes bundle; verified disposable output removed |
 | 2026-10-30 | Q06 | `static_livekit_function_checks.ps1`; `npm ls --depth=0` | 0 | 7 token-function security patterns PASS; package tree valid |
 | 2026-10-30 | Q06 | `deno --version` | 1 | BLOCKED_ENV: Deno not installed, so Edge Function type/runtime execution was not performed |
+| 2026-10-30 | Q07 | Review navigation/auth, public/private fields, match race, RLS, chat/call lifecycle and permission boundaries | 0 | Fixed SQLSTATE 28000 mapping, persistent/local call-state type mismatch, and expired-grant revalidation; recorded unimplemented integration gaps |
+| 2026-10-30 | Q07 | TypeScript, ESLint, Jest | 0 | PASS; 14 suites / 53 tests |
+| 2026-10-30 | Q07 | Static migration and LiveKit function gates | 0 | 14 RLS tables / 4 RPCs and 7 token checks PASS_STATIC_ONLY |
+| 2026-10-30 | Q07 | approved Expo Doctor | 0 | 20/20 checks PASS |
+| 2026-10-30 | Q07 | approved `npm audit --json` | 1 | 13 low, 3 high, 0 critical; Zod/Expo CLI and test-tool chains; proposed fixes are incompatible downgrades, no force fix |
+| 2026-10-30 | Q07 | high-confidence secret, tracked env/key, public-secret-name and direct-screen-data-access scans | 0 | No secret value, private key, client secret name, or direct screen query matched; only two tracked `.env.example` templates |
+| 2026-10-30 | Q07 | Update implementation-to-SRS/SDS delta | 0 | One actor/19 UCs retained; exact Class/ERD/Match/Chat/Call/Navigation edits listed; DOCX files explicitly unchanged |
