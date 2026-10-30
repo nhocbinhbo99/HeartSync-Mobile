@@ -45,3 +45,9 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-30 | Q04 | Add domain types/helpers, six service boundaries, safe error mapping, minimal atomic swipe adapter and DEMO_ONLY fixtures | 0 | Screen-to-service boundary documented; match creation remains server-only |
 | 2026-10-30 | Q04 | `npm run typecheck`; `npm run lint`; `npm test -- --ci` | 0 | PASS; 13 suites / 46 tests, including 32 Q04 invariant/adapter assertions |
 | 2026-10-30 | Q04 | `npx expo-doctor --verbose` | 1 | BLOCKED_ENV: produced no output for 60 seconds during registry checks and was interrupted; prior Q02 Doctor was 20/20 and no package changed in Q04 |
+| 2026-10-30 | Q05 | `npm ci` sandbox, then approved retry | 1 then 0 | Initial Windows EPERM; retry installed 1,298 packages from lockfile, audited 1,299 |
+| 2026-10-30 | Q05 | TypeScript, ESLint, Jest | 0 | PASS; 13 suites / 46 tests |
+| 2026-10-30 | Q05 | `npx expo-doctor` | 1 | BLOCKED_ENV: registry phase emitted no output for 60 seconds; interrupted |
+| 2026-10-30 | Q05 | `npm audit --json` sandbox, then approved network retry | 1 | Read-only audit completed: 12 low, 3 high, 0 critical; offered fixes are incompatible major downgrades; no force fix |
+| 2026-10-30 | Q05 | Git/path/env checks | 0 | No tracked `mobile/`; only `.env.example` tracked; lockfile unchanged; diff check clean |
+| 2026-10-30 | Q05 | Create README links, Windows/Android setup and role/issue handoff | 0 | Marked `BASE_READY_FOR_PARALLEL_WORK` with database/cloud/device blockers explicit |

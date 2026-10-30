@@ -41,3 +41,10 @@
 | Q04-NO-PHANTOM | Q04 | Match safety | Swipe parser + repository tests | Match UI requires confirmed server `match_id` | Missing ID and mismatched outcomes rejected | PASS |
 | Q04-RLS-INTEGRATION | Q04 | Server security | Local Supabase pgTAP | Client contracts and RLS agree | Not runnable until Q03 environment exists | BLOCKED |
 | Q04-DOCTOR | Q04 | Expo health | `npx expo-doctor --verbose` | Complete registry checks | No output for 60 seconds; interrupted | BLOCKED_ENV |
+| Q05-INSTALL | Q05 | Reproducible install | `npm ci` | Install from committed lockfile | Sandbox EPERM; approved retry installed 1,298 packages | PASS |
+| Q05-TS | Q05 | Type safety | `npm run typecheck` | Exit 0 | Exit 0 | PASS |
+| Q05-LINT | Q05 | Static analysis | `npm run lint` | Exit 0 | Exit 0 | PASS |
+| Q05-UNIT | Q05 | Jest | `npm test -- --ci` | All tests pass | 13 suites / 46 tests | PASS |
+| Q05-DOCTOR | Q05 | Expo health | `npx expo-doctor` | Complete all checks | Registry phase produced no output for 60 seconds | BLOCKED_ENV |
+| Q05-AUDIT | Q05 | Dependency security | approved `npm audit --json` | Record without forced mutation | 12 low / 3 high / 0 critical; incompatible fixes only | RISK |
+| Q05-GIT | Q05 | Repository hygiene | tracked path/env/lock/diff checks | No old path/secrets/lock drift | No tracked `mobile`; template-only env; unchanged lock; clean diff check | PASS |

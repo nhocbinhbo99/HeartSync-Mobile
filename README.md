@@ -4,7 +4,7 @@ HeartSync is an Android-first dating application built with Expo SDK 58, React N
 
 ## Current status
 
-Q00 establishes the verified baseline and naming. Q01 adds the typed navigation/theme shell. Q02 adds an offline-tested Supabase auth foundation, SQLite-backed session persistence, guarded routes, and password-recovery deep links. Cloud authentication is still manual-required until a real development project and redirect allowlist are configured. Supabase domain data, realtime chat, and LiveKit calling must not be treated as working until their later checkpoints.
+**Milestone: `BASE_READY_FOR_PARALLEL_WORK`.** Q00–Q02 and Q04–Q05 are code/offline verified. Q03 migrations and RLS are reviewable but remain `SQL_PREPARED_NOT_APPLIED`; therefore real discovery, match, chat, and call data are **not working yet**. Cloud auth still requires a development Supabase project, redirect allowlist, and Android test. LiveKit feasibility is Q06 and must not be presented as a connected call.
 
 ## Local baseline commands
 
@@ -33,3 +33,11 @@ Without these variables, HeartSync intentionally displays a setup-required scree
 Progress and blockers are tracked in [`docs/codex/QUEUE_STATUS.md`](docs/codex/QUEUE_STATUS.md). Manual steps are tracked in [`docs/codex/MANUAL_ACTIONS.md`](docs/codex/MANUAL_ACTIONS.md).
 
 The Q03 schema is documented in [`DATA_MODEL.md`](DATA_MODEL.md). Its status is **SQL_PREPARED_NOT_APPLIED**: migrations and pgTAP cases are reviewable, but no local/remote database has applied them yet.
+
+## Team entry points
+
+- Công — auth, profile, photos, preferences/saved and database review.
+- Minh — discovery deck, filters, swipe/match and match-found flow.
+- Hảo — matches, realtime chat, message dedupe and audio/video call flow.
+
+Start with [`docs/TEAM_HANDOFF.md`](docs/TEAM_HANDOFF.md), then follow [`docs/SETUP_MANUAL.md`](docs/SETUP_MANUAL.md). Architecture contracts are in [`ARCHITECTURE.md`](ARCHITECTURE.md); product and UI direction are in [`PRODUCT.md`](PRODUCT.md) and [`DESIGN.md`](DESIGN.md).

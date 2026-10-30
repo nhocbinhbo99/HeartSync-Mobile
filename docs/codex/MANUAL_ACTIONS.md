@@ -43,3 +43,14 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] Công, Minh, and Hảo review `ARCHITECTURE.md` plus `heartsync/src/services/contracts.ts`; agree before changing a shared interface or error code.
 - [ ] Confirm the base business policy: unmatch is terminal/no-rematch, blocked pairs cannot see history, profile age is derived server-side while exact DOB remains private, and call UI is not connected until the media SDK confirms it.
 - [ ] When implementing feature UI, inject repository/gateway interfaces. Do not import Supabase/Realtime/LiveKit directly from screens and do not add a production fallback to `DEMO_ONLY_PROFILES`.
+
+## Q05 team/cloud handoff
+
+- [ ] Record the development Supabase project reference and selected **Region** in the private team channel; put only URL and publishable key in local `heartsync/.env` files.
+- [ ] After local migration review/tests pass and the exact development target is approved, apply migrations using the team's documented workflow and save non-secret command output.
+- [ ] Create at least three synthetic test users A/B/C (18+) to verify dual-like matching, non-match chat denial, unmatch, block, and report privacy. Do not use personal identities.
+- [ ] Add synthetic/license-safe demo images to the private development bucket only after storage policies execute; never commit real-person images.
+- [ ] If proceeding with LiveKit, create a Cloud project in Q06 and keep URL/API credentials server-side. Never place its API secret in Expo public variables.
+- [ ] Log in/link EAS only after confirming `com.nhocbinhbo99.heartsync`; build/install a development APK and retain quota/build URL privately.
+- [ ] Invite project/repository collaborators, confirm each invitation is accepted, create the agreed feature branches/issues, and enable pull-request protection plus required typecheck/lint/test checks for `main`.
+- [ ] Follow `docs/SETUP_MANUAL.md` and record Android/cloud evidence without secrets or personal data.

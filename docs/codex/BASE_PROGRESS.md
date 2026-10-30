@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-Q00–Q02 and Q04 are complete at the offline/code-verified level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`). Q04 consumes its reviewed contracts without claiming a working database. Q05 is the next queue checkpoint.
+Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q05 are complete at the offline/code-verified level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`). Minh/Hảo may build UI against typed contracts without waiting for Q06, while real database/media acceptance remains blocked.
 
 | Area | Implemented | Tested locally | Tested on Android | Requires user | Next owner |
 |---|---|---|---|---|---|
@@ -12,6 +12,7 @@ Q00–Q02 and Q04 are complete at the offline/code-verified level. Q03 is prepar
 | Auth foundation | Supabase client, SQLite session storage, lifecycle refresh, email/password flows, recovery callback, guarded routes | Jest mocked tests, TypeScript, ESLint, Expo Doctor, Android production bundle | No | Create/configure development Supabase; test real email flow | Công |
 | Database schema/security | 14 tables, public/private split, RLS/grants, atomic swipe/unmatch/block/call RPCs, private photo policies, pgTAP plan | Static migration checks only | N/A | Start Docker/install CLI; reset/lint/test locally; review before remote apply | Công + team |
 | Domain Data/Chat/Call contracts | Domain types, six interfaces, stable errors, atomic swipe adapter, call/message invariants | TypeScript, ESLint, Jest 13 suites/46 tests | No | Review boundary decisions; database/device integration remains pending | Công + Minh + Hảo |
+| Team onboarding | Root quick start, Windows/Android/Supabase manual, ownership and copy-ready issue proposals | Commands/path/env links reviewed; Q05 QA gate below | No | Create cloud projects, test identities, branches/protection | Công + team |
 
 ## Evidence and limitations
 
@@ -46,6 +47,15 @@ Q00–Q02 and Q04 are complete at the offline/code-verified level. Q03 is prepar
 - `npm test -- --ci`: PASS, 13 suites / 46 tests. Q04 covers age 18+, filter bounds, canonical pairs, call transitions, safe errors, message dedupe, swipe parsing, server RPC use, and no phantom match.
 - `npx expo-doctor --verbose`: BLOCKED_ENV on this run because the registry check emitted no output for 60 seconds; interrupted rather than claiming PASS. Q04 changed no package manifest or native config.
 - No PostgreSQL/RLS integration or real media test is claimed. `DEMO_ONLY` fixtures are isolated and are not imported by any production adapter.
+
+## Q05 validation
+
+- `npm ci`: PASS after an approved retry outside Windows sandbox; 1,298 packages installed and lockfile unchanged.
+- `npm run typecheck`, `npm run lint`, `npm test -- --ci`: PASS; 13 suites / 46 tests.
+- Git/path/env checks: PASS; no tracked `mobile/`, only `heartsync/.env.example` is tracked, package lock unchanged, and diff whitespace check clean.
+- `npm audit --json`: completed read-only with 12 low / 3 high / 0 critical. The suggested remediations are incompatible major downgrades (Expo 51/Jest 25), so no force fix was applied.
+- `npx expo-doctor`: BLOCKED_ENV because the registry phase emitted no output for 60 seconds twice; last completed Q02 result remains 20/20, but Q05 does not claim a fresh PASS.
+- `docs/TEAM_HANDOFF.md` and `docs/SETUP_MANUAL.md` make UI work independently actionable; no remote issue, branch, build, project, or migration was created.
 
 ## Q01 validation
 
