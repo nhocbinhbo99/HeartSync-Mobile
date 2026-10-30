@@ -8,6 +8,6 @@
 | Q03 | SQL migrations + RLS + data types | PARTIAL — SQL_PREPARED_NOT_APPLIED | 3 migrations; 14-table static RLS gate PASS; 17 pgTAP cases prepared | BLOCKED: Supabase CLI absent, Docker daemon stopped; no local/remote apply | 2026-10-30 |
 | Q04 | Domain contracts + repositories | DONE | Typed boundaries; TypeScript/lint PASS; Jest 13 suites/46 tests PASS | Server/RLS integration remains blocked with Q03; Expo Doctor registry check hung on this run | 2026-10-30 |
 | Q05 | Early team handoff + QA | DONE — BASE_READY_FOR_PARALLEL_WORK | `npm ci`, TS, lint, 46 tests PASS; README/setup/handoff delivered | Doctor registry check blocked; Supabase/Android/EAS remain manual | 2026-10-30 |
-| Q06 | LiveKit/EAS feasibility | PENDING | | | 2026-10-29 |
+| Q06 | LiveKit/EAS feasibility | DONE — SCAFFOLD_ONLY | Exact compatible packages; config/prebuild/bundle; 14 suites/52 tests; Doctor 20/20 | MANUAL_REQUIRED: deploy function, EAS native build, permissions and two-device media | 2026-10-30 |
 | Q07 | Quality + security review | PENDING | | | 2026-10-29 |
 | Q08 | Final release notes + next actions | PENDING | | | 2026-10-29 |

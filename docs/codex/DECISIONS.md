@@ -53,3 +53,12 @@
 - **Decision:** Split public profile fields from owner-only DOB/coordinates; keep a current-state swipe row; serialize pair swipes with a transaction advisory lock; make unmatch terminal in BASE; preserve read-only history after unmatch but hide it after block; keep profile photos in a private bucket.
 - **Reason:** RLS cannot hide columns, concurrent likes must not create phantom/duplicate matches, and unresolved rematch/history behavior needs a conservative deterministic base contract.
 - **Trade-off:** Rematch requires a future migration/product decision. Blocking hides client history without deleting evidence. Claimed age is constrained to 18+ but is not identity-verified.
+
+## ADR-009 Q06 LiveKit and Expo development-build baseline
+
+- **Status:** Accepted for scaffold; real media remains unverified
+- **Decision:** Pin `@livekit/react-native` 3.1.0, `@livekit/react-native-webrtc` 150.1.1, `livekit-client` 2.23.0, `@livekit/react-native-expo-plugin` 1.1.0, and `@config-plugins/react-native-webrtc` 15.0.2 with Expo SDK 58 / React Native 0.88.1. Register globals before application modules, configure camera/microphone/audio permissions, and use only development/preview APK builds for this native stack.
+- **Compatibility evidence (checked 2026-10-30):** npm registry metadata reports RN SDK 3.1.0 peers `livekit-client ^2.20.0` and WebRTC `^150.1.0`; plugin 1.1.0 supports RN SDK `^2.1 || ^3`; WebRTC config plugin 15.0.2 requires Expo `>=56`. Official LiveKit Expo plugin instructions require these two config plugins and LiveKit documents `registerGlobals()` before use.
+- **Security boundary:** The mobile app invokes a Supabase Edge Function. It never signs a LiveKit token or stores API secrets. The template validates the user JWT, active-match RLS visibility, participant identity, canonical room, and five-minute TTL.
+- **Media truth:** `Room.connect()` is signaling only. The gateway emits `connected` only after a remote track is subscribed. Final acceptance requires permission behavior, native compilation, and two physical Android devices; none is claimed by this ADR.
+- **Sources:** [LiveKit Expo plugin](https://github.com/livekit/client-sdk-react-native-expo-plugin/blob/main/README.md), [LiveKit React Native SDK](https://www.npmjs.com/package/@livekit/react-native), [Supabase authorization headers](https://supabase.com/docs/guides/functions/auth-headers), [Supabase auth context](https://supabase.com/docs/guides/functions/auth-legacy-jwt).

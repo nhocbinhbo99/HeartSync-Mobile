@@ -1,4 +1,5 @@
 import { registerRootComponent } from 'expo';
+import './src/services/livekit/bootstrap';
 
 import App from './App';
 

@@ -48,3 +48,13 @@
 | Q05-DOCTOR | Q05 | Expo health | `npx expo-doctor` | Complete all checks | Registry phase produced no output for 60 seconds | BLOCKED_ENV |
 | Q05-AUDIT | Q05 | Dependency security | approved `npm audit --json` | Record without forced mutation | 12 low / 3 high / 0 critical; incompatible fixes only | RISK |
 | Q05-GIT | Q05 | Repository hygiene | tracked path/env/lock/diff checks | No old path/secrets/lock drift | No tracked `mobile`; template-only env; unchanged lock; clean diff check | PASS |
+| Q06-PEERS | Q06 | Compatibility | npm registry peer metadata + `npm ls` | Selected versions satisfy direct peers | RN 3.1.0 / WebRTC 150.1.1 / client 2.23.0 deduped; Expo plugin ranges satisfied | PASS |
+| Q06-TS-LINT | Q06 | Static quality | `npm run typecheck`; `npm run lint` | Exit 0 | Exit 0 | PASS |
+| Q06-UNIT | Q06 | Call FSM/grant | `npm test -- --ci` | Invalid transitions/grants rejected | 14 suites / 52 tests | PASS |
+| Q06-CONFIG | Q06 | Expo/native config | public config + Android prebuild | Plugins/permissions resolve | CAMERA, RECORD_AUDIO, MODIFY_AUDIO_SETTINGS and JitPack generated | PASS |
+| Q06-DOCTOR | Q06 | Expo health | approved `npx expo-doctor` | 20 checks pass | 20/20 | PASS |
+| Q06-BUNDLE | Q06 | Android JS/Hermes | `npx expo export --platform android` | LiveKit bootstrap bundles | 1,258 modules / 5 MB HBC | PASS |
+| Q06-FUNCTION | Q06 | Token server | static script + code review | JWT/active match/participant/TTL checks, no client secret | Template prepared; runtime unavailable | PASS_STATIC_ONLY |
+| Q06-DENO | Q06 | Edge Function runtime | `deno --version` / local serve | Type-check and execute function | Deno and Supabase CLI unavailable | BLOCKED_ENV |
+| Q06-NATIVE-BUILD | Q06 | Android development APK | EAS/local Gradle | Native project compiles and installs | No EAS login/build/device | BLOCKED_MANUAL |
+| Q06-MEDIA | Q06 | Two-device media | audio + video on two physical Android devices | Remote tracks in both directions; permission handling | Not run | BLOCKED_MANUAL |

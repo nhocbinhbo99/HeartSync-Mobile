@@ -51,3 +51,12 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-30 | Q05 | `npm audit --json` sandbox, then approved network retry | 1 | Read-only audit completed: 12 low, 3 high, 0 critical; offered fixes are incompatible major downgrades; no force fix |
 | 2026-10-30 | Q05 | Git/path/env checks | 0 | No tracked `mobile/`; only `.env.example` tracked; lockfile unchanged; diff check clean |
 | 2026-10-30 | Q05 | Create README links, Windows/Android setup and role/issue handoff | 0 | Marked `BASE_READY_FOR_PARALLEL_WORK` with database/cloud/device blockers explicit |
+| 2026-10-30 | Q06 | Official LiveKit/Supabase docs plus npm peer metadata review | 0 | Locked RN 3.1.0, WebRTC 150.1.1, client 2.23.0, Expo plugin 1.1.0, config plugin 15.0.2; declared peers compatible with Expo 58/RN 0.88.1 |
+| 2026-10-30 | Q06 | `npx expo install` exact LiveKit set; `npm ls` | 0 | 44 packages added; required peers deduped correctly; audit now reports 13 low/3 high |
+| 2026-10-30 | Q06 | Add globals bootstrap, permissions/plugins, EAS profiles, typed gateway and JWT/active-match Edge Function template | 0 | Tokens remain server-side; `connected` emitted only for subscribed remote media track |
+| 2026-10-30 | Q06 | TypeScript, ESLint, Jest, Expo public config | 0 | PASS; 14 suites / 52 tests; Android permissions/plugins resolved |
+| 2026-10-30 | Q06 | `npx expo prebuild --platform android --no-install` | 0 | Config plugin generated Android project with CAMERA/RECORD_AUDIO/MODIFY_AUDIO_SETTINGS and JitPack; verified disposable output removed |
+| 2026-10-30 | Q06 | approved `npx expo-doctor` | 0 | 20/20 checks PASS |
+| 2026-10-30 | Q06 | Android production export | 0 | 1,258 modules; 5 MB Hermes bundle; verified disposable output removed |
+| 2026-10-30 | Q06 | `static_livekit_function_checks.ps1`; `npm ls --depth=0` | 0 | 7 token-function security patterns PASS; package tree valid |
+| 2026-10-30 | Q06 | `deno --version` | 1 | BLOCKED_ENV: Deno not installed, so Edge Function type/runtime execution was not performed |

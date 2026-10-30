@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q05 are complete at the offline/code-verified level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`). Minh/Hảo may build UI against typed contracts without waiting for Q06, while real database/media acceptance remains blocked.
+Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q06 are complete at their stated code/offline level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`). LiveKit is `SCAFFOLD_ONLY`: dependency/config/bundle gates pass, while native build and real media remain manual.
 
 | Area | Implemented | Tested locally | Tested on Android | Requires user | Next owner |
 |---|---|---|---|---|---|
@@ -13,6 +13,7 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q05 are complet
 | Database schema/security | 14 tables, public/private split, RLS/grants, atomic swipe/unmatch/block/call RPCs, private photo policies, pgTAP plan | Static migration checks only | N/A | Start Docker/install CLI; reset/lint/test locally; review before remote apply | Công + team |
 | Domain Data/Chat/Call contracts | Domain types, six interfaces, stable errors, atomic swipe adapter, call/message invariants | TypeScript, ESLint, Jest 13 suites/46 tests | No | Review boundary decisions; database/device integration remains pending | Công + Minh + Hảo |
 | Team onboarding | Root quick start, Windows/Android/Supabase manual, ownership and copy-ready issue proposals | Commands/path/env links reviewed; Q05 QA gate below | No | Create cloud projects, test identities, branches/protection | Công + team |
+| LiveKit/EAS feasibility | Exact version locks, native config plugins/permissions, bootstrap, APK profiles, typed gateway, Edge Function template | TypeScript/lint, 52 tests, Expo config, prebuild, Doctor 20/20, Android Hermes export | No | Configure server secrets, deploy, build development APK, test two devices | Hảo + Công |
 
 ## Evidence and limitations
 
@@ -56,6 +57,16 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q05 are complet
 - `npm audit --json`: completed read-only with 12 low / 3 high / 0 critical. The suggested remediations are incompatible major downgrades (Expo 51/Jest 25), so no force fix was applied.
 - `npx expo-doctor`: BLOCKED_ENV because the registry phase emitted no output for 60 seconds twice; last completed Q02 result remains 20/20, but Q05 does not claim a fresh PASS.
 - `docs/TEAM_HANDOFF.md` and `docs/SETUP_MANUAL.md` make UI work independently actionable; no remote issue, branch, build, project, or migration was created.
+
+## Q06 validation
+
+- Current official/registry peer ranges were checked before install and recorded in ADR-009; five native/client packages are exact-version locked.
+- `npm ls` shows the selected LiveKit client and WebRTC packages deduped under RN SDK 3.1.0.
+- TypeScript, ESLint, Expo public config and `npx expo-doctor`: PASS; Doctor 20/20.
+- Jest: PASS, 14 suites / 52 tests, including full call-state and short-lived grant parsing.
+- Expo prebuild: PASS; generated Android manifest contains camera/microphone/audio permissions and JitPack. The verified disposable native directory was removed after inspection and can be regenerated.
+- Android Hermes export: PASS, 1,258 modules / 5 MB; verified disposable export removed.
+- Edge Function is a static template only: not served/deployed, not executed against RLS, and contains no credentials. EAS build, runtime permission flow, audio/video and two-device connectivity are MANUAL_REQUIRED.
 
 ## Q01 validation
 

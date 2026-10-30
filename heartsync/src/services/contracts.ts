@@ -65,6 +65,7 @@ export type CallJoinGrant = {
   accessToken: string;
   roomName: string;
   identity: string;
+  callType: CallType;
   expiresAt: string;
 };
 

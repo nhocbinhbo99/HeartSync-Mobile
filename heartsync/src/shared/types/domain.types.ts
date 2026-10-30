@@ -6,7 +6,8 @@
 export type SwipeAction = 'like' | 'pass';
 export type MatchStatus = 'active' | 'unmatched';
 export type CallType = 'audio' | 'video';
-export type CallStatus = 'ringing' | 'accepted' | 'rejected' | 'missed' | 'connecting' | 'connected' | 'ended' | 'failed';
+/** UI/media state; `idle` is local and is not persisted in the SQL call_status enum. */
+export type CallStatus = 'idle' | 'ringing' | 'accepted' | 'rejected' | 'missed' | 'connecting' | 'connected' | 'ended' | 'failed';
 
 export type ProfilePhoto = {
   id: string;
