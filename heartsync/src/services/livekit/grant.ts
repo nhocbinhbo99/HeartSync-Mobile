@@ -16,7 +16,7 @@ export function parseCallJoinGrant(value: unknown, now = new Date()): Result<Cal
     typeof grant.accessToken !== 'string' ||
     grant.accessToken.length < 20 ||
     typeof grant.roomName !== 'string' ||
-    !grant.roomName.startsWith('match:') ||
+    !grant.roomName.startsWith('call:') ||
     typeof grant.identity !== 'string' ||
     grant.identity.length === 0 ||
     !isCallType(grant.callType) ||

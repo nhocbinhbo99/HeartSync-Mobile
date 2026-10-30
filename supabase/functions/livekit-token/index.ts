@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { AccessToken } from 'npm:livekit-server-sdk@2';
 
-type RequestBody = { matchId?: unknown; callType?: unknown };
+type RequestBody = { callId?: unknown; callType?: unknown };
 
 const headers = { 'Content-Type': 'application/json' };
 const respond = (status: number, body: object) => Response.json(body, { status, headers });
@@ -26,7 +26,7 @@ Deno.serve(async (request: Request) => {
   } catch {
     return respond(400, { error: 'INVALID_REQUEST' });
   }
-  if (typeof body.matchId !== 'string' || (body.callType !== 'audio' && body.callType !== 'video')) {
+  if (typeof body.callId !== 'string' || body.callType !== 'audio') {
     return respond(400, { error: 'INVALID_REQUEST' });
   }
 
@@ -38,19 +38,21 @@ Deno.serve(async (request: Request) => {
   const { data: authData, error: authError } = await callerClient.auth.getUser(token);
   if (authError || !authData.user) return respond(401, { error: 'UNAUTHORIZED' });
 
-  const { data: match, error: matchError } = await callerClient
-    .from('matches')
-    .select('id,user_low_id,user_high_id,status')
-    .eq('id', body.matchId)
-    .eq('status', 'active')
+  const { data: call, error: callError } = await callerClient
+    .from('calls')
+    .select('id,match_id,caller_id,callee_id,type,status,matches!inner(id,status,user_low_id,user_high_id)')
+    .eq('id', body.callId)
+    .eq('status', 'accepted')
     .single();
   if (
-    matchError ||
-    !match ||
-    (match.user_low_id !== authData.user.id && match.user_high_id !== authData.user.id)
+    callError ||
+    !call ||
+    call.type !== 'audio' ||
+    call.matches.status !== 'active' ||
+    (call.caller_id !== authData.user.id && call.callee_id !== authData.user.id)
   ) return respond(403, { error: 'ACTIVE_MATCH_REQUIRED' });
 
-  const roomName = `match:${match.id}`;
+  const roomName = `call:${call.id}`;
   const ttlSeconds = 5 * 60;
   const grant = new AccessToken(liveKitApiKey, liveKitApiSecret, {
     identity: authData.user.id,

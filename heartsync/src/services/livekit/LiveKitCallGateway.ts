@@ -11,9 +11,9 @@ export class LiveKitCallGateway implements CallGateway {
 
   constructor(private readonly client: SupabaseClient) {}
 
-  async requestJoinGrant(matchId: string, callType: CallType): Promise<Result<CallJoinGrant>> {
+  async requestJoinGrant(callId: string, callType: CallType): Promise<Result<CallJoinGrant>> {
     const { data, error } = await this.client.functions.invoke('livekit-token', {
-      body: { matchId, callType },
+      body: { callId, callType },
     });
     if (error) return { ok: false, error: mapServiceError(error) };
     return parseCallJoinGrant(data);

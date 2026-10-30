@@ -3,9 +3,9 @@ import { parseCallJoinGrant } from '../grant';
 const validGrant = {
   serverUrl: 'wss://example.livekit.cloud',
   accessToken: 'synthetic-token-long-enough-for-parser',
-  roomName: 'match:00000000-0000-0000-0000-000000000001',
+  roomName: 'call:00000000-0000-0000-0000-000000000001',
   identity: '00000000-0000-0000-0000-000000000002',
-  callType: 'video',
+  callType: 'audio',
   expiresAt: '2026-10-30T00:05:00.000Z',
 };
 

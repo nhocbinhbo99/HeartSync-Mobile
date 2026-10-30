@@ -19,7 +19,7 @@ export type RootStackParamList = {
   Filters: undefined;
   OtherProfile: { profileId?: string } | undefined;
   Chat: { matchId?: string } | undefined;
-  AudioCall: { matchId?: string } | undefined;
+  AudioCall: { matchId: string; callId: string; incoming?: boolean };
   VideoCall: { matchId?: string } | undefined;
   MatchFound: { matchId?: string } | undefined;
   Safety: { profileId?: string } | undefined;

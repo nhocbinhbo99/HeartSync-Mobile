@@ -2,14 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { MatchRepository } from './contracts';
 import { mapServiceError } from './errors';
 import { parseRecordSwipeResponse } from '../shared/domain/swipe';
+import { parseProfilePublic, recordValue } from './profileMapper';
 import type { MatchSummary, Page, Result, SwipeAction, SwipeResult } from '../shared/types/domain.types';
 
-const notImplemented = <T>(): Result<T> => ({
-  ok: false,
-  error: { code: 'conflict', message: 'Endpoint này chưa được triển khai trong Q04.', retryable: false },
-});
-
-/** Minimal Q04 adapter. UI code depends on MatchRepository, not this Supabase implementation. */
+/** All match mutations use server RPCs; the app never inserts a match itself. */
 export class SupabaseMatchRepository implements MatchRepository {
   constructor(private readonly client: SupabaseClient) {}
 
@@ -22,8 +18,20 @@ export class SupabaseMatchRepository implements MatchRepository {
     return parseRecordSwipeResponse(data);
   }
 
-  async listMatches(_cursor?: string): Promise<Result<Page<MatchSummary>>> {
-    return notImplemented();
+  async listMatches(cursor?: string): Promise<Result<Page<MatchSummary>>> {
+    const cursorCreatedAt = cursor ? new Date(cursor) : null;
+    if (cursor && Number.isNaN(cursorCreatedAt?.getTime())) return { ok: false, error: { code: 'validation', message: 'Trang dữ liệu không hợp lệ.', retryable: false } };
+    const { data, error } = await this.client.rpc('list_active_matches', { p_limit: 30, p_cursor_created_at: cursorCreatedAt?.toISOString() ?? null });
+    if (error) return { ok: false, error: mapServiceError(error) };
+    const rows = Array.isArray(data) ? data : [];
+    const items = rows.flatMap((row) => {
+      const item = recordValue(row);
+      const profile = parseProfilePublic(item?.other_profile);
+      if (!item || !profile || typeof item.id !== 'string' || typeof item.created_at !== 'string') return [];
+      return [{ id: item.id, otherProfile: profile, status: 'active' as const, createdAt: item.created_at, unmatchedAt: null, lastMessagePreview: typeof item.last_message_preview === 'string' ? item.last_message_preview : null }];
+    });
+    const lastCursor = recordValue(rows.at(-1))?.cursor_created_at;
+    return { ok: true, data: { items, nextCursor: typeof lastCursor === 'string' && rows.length === 30 ? lastCursor : null } };
   }
 
   async unmatch(matchId: string): Promise<Result<void>> {

@@ -33,6 +33,18 @@
       "expo-sqlite",
       "expo-asset",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "HeartSync chỉ dùng ảnh bạn chọn cho hồ sơ của bạn."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "HeartSync chỉ dùng vị trí gần đúng khi bạn bật lọc khoảng cách."
+        }
+      ],
+      [
         "@livekit/react-native-expo-plugin",
         {
           "android": {

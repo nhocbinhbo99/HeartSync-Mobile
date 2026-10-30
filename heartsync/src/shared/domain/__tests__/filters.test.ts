@@ -13,6 +13,11 @@ describe('discovery filter invariants', () => {
     expect(validateDiscoveryFilters(valid)).toEqual({ ok: true, data: valid });
   });
 
+  it('allows distance to be unavailable when location consent is absent', () => {
+    const withoutLocation = { ...valid, distanceKm: null };
+    expect(validateDiscoveryFilters(withoutLocation)).toEqual({ ok: true, data: withoutLocation });
+  });
+
   it.each([
     { ...valid, ageMin: 17 },
     { ...valid, ageMin: 36 },

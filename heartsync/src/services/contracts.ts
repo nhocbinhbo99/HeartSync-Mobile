@@ -4,9 +4,11 @@ import type {
   CallType,
   ChatMessage,
   DiscoveryFilters,
+  IncomingCall,
   MatchSummary,
   Page,
   ProfilePrivate,
+  ProfilePhoto,
   ProfilePublic,
   Result,
   SwipeAction,
@@ -28,6 +30,19 @@ export interface ProfileRepository {
   getPublic(profileId: string): Promise<Result<ProfilePublic>>;
   savePublic(profile: ProfilePublic): Promise<Result<ProfilePublic>>;
   savePrivate(profile: ProfilePrivate): Promise<Result<ProfilePrivate>>;
+  uploadPhoto(profileId: string, sourceUri: string, sortOrder: number): Promise<Result<ProfilePhoto>>;
+  deletePhoto(photo: ProfilePhoto): Promise<Result<void>>;
+  createPhotoUrl(storagePath: string): Promise<Result<string>>;
+}
+
+export interface PreferencesRepository {
+  get(): Promise<Result<DiscoveryFilters>>;
+  save(filters: DiscoveryFilters): Promise<Result<DiscoveryFilters>>;
+}
+
+export interface SavedProfilesRepository {
+  list(cursor?: string): Promise<Result<Page<ProfilePublic>>>;
+  setSaved(targetProfileId: string, saved: boolean): Promise<Result<void>>;
 }
 
 export interface DiscoveryRepository {
@@ -77,8 +92,16 @@ export type CallMediaEvent =
 
 export interface CallGateway {
   /** Requests a short-lived token from a trusted server/Edge Function; never signs locally. */
-  requestJoinGrant(matchId: string, callType: CallType): Promise<Result<CallJoinGrant>>;
+  requestJoinGrant(callId: string, callType: CallType): Promise<Result<CallJoinGrant>>;
   connect(grant: CallJoinGrant, onMediaEvent: (event: CallMediaEvent) => void): Promise<Result<void>>;
   disconnect(): Promise<Result<void>>;
   getSession(): CallSession | null;
+}
+
+export interface CallRepository {
+  startAudioCall(matchId: string): Promise<Result<IncomingCall>>;
+  acceptCall(callId: string): Promise<Result<IncomingCall>>;
+  rejectCall(callId: string): Promise<Result<void>>;
+  endCall(callId: string): Promise<Result<void>>;
+  subscribeIncoming(onCall: (call: IncomingCall) => void, onError: (error: ApiError) => void): MessageSubscription;
 }

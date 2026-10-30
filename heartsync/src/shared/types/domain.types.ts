@@ -44,7 +44,8 @@ export type ProfilePrivate = {
 export type DiscoveryFilters = {
   ageMin: number;
   ageMax: number;
-  distanceKm: number;
+  /** Null means location filtering is intentionally unavailable for this user. */
+  distanceKm: number | null;
   preferredGenders: string[];
   preferredLanguages: string[];
 };
@@ -82,6 +83,16 @@ export type CallSession = {
   status: PersistedCallStatus;
   startedAt: string;
   endedAt: string | null;
+};
+
+export type IncomingCall = {
+  id: string;
+  matchId: string;
+  callerId: string;
+  calleeId: string;
+  type: CallType;
+  status: PersistedCallStatus;
+  startedAt: string;
 };
 
 export type ApiErrorCode =
