@@ -4,7 +4,7 @@ HeartSync is an Android-first dating application built with Expo SDK 58, React N
 
 ## Current status
 
-**Milestone: `BASE_READY_FOR_PARALLEL_WORK`; release state: `BASE_RELEASED_WITH_BLOCKERS`.** Q00–Q02 and Q04–Q08 are complete at their documented code/offline scope. Q03 remains `SQL_PREPARED_NOT_APPLIED`, so real discovery, match and chat data are **not working yet**. Cloud auth needs a development Supabase project and Android proof. LiveKit packages/config/token scaffold compile and bundle, but Audio/Video Call is **not working/verified** until a development APK and two physical devices connect real media.
+**Milestone: `BASE_READY_FOR_PARALLEL_WORK`; release state: `BASE_RELEASED_WITH_BLOCKERS`.** Q00–Q02 and Q04–Q08 are complete at their documented code/offline scope. Q03 migrations have been manually applied and verified on the dedicated `heartsync-dev` Supabase project: 14 public tables have RLS, the private `profile-photos` bucket exists, and its 4 storage policies exist. pgTAP, database lint, generated database types, real auth/deep-link proof, and all feature integrations remain outstanding. LiveKit packages/config/token scaffold compile and bundle, but Audio/Video Call is **not working/verified** until a development APK and two physical devices connect real media.
 
 ## Local baseline commands
 
@@ -34,7 +34,7 @@ Without these variables, HeartSync intentionally displays a setup-required scree
 
 Progress and blockers are tracked in [`docs/codex/QUEUE_STATUS.md`](docs/codex/QUEUE_STATUS.md). Manual steps are tracked in [`docs/codex/MANUAL_ACTIONS.md`](docs/codex/MANUAL_ACTIONS.md). Final base changes are summarized in [`docs/BASE_RELEASE_NOTES.md`](docs/BASE_RELEASE_NOTES.md).
 
-The Q03 schema is documented in [`DATA_MODEL.md`](DATA_MODEL.md). Its status is **SQL_PREPARED_NOT_APPLIED**: migrations and pgTAP cases are reviewable, but no local/remote database has applied them yet.
+The Q03 schema is documented in [`DATA_MODEL.md`](DATA_MODEL.md). Its status is **CLOUD_APPLIED_MANUAL_VALIDATION**: the three migrations were applied in order on `heartsync-dev` and dashboard SQL verification returned 14 public tables, 14 RLS-enabled tables, 1 private profile-photo bucket, and 4 profile-photo storage policies. The local pgTAP/lint/type-generation gates remain pending.
 
 ## Team entry points
 

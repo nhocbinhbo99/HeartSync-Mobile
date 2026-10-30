@@ -23,14 +23,19 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 
 ## Q02 Supabase development setup
 
-- [ ] In [Supabase Dashboard](https://supabase.com/dashboard), create a **development** project in the closest available region to intended users. Do not use a production/shared database for this queue.
-- [ ] Open the project **Connect** panel. Copy only Project URL and publishable key into a new local `heartsync/.env`, using `heartsync/.env.example` as the template. Never put `service_role`, `sb_secret`, database password, or a LiveKit secret in the app.
+- [x] Create dedicated development project `heartsync-dev` in Supabase Dashboard. Do not use a production/shared database for this queue.
+- [x] Add only Project URL and publishable key to local `heartsync/.env`. Never put `service_role`, `sb_secret`, database password, or a LiveKit secret in the app.
 - [ ] Open **Authentication → Providers → Email** and review whether email confirmation is enabled. Record the choice for team QA.
 - [ ] Open **Authentication → URL Configuration → Additional Redirect URLs** and add exactly `heartsync://auth/callback` (confirmation) and `heartsync://auth/recovery` (password reset) for the development build.
 - [ ] Restart Metro with `npx expo start --dev-client`. Verify: sign-up (18+ confirmation), email confirmation if enabled, sign-in failure, sign-in success, app restart/session restore, sign-out, reset email, callback, and password update.
 - [ ] Mark Q02 cloud evidence complete only after testing on a development-build Android target; Expo Go does not provide the stable callback evidence required here.
 
-## Q03 local SQL review and execution
+## Q03 cloud execution evidence
+
+- [x] Review and manually apply the three migrations in order on `heartsync-dev` through Supabase SQL Editor.
+- [x] Verify 14 public tables, 14 RLS-enabled tables, the private `profile-photos` bucket and 4 related Storage policies in Dashboard SQL Editor.
+
+## Q03 local SQL review and execution (remaining evidence)
 
 - [ ] Review `DATA_MODEL.md` and approve: exact public profile fields, terminal unmatch/no-rematch, read-only history after unmatch, hidden history after block, and photo limits.
 - [ ] Start Docker Desktop and wait until the Linux engine reports healthy. Install the Supabase CLI from its official installation method; do not run an unreviewed download-and-execute pipe.

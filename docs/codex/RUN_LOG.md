@@ -79,3 +79,6 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-30 | Post-Q08 / Q03 | Static migration and LiveKit token gates | 0 | 14 RLS tables / 4 RPCs and 7 token patterns still PASS_STATIC_ONLY |
 | 2026-10-30 | Post-Q08 / Q03 | `npm ci` after CLI pin | 0 | 1,349 packages installed from lockfile; 13 low / 3 high audit findings unchanged in severity; no force fix |
 | 2026-10-30 | Post-Q08 / Q03 | TypeScript, ESLint, Jest, Expo Doctor, CLI version, static gates | 0 | PASS; 14 suites / 53 tests; Doctor 20/20; CLI 2.122.0; static SQL/function gates PASS |
+| 2026-10-30 | Post-Q08 / Q03 | Create dedicated `heartsync-dev` Supabase cloud project and manually apply three migrations in SQL Editor | 0 | PASS_MANUAL: all three migration queries returned success; no secret/service-role key recorded |
+| 2026-10-30 | Post-Q08 / Q03 | Dashboard verification query | 0 | PASS_MANUAL: 14 public tables, 14 RLS-enabled tables, 1 private profile-photo bucket, 4 storage policies |
+| 2026-10-30 | Post-Q08 / Q03 | `npm run typecheck`; `npm run lint`; `npm test -- --runInBand`; Android cloud export | 0 | PASS: TypeScript/lint, 14 suites/53 tests, and 1,258-module/5 MB Android Hermes bundle; first sandboxed export failed only because AppData temp writes were denied, retry succeeded |

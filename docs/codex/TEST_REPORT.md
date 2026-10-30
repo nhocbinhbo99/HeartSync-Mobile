@@ -75,7 +75,7 @@ No production credential was found or introduced. Mobile environment names expos
 
 The following are release blockers, not accepted residual behavior:
 
-1. **Server enforcement unexecuted:** Q03 SQL/RLS and 17 pgTAP cases have static evidence only. Do not deploy or claim data privacy until a local reset/lint/test succeeds and the exact development project is reviewed.
+1. **Server enforcement partially evidenced:** Q03 migrations were manually applied and the exact `heartsync-dev` dashboard verification confirmed 14 RLS-enabled tables plus private photo storage policies. The 17 pgTAP cases and database lint remain unexecuted; do not treat the dashboard count as a replacement for negative-path/RPC security testing.
 2. **Discovery projection missing:** `ProfilePublic.age` is intentionally derived, but no reviewed server view/RPC currently computes age without exposing DOB. Minh must not query `profile_private` from the client.
 3. **Chat not integrated:** no `ChatRepository` adapter, Realtime publication/subscription, pagination, or A/B/C runtime proof exists. RLS policy text alone is insufficient.
 4. **Calling not integrated:** Edge Function lacks Deno/runtime evidence; invitation/accept persistence and runtime permission UX are not implemented; native APK and two-device media remain manual.
@@ -103,3 +103,6 @@ The following are release blockers, not accepted residual behavior:
 | Q03-DOCKER-RETRY | local engine | Docker Desktop 4.66.0 backend crashes during Inference manager initialization | BLOCKED_ENV |
 | Q03-SQL-RETRY | migration/pgTAP/lint/types | not run because Docker engine never became ready | BLOCKED_ENV |
 | Q03-CLI-CLEAN-INSTALL | reproducibility | `npm ci`, CLI version, TypeScript, lint, Jest, Doctor | 1,349 packages; CLI 2.122.0; 53 tests; Doctor 20/20 | PASS |
+| Q03-CLOUD-MIGRATIONS | dedicated cloud development database | Three SQL editor queries, in migration order | `20261029194000`, `20261029194100`, `20261029194200` completed successfully on `heartsync-dev` | PASS_MANUAL |
+| Q03-CLOUD-VERIFY | dashboard SQL verification | Expected public/RLS/bucket/policy counts | 14 public tables; 14 RLS-enabled tables; 1 private `profile-photos` bucket; 4 `profile_photo_%` policies | PASS_MANUAL |
+| Q03-CLOUD-ANDROID-EXPORT | Android bundle with cloud client config | `npx expo export --platform android --output-dir dist-android-cloud-check` | 1,258 modules; 5 MB Hermes bundle; `.env` public URL/key loaded without printing secrets | PASS |

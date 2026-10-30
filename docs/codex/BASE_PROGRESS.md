@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complete at their stated code/offline level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`). Q07 audit is complete, not a substitute for the blocked database/cloud/device tests.
+Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complete at their stated code/offline level. Q03 is **CLOUD_APPLIED_MANUAL_VALIDATION**: the three migrations were applied in order to dedicated development project `heartsync-dev`, and dashboard SQL verification confirmed 14 public/RLS tables, one private photo bucket, and four Storage policies. Q07 audit is complete, not a substitute for remaining pgTAP/cloud/device tests.
 
 | Area | Implemented | Tested locally | Tested on Android | Requires user | Next owner |
 |---|---|---|---|---|---|
@@ -10,7 +10,7 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complet
 | SRS/SDS comparison | 19 UC, rules, risks, and open decisions recorded | Content extraction verified | N/A | Resolve schema/history decisions | Công + team |
 | Navigation shell + theme | Typed native stack, four bottom tabs, auth entry routes, detail placeholders, shared controls/states | TypeScript, ESLint, Expo Doctor, Android production bundle | No | Run visual/back/keyboard smoke test | Công |
 | Auth foundation | Supabase client, SQLite session storage, lifecycle refresh, email/password flows, recovery callback, guarded routes | Jest mocked tests, TypeScript, ESLint, Expo Doctor, Android production bundle | No | Create/configure development Supabase; test real email flow | Công |
-| Database schema/security | 14 tables, public/private split, RLS/grants, atomic swipe/unmatch/block/call RPCs, private photo policies, pgTAP plan | Static migration checks only | N/A | Start Docker/install CLI; reset/lint/test locally; review before remote apply | Công + team |
+| Database schema/security | 14 tables, public/private split, RLS/grants, atomic swipe/unmatch/block/call RPCs, private photo policies, pgTAP plan | Dashboard cloud migration/verification plus static migration checks | N/A | Run/reset/lint/pgTAP in local or CI PostgreSQL; generate/review DB types | Công + team |
 | Domain Data/Chat/Call contracts | Domain types, six interfaces, stable errors, atomic swipe adapter, call/message invariants | TypeScript, ESLint, Jest 13 suites/46 tests | No | Review boundary decisions; database/device integration remains pending | Công + Minh + Hảo |
 | Team onboarding | Root quick start, Windows/Android/Supabase manual, ownership and copy-ready issue proposals | Commands/path/env links reviewed; Q05 QA gate below | No | Create cloud projects, test identities, branches/protection | Công + team |
 | LiveKit/EAS feasibility | Exact version locks, native config plugins/permissions, bootstrap, APK profiles, typed gateway, Edge Function template | TypeScript/lint, 52 tests, Expo config, prebuild, Doctor 20/20, Android Hermes export | No | Configure server secrets, deploy, build development APK, test two devices | Hảo + Công |
@@ -21,7 +21,7 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complet
 - All 13 PDF mockup pages were rendered and inspected.
 - DOCX visual rendering is blocked by missing LibreOffice in the bundled runtime; content extraction succeeded.
 - No Android device test has been run.
-- No Supabase project, remote migration, EAS build, or LiveKit project has been created or changed.
+- Dedicated Supabase development project `heartsync-dev` exists; Q03 migrations were manually applied and dashboard-verified. EAS build and LiveKit project remain uncreated.
 
 ## Q02 validation
 
@@ -37,9 +37,10 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complet
 
 - `supabase/tests/static_migration_checks.ps1`: PASS for 14 RLS tables, fixed-search-path definer functions, explicit RPC grants, private bucket limits, and required SQL case names.
 - Three versioned migrations and one 17-case pgTAP file are present.
-- `supabase --version`: BLOCKED (CLI not installed).
-- `docker --version`: PASS (client 29.3.0); `docker info`: BLOCKED (Docker Desktop Linux daemon not running).
-- PostgreSQL execution, `supabase db lint`, pgTAP, and generated database types: NOT RUN. No remote project was linked or changed.
+- Supabase CLI `2.122.0` is installed locally; Docker engine remains unavailable for local execution.
+- Cloud: all three migrations were manually applied to `heartsync-dev` via SQL Editor.
+- Cloud verification: 14 public tables, 14 RLS-enabled tables, private `profile-photos` bucket, and 4 related Storage policies.
+- `supabase db lint`, 17 pgTAP cases, and generated database types: NOT RUN.
 
 ## Q04 validation
 
@@ -73,7 +74,7 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complet
 - TypeScript, ESLint, 14 Jest suites / 53 tests, Expo Doctor 20/20, static SQL and token gates: PASS.
 - Secret scan: no high-confidence key/private-key value; only `.env.example` templates tracked; no `EXPO_PUBLIC_*SECRET` usage; no screen directly calls table/RPC/Realtime/function APIs.
 - Fixed: authentication SQLSTATE `28000` maps to `unauthorized`; local-only `idle` no longer fits persisted call status; join grant is revalidated for expiry immediately before media connect.
-- High-priority blockers: migrations/RLS/pgTAP never executed; discovery has no secure server projection for derived age; chat adapter/Realtime publication/subscription is absent; token function has not run against auth/RLS; Android permission/media behavior is untested.
+- High-priority blockers: 17 pgTAP cases/database lint/generated DB types remain unexecuted; discovery has no secure server projection for derived age; chat adapter/Realtime publication/subscription is absent; token function has not run against auth/RLS; Android permission/media behavior is untested.
 - Dependency risk: 13 low / 3 high / 0 critical. High findings remain in the Expo CLI → Zod chain. npm offers Expo 51/Jest 25-level incompatible downgrades, so no automated fix was applied.
 - `docs/DOCUMENTATION_DELTA.md` now names exact SRS/SDS chapters/diagrams/sequences to revise. The source DOCX files remain unchanged.
 
