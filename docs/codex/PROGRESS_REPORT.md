@@ -6,6 +6,8 @@ Trạng thái tổng thể: **BASE_RELEASED_WITH_BLOCKERS**
 
 Mốc bàn giao: **BASE_READY_FOR_PARALLEL_WORK**
 
+Checkpoint MVP mới nhất: **MVP_LOCAL_IMPLEMENTED_CLOUD_CONTRACTS_APPLIED**
+
 ## 1. Tóm tắt
 
 Base project Q00–Q08 đã hoàn thành ở phạm vi code/offline. Ứng dụng đã có Expo SDK 58, navigation shell, Supabase Auth foundation, schema/RLS chuẩn bị sẵn, domain contracts, LiveKit scaffold, test/security audit và tài liệu bàn giao.
@@ -81,3 +83,10 @@ Chi tiết checkpoint: [`QUEUE_STATUS.md`](QUEUE_STATUS.md).
 - Commit base gần nhất: `14274de chore(database): add local Supabase CLI config`.
 - Các file prompt, `docs/reference/` và deletion `heartsync/.claude/settings.json` là trạng thái có sẵn của người dùng, không được stage/commit.
 - Báo cáo chi tiết: [`BASE_PROGRESS.md`](BASE_PROGRESS.md), [`TEST_REPORT.md`](TEST_REPORT.md), [`RUN_LOG.md`](RUN_LOG.md), [`MANUAL_ACTIONS.md`](MANUAL_ACTIONS.md).
+
+## 8. Checkpoint MVP sau Q08
+
+- Migration forward [`../../supabase/migrations/20261030150000_mvp_contracts.sql`](../../supabase/migrations/20261030150000_mvp_contracts.sql) đã được áp thủ công một lần vào `heartsync-dev`; Query6 trả về `Success. No rows returned`.
+- Local code cho profile/preferences/saved, discovery/swipe/match, chat/realtime và lifecycle audio call đã được commit tại `81df91e`. Video call được ghi rõ ngoài phạm vi MVP.
+- Quality gate local mới nhất: `npm run typecheck`, `npm run lint`, `npm test -- --runInBand` (16 suites / 58 tests), `npx expo config --type public` và Android Hermes export đều PASS.
+- Chưa coi đây là bằng chứng runtime cloud: vẫn cần chạy truy vấn chỉ đọc xác nhận RPC/publication, tạo ba user synthetic A/B/C và thực hiện integration test theo vai trò.
