@@ -77,6 +77,32 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complet
 - Dependency risk: 13 low / 3 high / 0 critical. High findings remain in the Expo CLI → Zod chain. npm offers Expo 51/Jest 25-level incompatible downgrades, so no automated fix was applied.
 - `docs/DOCUMENTATION_DELTA.md` now names exact SRS/SDS chapters/diagrams/sequences to revise. The source DOCX files remain unchanged.
 
+## Final artifact inventory
+
+- Product/design: `PRODUCT.md`, `DESIGN.md`, `.impeccable/design.json`.
+- Architecture/data: `ARCHITECTURE.md`, `DATA_MODEL.md`, `supabase/migrations/`, `supabase/tests/`, `supabase/functions/livekit-token/`.
+- Team/startup: `README.md`, `docs/SETUP_MANUAL.md`, `docs/TEAM_HANDOFF.md`, `docs/BASE_RELEASE_NOTES.md`.
+- Evidence/governance: `docs/DOCUMENTATION_DELTA.md` and all files in `docs/codex/`.
+- Mobile base: typed navigation/auth/theme/states/contracts/domain tests/LiveKit scaffold under `heartsync/`.
+
+## Known bugs and release blockers
+
+1. `SupabaseMatchRepository.listMatches` intentionally returns not-implemented; most repository adapters are still interfaces.
+2. No discovery RPC/view derives `ProfilePublic.age`; client access to private DOB is forbidden.
+3. Chat Realtime publication, adapter, subscription cleanup and integration tests are absent.
+4. Token function and SQL are static-only because Supabase CLI/Deno/Docker database runtime were unavailable.
+5. Android UI/auth/runtime-permission/media behavior has not been tested on a device; no EAS build exists.
+6. npm audit remains 13 low / 3 high; the currently offered automatic fixes are incompatible downgrades.
+
+## Work Codex can continue after leader input
+
+- After Docker/CLI are available: run local reset/lint/pgTAP, repair SQL, generate reviewed database types, and update evidence.
+- After a development Supabase URL/publishable key is configured locally: implement/test cloud auth and repository adapters without logging credentials.
+- After public discovery fields are approved: add the secure candidate projection and adapter tests.
+- After LiveKit server secrets and an EAS development APK exist: test the function and help diagnose two-device call logs without receiving secrets.
+
+The complete user checklist and verification criteria remain in `docs/codex/MANUAL_ACTIONS.md`. No remote resource was changed by this queue.
+
 ## Q01 validation
 
 - `npm run typecheck`: PASS.

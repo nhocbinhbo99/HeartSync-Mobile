@@ -67,3 +67,7 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-30 | Q07 | approved `npm audit --json` | 1 | 13 low, 3 high, 0 critical; Zod/Expo CLI and test-tool chains; proposed fixes are incompatible downgrades, no force fix |
 | 2026-10-30 | Q07 | high-confidence secret, tracked env/key, public-secret-name and direct-screen-data-access scans | 0 | No secret value, private key, client secret name, or direct screen query matched; only two tracked `.env.example` templates |
 | 2026-10-30 | Q07 | Update implementation-to-SRS/SDS delta | 0 | One actor/19 UCs retained; exact Class/ERD/Match/Chat/Call/Navigation edits listed; DOCX files explicitly unchanged |
+| 2026-10-30 | Q08 | Re-read queue; inventory required artifacts and Git history/status | 0 | Q03 retained as PARTIAL; all other queue scopes accurate; unrelated user files/deletion still unstaged |
+| 2026-10-30 | Q08 | Publish final README, release notes, artifact/blocker inventory and immediate owner plan | 0 | Marked `BASE_RELEASED_WITH_BLOCKERS`; no remote action or push |
+| 2026-10-30 | Q08 | Final TypeScript, ESLint, Jest, static migration/token gates, approved Expo Doctor | 0 | PASS; 14 suites / 53 tests; 14 RLS tables / 4 RPCs; 7 token patterns; Doctor 20/20 |
+| 2026-10-30 | Q08 | Required-file/local-link gate, high-confidence secret rescan, diff check | 0 | 13/13 docs exist; links resolve; no secret match; diff check clean |

@@ -81,3 +81,15 @@ The following are release blockers, not accepted residual behavior:
 4. **Calling not integrated:** Edge Function lacks Deno/runtime evidence; invitation/accept persistence and runtime permission UX are not implemented; native APK and two-device media remain manual.
 5. **Incomplete adapters/UI:** match listing and most domain adapters return placeholders or do not exist. Existing screens provide loading/empty/error shells, not finished data flows.
 6. **Dependency advisories:** Expo CLI's transitive Zod advisory and low-severity Expo/Jest chains remain. Track compatible upstream releases; do not apply npm's breaking downgrade.
+
+## Q08 final release gate
+
+| ID | Type | Actual | Status |
+|---|---|---|---|
+| Q08-DOCS | artifact/link validation | 13 required files exist and their local links resolve | PASS |
+| Q08-TS-LINT | static quality | TypeScript and ESLint exit 0 | PASS |
+| Q08-UNIT | Jest | 14 suites / 53 tests | PASS |
+| Q08-STATIC-SERVER | SQL/function static gates | 14 RLS tables / 4 RPCs and 7 token patterns | PASS_STATIC_ONLY |
+| Q08-DOCTOR | Expo health | 20/20 checks | PASS |
+| Q08-SECRETS-DIFF | repository hygiene | no high-confidence secret; diff check clean | PASS |
+| Q08-SERVER-DEVICE | integration acceptance | database/function/cloud/Android/two-device gates not run | BLOCKED_MANUAL |

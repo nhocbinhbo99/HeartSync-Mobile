@@ -89,3 +89,26 @@ Suggested branch rule: one issue per `feat/<area>` branch, pull request into the
 3. Hảo confirms chat pagination/subscription semantics and waits for Q06 before choosing native media packages.
 
 Remaining blockers: no real Supabase project evidence, no executed RLS tests, no Android device smoke test, no EAS-linked build, and no two-device media test.
+
+## Kế hoạch giao việc ngay
+
+### Công — Auth, Profile, Preferences, Saved, database gate
+
+- **Dependencies:** development Supabase URL/publishable key, approved Q03 policy, healthy local Docker/CLI.
+- **Work:** execute/review migrations and pgTAP; generate database types; finish real auth evidence; implement profile/private fields/photos/preferences/saved adapters and UI.
+- **Acceptance:** all 17 RLS cases pass; DOB/coordinates never enter public DTO; photos remain private; Android auth callbacks/session restore pass; no direct screen query.
+- **Coordinate:** approve generated DB types and any shared contract/migration change with Minh and Hảo before merge.
+
+### Minh — Discovery, filter deck, swipe/match, unmatch
+
+- **Dependencies:** Công's applied/reviewed schema plus a new RLS-safe discovery projection deriving age; existing `DiscoveryRepository`/`MatchRepository` contracts.
+- **Work:** candidate cards/gestures, validated filters, like/pass via atomic RPC, confirmed MatchFound and unmatch behavior.
+- **Acceptance:** self/swiped/blocked/under-18/private data excluded; rapid duplicate actions make no phantom/duplicate match; empty/error/retry/accessibility/device states pass.
+- **Coordinate:** agree public card fields and pagination with Công; expose confirmed `matchId` and lifecycle events to Hảo.
+
+### Hảo — Matches, chat Realtime, call invitations, audio + video
+
+- **Dependencies:** active-match RLS execution, Minh's match contract, Q06 Edge Function/EAS/LiveKit setup, two physical Android devices.
+- **Work:** match list; chat history/send/subscription cleanup/dedupe; call invite/accept/end persistence; LiveKit audio then video UI through `CallGateway`.
+- **Acceptance:** user C/non-member denied; duplicate message events render once; unmatch/block closes chat/call; no client token signing; camera is video-only after permission; two-device bidirectional audio/video evidence.
+- **Coordinate:** share subscription/call state changes with Minh and request Công review every RLS/Edge Function change.

@@ -1,10 +1,10 @@
 # HeartSync Mobile
 
-HeartSync is an Android-first dating application built with Expo SDK 58, React Native, and TypeScript. The Expo application lives in `heartsync/`; database migrations and project documentation stay at the repository root.
+HeartSync is an Android-first dating application built with Expo SDK 58, React Native, TypeScript, Supabase, and a LiveKit development-build scaffold. The Expo application lives in `heartsync/`; migrations, Edge Function template, and project documentation live at the repository root.
 
 ## Current status
 
-**Milestone: `BASE_READY_FOR_PARALLEL_WORK`.** Q00–Q02 and Q04–Q05 are code/offline verified. Q03 migrations and RLS are reviewable but remain `SQL_PREPARED_NOT_APPLIED`; therefore real discovery, match, chat, and call data are **not working yet**. Cloud auth still requires a development Supabase project, redirect allowlist, and Android test. LiveKit feasibility is Q06 and must not be presented as a connected call.
+**Milestone: `BASE_READY_FOR_PARALLEL_WORK`; release state: `BASE_RELEASED_WITH_BLOCKERS`.** Q00–Q02 and Q04–Q08 are complete at their documented code/offline scope. Q03 remains `SQL_PREPARED_NOT_APPLIED`, so real discovery, match and chat data are **not working yet**. Cloud auth needs a development Supabase project and Android proof. LiveKit packages/config/token scaffold compile and bundle, but Audio/Video Call is **not working/verified** until a development APK and two physical devices connect real media.
 
 ## Local baseline commands
 
@@ -18,6 +18,8 @@ npx expo-doctor
 npx expo start --dev-client
 ```
 
+Latest local gate: TypeScript PASS, ESLint PASS, Jest **14 suites / 53 tests PASS**, Expo Doctor **20/20**, Android prebuild and Hermes export PASS. PostgreSQL/RLS, Edge Function runtime, EAS APK and physical-device tests remain blocked/manual. `npm audit` reports 13 low / 3 high / 0 critical; no breaking `--force` fix was applied.
+
 Use Expo Development Build for stable auth callbacks and native calling dependencies. Expo Go is not acceptance evidence for password recovery, Audio Call, or Video Call.
 
 ## Supabase development setup
@@ -30,7 +32,7 @@ Use Expo Development Build for stable auth callbacks and native calling dependen
 
 Without these variables, HeartSync intentionally displays a setup-required screen instead of throwing or connecting with fake credentials.
 
-Progress and blockers are tracked in [`docs/codex/QUEUE_STATUS.md`](docs/codex/QUEUE_STATUS.md). Manual steps are tracked in [`docs/codex/MANUAL_ACTIONS.md`](docs/codex/MANUAL_ACTIONS.md).
+Progress and blockers are tracked in [`docs/codex/QUEUE_STATUS.md`](docs/codex/QUEUE_STATUS.md). Manual steps are tracked in [`docs/codex/MANUAL_ACTIONS.md`](docs/codex/MANUAL_ACTIONS.md). Final base changes are summarized in [`docs/BASE_RELEASE_NOTES.md`](docs/BASE_RELEASE_NOTES.md).
 
 The Q03 schema is documented in [`DATA_MODEL.md`](DATA_MODEL.md). Its status is **SQL_PREPARED_NOT_APPLIED**: migrations and pgTAP cases are reviewable, but no local/remote database has applied them yet.
 
@@ -40,4 +42,4 @@ The Q03 schema is documented in [`DATA_MODEL.md`](DATA_MODEL.md). Its status is 
 - Minh — discovery deck, filters, swipe/match and match-found flow.
 - Hảo — matches, realtime chat, message dedupe and audio/video call flow.
 
-Start with [`docs/TEAM_HANDOFF.md`](docs/TEAM_HANDOFF.md), then follow [`docs/SETUP_MANUAL.md`](docs/SETUP_MANUAL.md). Architecture contracts are in [`ARCHITECTURE.md`](ARCHITECTURE.md); product and UI direction are in [`PRODUCT.md`](PRODUCT.md) and [`DESIGN.md`](DESIGN.md).
+Start with [`docs/TEAM_HANDOFF.md`](docs/TEAM_HANDOFF.md), then follow [`docs/SETUP_MANUAL.md`](docs/SETUP_MANUAL.md). Architecture/data contracts are indexed by [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md); product and UI direction are in [`PRODUCT.md`](PRODUCT.md) and [`DESIGN.md`](DESIGN.md).
