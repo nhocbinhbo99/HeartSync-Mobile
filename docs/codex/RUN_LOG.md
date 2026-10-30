@@ -42,3 +42,6 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-29 | Q03 | Prepare three migrations, data model, handwritten contracts and 17 pgTAP cases | 0 | SQL_PREPARED_NOT_APPLIED; no remote operation |
 | 2026-10-29 | Q03 | `supabase/tests/static_migration_checks.ps1` | 0 | 14 RLS tables and 4 authenticated RPC boundaries PASS; explicitly not a SQL execution test |
 | 2026-10-30 | Q03 | Resume final gate: static migration check, TypeScript, ESLint, Jest, diff/quote checks | 0 | All offline gates PASS; 5 Jest suites/14 tests; SQL execution remains blocked and unclaimed |
+| 2026-10-30 | Q04 | Add domain types/helpers, six service boundaries, safe error mapping, minimal atomic swipe adapter and DEMO_ONLY fixtures | 0 | Screen-to-service boundary documented; match creation remains server-only |
+| 2026-10-30 | Q04 | `npm run typecheck`; `npm run lint`; `npm test -- --ci` | 0 | PASS; 13 suites / 46 tests, including 32 Q04 invariant/adapter assertions |
+| 2026-10-30 | Q04 | `npx expo-doctor --verbose` | 1 | BLOCKED_ENV: produced no output for 60 seconds during registry checks and was interrupted; prior Q02 Doctor was 20/20 and no package changed in Q04 |

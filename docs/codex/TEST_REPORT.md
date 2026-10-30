@@ -35,3 +35,9 @@
 | Q03-RLS | Q03 | pgTAP security | `supabase test db` | 17 cases pass | Prepared, not run | BLOCKED |
 | Q03-LINT | Q03 | Database lint | `supabase db lint` | No schema/security errors | Not run | BLOCKED |
 | Q03-TYPES | Q03 | Generated DB types | `supabase gen types typescript --local` | Types reflect applied schema | Not run; handwritten `domain.types.ts` clearly labeled | BLOCKED |
+| Q04-TS | Q04 | Type safety | `npm run typecheck` | Exit 0 | Exit 0 | PASS |
+| Q04-LINT | Q04 | Static analysis | `npm run lint` | Exit 0, no warnings | Exit 0 | PASS |
+| Q04-UNIT | Q04 | Offline domain/contracts | `npm test -- --ci` | Core invariants and adapter behavior pass | 13 suites / 46 tests PASS | PASS |
+| Q04-NO-PHANTOM | Q04 | Match safety | Swipe parser + repository tests | Match UI requires confirmed server `match_id` | Missing ID and mismatched outcomes rejected | PASS |
+| Q04-RLS-INTEGRATION | Q04 | Server security | Local Supabase pgTAP | Client contracts and RLS agree | Not runnable until Q03 environment exists | BLOCKED |
+| Q04-DOCTOR | Q04 | Expo health | `npx expo-doctor --verbose` | Complete registry checks | No output for 60 seconds; interrupted | BLOCKED_ENV |

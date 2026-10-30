@@ -37,3 +37,9 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] From the repository root, initialize local Supabase config only if absent, then run `supabase start`, `supabase db reset`, `supabase test db`, and `supabase db lint`.
 - [ ] After a successful local reset, generate types with `supabase gen types typescript --local` and replace/augment the clearly handwritten contract. Do not label types as generated before this succeeds.
 - [ ] Review every migration and local test result before linking a remote project. A later remote `db push` requires explicit approval for that exact development project; never apply these prepared migrations to production/shared data by assumption.
+
+## Q04 contract review
+
+- [ ] Công, Minh, and Hảo review `ARCHITECTURE.md` plus `heartsync/src/services/contracts.ts`; agree before changing a shared interface or error code.
+- [ ] Confirm the base business policy: unmatch is terminal/no-rematch, blocked pairs cannot see history, profile age is derived server-side while exact DOB remains private, and call UI is not connected until the media SDK confirms it.
+- [ ] When implementing feature UI, inject repository/gateway interfaces. Do not import Supabase/Realtime/LiveKit directly from screens and do not add a production fallback to `DEMO_ONLY_PROFILES`.

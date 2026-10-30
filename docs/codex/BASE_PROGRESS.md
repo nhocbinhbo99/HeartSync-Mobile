@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-Q00–Q02 are complete at the offline/code-verified level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`), so Q04 may consume its reviewed contracts without claiming a working database.
+Q00–Q02 and Q04 are complete at the offline/code-verified level. Q03 is prepared but not applied (`SQL_PREPARED_NOT_APPLIED`). Q04 consumes its reviewed contracts without claiming a working database. Q05 is the next queue checkpoint.
 
 | Area | Implemented | Tested locally | Tested on Android | Requires user | Next owner |
 |---|---|---|---|---|---|
@@ -11,7 +11,7 @@ Q00–Q02 are complete at the offline/code-verified level. Q03 is prepared but n
 | Navigation shell + theme | Typed native stack, four bottom tabs, auth entry routes, detail placeholders, shared controls/states | TypeScript, ESLint, Expo Doctor, Android production bundle | No | Run visual/back/keyboard smoke test | Công |
 | Auth foundation | Supabase client, SQLite session storage, lifecycle refresh, email/password flows, recovery callback, guarded routes | Jest mocked tests, TypeScript, ESLint, Expo Doctor, Android production bundle | No | Create/configure development Supabase; test real email flow | Công |
 | Database schema/security | 14 tables, public/private split, RLS/grants, atomic swipe/unmatch/block/call RPCs, private photo policies, pgTAP plan | Static migration checks only | N/A | Start Docker/install CLI; reset/lint/test locally; review before remote apply | Công + team |
-| Domain Data/Chat/Call clients | No | No | No | Future queue/cloud/device steps | Q04-Q06 owners |
+| Domain Data/Chat/Call contracts | Domain types, six interfaces, stable errors, atomic swipe adapter, call/message invariants | TypeScript, ESLint, Jest 13 suites/46 tests | No | Review boundary decisions; database/device integration remains pending | Công + Minh + Hảo |
 
 ## Evidence and limitations
 
@@ -38,6 +38,14 @@ Q00–Q02 are complete at the offline/code-verified level. Q03 is prepared but n
 - `supabase --version`: BLOCKED (CLI not installed).
 - `docker --version`: PASS (client 29.3.0); `docker info`: BLOCKED (Docker Desktop Linux daemon not running).
 - PostgreSQL execution, `supabase db lint`, pgTAP, and generated database types: NOT RUN. No remote project was linked or changed.
+
+## Q04 validation
+
+- `ARCHITECTURE.md` defines UI → repository/gateway → adapter dependency direction and owner boundaries.
+- `npm run typecheck` and `npm run lint`: PASS.
+- `npm test -- --ci`: PASS, 13 suites / 46 tests. Q04 covers age 18+, filter bounds, canonical pairs, call transitions, safe errors, message dedupe, swipe parsing, server RPC use, and no phantom match.
+- `npx expo-doctor --verbose`: BLOCKED_ENV on this run because the registry check emitted no output for 60 seconds; interrupted rather than claiming PASS. Q04 changed no package manifest or native config.
+- No PostgreSQL/RLS integration or real media test is claimed. `DEMO_ONLY` fixtures are isolated and are not imported by any production adapter.
 
 ## Q01 validation
 
