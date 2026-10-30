@@ -43,18 +43,18 @@ The app intentionally shows Setup Required when environment values are missing; 
 
 ## 3. Review and run Supabase locally
 
-Q03 is not yet applied. First read `DATA_MODEL.md`, `ARCHITECTURE.md`, and all files under `supabase/migrations/`. Start Docker Desktop and wait for its Linux engine to become healthy. Install Supabase CLI using an official, inspectable method; do not pipe a remote script directly to a shell.
+Q03 is not yet applied. First read `DATA_MODEL.md`, `ARCHITECTURE.md`, and all files under `supabase/migrations/`. Supabase CLI `2.122.0` is pinned as a development dependency and `npm ci` installs it reproducibly. Start Docker Desktop and wait for its Linux engine to become healthy.
 
-From the repository root:
+From `heartsync/`:
 
 ```powershell
-supabase --version
+npm exec -- supabase --version
 docker info
-supabase start
-supabase db reset
-supabase test db
-supabase db lint
-supabase gen types typescript --local
+npm run db:start
+npm run db:reset
+npm run db:test
+npm run db:lint
+npm run db:types
 ```
 
 Do not link or push to a remote project until the team reviews local reset, pgTAP, lint, generated types, target project reference, and recovery plan. Never test destructive SQL against production/shared data.
@@ -92,4 +92,5 @@ Do not add LiveKit secrets to `.env` or build a token in the client. If the team
 - `npm ci` returns `EPERM`: close Metro/editors using `node_modules`, retry from a normal PowerShell, and check antivirus locking. Do not delete unrelated folders.
 - Supabase callback opens a browser only: confirm a development build is installed and both exact custom-scheme redirects are allowed.
 - Docker/Supabase commands fail: keep Q03 `SQL_PREPARED_NOT_APPLIED`; do not substitute a remote production database.
+- Docker Desktop fails while initializing `dockerInference`: open **Settings → AI**, turn off **Enable Docker Model Runner**, apply/restart, then verify `docker info`. Do not choose **Reset to factory defaults** unless you have reviewed/backed up all unrelated Docker images, containers, and volumes.
 - Tunnel is slow: return to LAN once both devices can reach the development machine.

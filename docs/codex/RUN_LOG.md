@@ -71,3 +71,11 @@ All commands were run from the verified repository root unless a different worki
 | 2026-10-30 | Q08 | Publish final README, release notes, artifact/blocker inventory and immediate owner plan | 0 | Marked `BASE_RELEASED_WITH_BLOCKERS`; no remote action or push |
 | 2026-10-30 | Q08 | Final TypeScript, ESLint, Jest, static migration/token gates, approved Expo Doctor | 0 | PASS; 14 suites / 53 tests; 14 RLS tables / 4 RPCs; 7 token patterns; Doctor 20/20 |
 | 2026-10-30 | Q08 | Required-file/local-link gate, high-confidence secret rescan, diff check | 0 | 13/13 docs exist; links resolve; no secret match; diff check clean |
+| 2026-10-30 | Post-Q08 / Q03 | Verify Docker, Supabase CLI, Deno and local config | mixed | Docker client present but daemon stopped; CLI/Deno/config/env initially absent |
+| 2026-10-30 | Post-Q08 / Q03 | Review current official Supabase CLI installation guidance and npm metadata | 0 | Selected stable CLI 2.122.0 as exact devDependency; Node requirement satisfied |
+| 2026-10-30 | Post-Q08 / Q03 | `npm install --save-dev --save-exact supabase@2.122.0`; local `supabase init` | 0 | CLI installed from lockfile; local config and ignore file generated; no login/link/remote operation |
+| 2026-10-30 | Post-Q08 / Q03 | Add local DB scripts and align config with HeartSync callbacks/password/JWT boundary | 0 | Reproducible start/reset/test/lint/type commands; seed disabled; token function JWT verification explicit |
+| 2026-10-30 | Post-Q08 / Q03 | Start Docker Desktop and inspect non-sensitive backend log | 1 | BLOCKED_ENV: Docker 4.66.0 crashes initializing Inference manager due invalid/inaccessible local path; factory reset intentionally not used |
+| 2026-10-30 | Post-Q08 / Q03 | Static migration and LiveKit token gates | 0 | 14 RLS tables / 4 RPCs and 7 token patterns still PASS_STATIC_ONLY |
+| 2026-10-30 | Post-Q08 / Q03 | `npm ci` after CLI pin | 0 | 1,349 packages installed from lockfile; 13 low / 3 high audit findings unchanged in severity; no force fix |
+| 2026-10-30 | Post-Q08 / Q03 | TypeScript, ESLint, Jest, Expo Doctor, CLI version, static gates | 0 | PASS; 14 suites / 53 tests; Doctor 20/20; CLI 2.122.0; static SQL/function gates PASS |

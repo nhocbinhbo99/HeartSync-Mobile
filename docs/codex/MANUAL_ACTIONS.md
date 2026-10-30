@@ -70,3 +70,10 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] Add/review a server discovery projection/RPC that derives age from private DOB without granting the client access to DOB or precise coordinates.
 - [ ] Configure and test Supabase Realtime publication only for required chat data; verify unsubscribe on route change/unmatch/block and A/B/C denial cases.
 - [ ] Track a compatible Expo SDK 58 fix for the current Zod/CLI audit chain. Do not accept the proposed Expo 51 or Jest 25 downgrade.
+
+## Docker blocker found during Q03 retry
+
+- [ ] Open Docker Desktop. If the error dialog is still present, choose **Quit**, not **Reset to factory defaults**.
+- [ ] Reopen Docker Desktop, go to **Settings → AI**, turn off **Enable Docker Model Runner**, apply and restart. Docker's local backend log shows the crash in the Inference manager path; HeartSync does not use Model Runner.
+- [ ] Verify from PowerShell that `docker info` returns normally. Then, from `heartsync/`, run `npm run db:start`, `npm run db:reset`, `npm run db:test`, `npm run db:lint`, and finally `npm run db:types`.
+- [ ] If Docker still crashes, collect Docker diagnostics or update/repair Docker Desktop while preserving unrelated images/volumes. Do not factory-reset without a reviewed backup.

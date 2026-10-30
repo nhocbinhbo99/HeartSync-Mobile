@@ -34,6 +34,7 @@
     "eslint-config-expo": "~58.0.4",
     "jest": "~30.5.2",
     "jest-expo": "~58.0.13",
+    "supabase": "2.122.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -43,7 +44,12 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "db:start": "supabase --workdir .. start",
+    "db:reset": "supabase --workdir .. db reset",
+    "db:test": "supabase --workdir .. test db",
+    "db:lint": "supabase --workdir .. db lint",
+    "db:types": "supabase --workdir .. gen types typescript --local"
   },
   "jest": {
     "preset": "jest-expo",

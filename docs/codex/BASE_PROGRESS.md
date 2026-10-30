@@ -94,6 +94,13 @@ Milestone: **BASE_READY_FOR_PARALLEL_WORK**. Q00–Q02 and Q04–Q07 are complet
 5. Android UI/auth/runtime-permission/media behavior has not been tested on a device; no EAS build exists.
 6. npm audit remains 13 low / 3 high; the currently offered automatic fixes are incompatible downgrades.
 
+## Post-Q08 Q03 unblock progress
+
+- Supabase CLI `2.122.0` is now exact-version locked in the app devDependencies; `supabase/config.toml` and project-local ignore rules exist.
+- `heartsync/package.json` exposes `db:start`, `db:reset`, `db:test`, `db:lint`, and `db:types`, all targeting the repository-root Supabase project.
+- Local auth config uses the two exact `heartsync://` callback URLs, minimum password length 8, disabled empty seed execution, and explicit JWT verification for `livekit-token`.
+- Docker Desktop was launched, but version 4.66.0 crashed before the engine became usable. Its local log identifies the Inference manager path as the failure. SQL reset/pgTAP/lint/type generation therefore remain blocked; no remote fallback was attempted.
+
 ## Work Codex can continue after leader input
 
 - After Docker/CLI are available: run local reset/lint/pgTAP, repair SQL, generate reviewed database types, and update evidence.

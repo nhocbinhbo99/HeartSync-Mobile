@@ -62,3 +62,11 @@
 - **Security boundary:** The mobile app invokes a Supabase Edge Function. It never signs a LiveKit token or stores API secrets. The template validates the user JWT, active-match RLS visibility, participant identity, canonical room, and five-minute TTL.
 - **Media truth:** `Room.connect()` is signaling only. The gateway emits `connected` only after a remote track is subscribed. Final acceptance requires permission behavior, native compilation, and two physical Android devices; none is claimed by this ADR.
 - **Sources:** [LiveKit Expo plugin](https://github.com/livekit/client-sdk-react-native-expo-plugin/blob/main/README.md), [LiveKit React Native SDK](https://www.npmjs.com/package/@livekit/react-native), [Supabase authorization headers](https://supabase.com/docs/guides/functions/auth-headers), [Supabase auth context](https://supabase.com/docs/guides/functions/auth-legacy-jwt).
+
+## ADR-010 Reproducible local Supabase CLI
+
+- **Status:** Accepted after Q08
+- **Decision:** Pin Supabase CLI `2.122.0` as a HeartSync devDependency and expose repository-aware npm scripts instead of relying on an unversioned global binary.
+- **Reason:** The official npm workflow supports a project dependency, keeps the CLI covered by `package-lock.json`, and lets all contributors run the same version on Node 20+.
+- **Trade-off:** CLI binaries add optional platform packages to the development lockfile. Docker remains mandatory for the full local stack; the CLI installation alone cannot prove SQL/RLS behavior.
+- **Source:** [Supabase CLI local development](https://supabase.com/docs/guides/local-development/cli/getting-started?platform=npx&queryGroups=platform).

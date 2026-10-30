@@ -93,3 +93,13 @@ The following are release blockers, not accepted residual behavior:
 | Q08-DOCTOR | Expo health | 20/20 checks | PASS |
 | Q08-SECRETS-DIFF | repository hygiene | no high-confidence secret; diff check clean | PASS |
 | Q08-SERVER-DEVICE | integration acceptance | database/function/cloud/Android/two-device gates not run | BLOCKED_MANUAL |
+
+## Post-Q08 Q03 environment retry
+
+| ID | Type | Actual | Status |
+|---|---|---|---|
+| Q03-CLI-RETRY | local tooling | Supabase CLI 2.122.0 installed and reports its version | PASS |
+| Q03-CONFIG | local configuration | config parses through CLI initialization; exact callbacks/JWT boundary recorded | PASS_OFFLINE |
+| Q03-DOCKER-RETRY | local engine | Docker Desktop 4.66.0 backend crashes during Inference manager initialization | BLOCKED_ENV |
+| Q03-SQL-RETRY | migration/pgTAP/lint/types | not run because Docker engine never became ready | BLOCKED_ENV |
+| Q03-CLI-CLEAN-INSTALL | reproducibility | `npm ci`, CLI version, TypeScript, lint, Jest, Doctor | 1,349 packages; CLI 2.122.0; 53 tests; Doctor 20/20 | PASS |
