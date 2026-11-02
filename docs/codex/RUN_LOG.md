@@ -1,0 +1,92 @@
+# HeartSync Base Run Log
+
+All commands were run from the verified repository root unless a different working directory is shown. Secrets and credential values are not logged.
+
+| Date | Queue | Command / action | Exit | Result |
+|---|---|---|---:|---|
+| 2026-10-29 | Pre-Q00 | `git rev-parse --show-toplevel` | 0 | Verified project root |
+| 2026-10-29 | Pre-Q00 | Extract SRS/SDS with bundled Python | 0 | SRS: 30 tables; SDS: 26 tables |
+| 2026-10-29 | Pre-Q00 | Render `dating_app.pdf` with bundled Poppler | 0 | 13 PNG pages created and inspected |
+| 2026-10-29 | Pre-Q00 | Render DOCX with packaged renderer | 1 | BLOCKED: bundled runtime has no `soffice.exe` |
+| 2026-10-29 | Q00 | `git status -sb`, sanitized `git remote -v`, `git log -3 --oneline` | 0 | Baseline captured; pre-existing deletion of `mobile/.claude/settings.json` preserved |
+| 2026-10-29 | Q00 | Verify paths/reparse points; move `mobile` to `heartsync` | 0 | Safe in-project move completed |
+| 2026-10-29 | Q00 | `npm ci` (sandbox) | 1 | Windows sandbox returned `EPERM`; retried with approved elevated execution |
+| 2026-10-29 | Q00 | `npm ci` (approved execution) | 0 | 467 packages installed initially; lockfile remained valid |
+| 2026-10-29 | Q00 | `npx tsc --noEmit` | 0 | PASS |
+| 2026-10-29 | Q00 | `npx expo config --type public` | 0 | PASS; expected name/slug/package resolved |
+| 2026-10-29 | Q00 | `npx expo-doctor` (initial) | 1 | 19/20; three SDK 58 patch mismatches |
+| 2026-10-29 | Q00 | `npx expo install --fix` | 0 | Updated Expo, Expo Dev Client, and React Native patch versions |
+| 2026-10-29 | Q00 | `npx tsc --noEmit` and `npx expo-doctor` (repeat) | 0 | TypeScript PASS; Expo Doctor 20/20 PASS |
+| 2026-10-29 | Q00 | `npm audit --json` (read-only) | 1 | 8 findings: 5 low, 3 high, 0 critical; no force fix |
+| 2026-10-29 | Q01 | Install React Navigation packages with `npx expo install` | 0 | Native stack, bottom tabs, screens, and safe-area packages resolved for SDK 58 |
+| 2026-10-29 | Q01 | Install `expo-symbols`; inspect official SDK 58 API | 0 | Cross-platform native symbols selected; deprecated icon path avoided |
+| 2026-10-29 | Q01 | `npm run typecheck` (initial) | 1 | Unsupported `StatusBar.backgroundColor` type found and removed |
+| 2026-10-29 | Q01 | `npm run typecheck` (repeat) | 0 | PASS |
+| 2026-10-29 | Q01 | `npm run lint` setup | 1 | Expo generated flat config; its wrapper misread ESLint 9, so the script now calls `eslint .` directly |
+| 2026-10-29 | Q01 | `npm run lint` | 0 | PASS with no warnings after two style fixes |
+| 2026-10-29 | Q01 | `npx expo-doctor` (initial) | 1 | 19/20; `expo-font` peer required by `expo-symbols` |
+| 2026-10-29 | Q01 | `npx expo install expo-font`; repeat Doctor | 0 | Peer installed; Expo Doctor 20/20 PASS |
+| 2026-10-29 | Q01 | Android export (sandbox) | 1 | Hermes could not write system temporary bytecode (`permission denied`) |
+| 2026-10-29 | Q01 | Android export (approved execution) | 0 | 909 modules; 2.1 MB Hermes bundle; generated output removed after verification |
+| 2026-10-29 | Q01 | UI reviewer pass; feature-first/accessibility corrections; final Android export | 0 | Code/offline review PASS; 915 modules; 2.1 MB Hermes bundle; output removed |
+| 2026-10-29 | Q01 | Impeccable finish review and design-system documentation | 0 | Code review PASS; `DESIGN.md` and schema v2 sidecar review PASS |
+| 2026-10-29 | Q02 | Inspect official Supabase Expo, auth lifecycle, password reset, Expo SQLite/Linking/Jest docs | 0 | Selected SQLite localStorage only; separate PKCE confirmation/recovery callbacks; Jest 30 |
+| 2026-10-29 | Q02 | Install Supabase, URL polyfill, SQLite, Linking, Jest/Testing Library and required Expo peers | 0 | SDK 58-compatible dependency graph installed; test packages kept in devDependencies |
+| 2026-10-29 | Q02 | Initial TypeScript/lint/Jest | 1 | Found AppState nullable type, React effect rule, missing Expo Asset peer, and async test-act issues; repaired |
+| 2026-10-29 | Q02 | `npm test -- --ci` | 0 | 5 suites, 14 tests PASS |
+| 2026-10-29 | Q02 | TypeScript, ESLint, Expo Doctor, public config | 0 | PASS; Doctor 20/20; scheme/plugins resolved |
+| 2026-10-29 | Q02 | Android production export | 0 | 1,015 modules; 3 MB Hermes bundle; generated output removed |
+| 2026-10-29 | Q02 | `npm audit --json` | 1 | 15 findings: 12 low, 3 high, 0 critical; proposed fixes require incompatible Expo 51/Jest 25 downgrades |
+| 2026-10-29 | Q03 | Inspect current official Supabase RLS/function/storage guidance | 0 | Applied explicit grants, RLS role clauses, private helpers, fixed empty search paths, private bucket |
+| 2026-10-29 | Q03 | `supabase --version`; `docker --version`; `docker info`; `psql --version` | mixed | Supabase CLI absent; Docker client 29.3.0 installed but daemon stopped; psql client 16.15 present |
+| 2026-10-29 | Q03 | Prepare three migrations, data model, handwritten contracts and 17 pgTAP cases | 0 | SQL_PREPARED_NOT_APPLIED; no remote operation |
+| 2026-10-29 | Q03 | `supabase/tests/static_migration_checks.ps1` | 0 | 14 RLS tables and 4 authenticated RPC boundaries PASS; explicitly not a SQL execution test |
+| 2026-10-30 | Q03 | Resume final gate: static migration check, TypeScript, ESLint, Jest, diff/quote checks | 0 | All offline gates PASS; 5 Jest suites/14 tests; SQL execution remains blocked and unclaimed |
+| 2026-10-30 | Q04 | Add domain types/helpers, six service boundaries, safe error mapping, minimal atomic swipe adapter and DEMO_ONLY fixtures | 0 | Screen-to-service boundary documented; match creation remains server-only |
+| 2026-10-30 | Q04 | `npm run typecheck`; `npm run lint`; `npm test -- --ci` | 0 | PASS; 13 suites / 46 tests, including 32 Q04 invariant/adapter assertions |
+| 2026-10-30 | Q04 | `npx expo-doctor --verbose` | 1 | BLOCKED_ENV: produced no output for 60 seconds during registry checks and was interrupted; prior Q02 Doctor was 20/20 and no package changed in Q04 |
+| 2026-10-30 | Q05 | `npm ci` sandbox, then approved retry | 1 then 0 | Initial Windows EPERM; retry installed 1,298 packages from lockfile, audited 1,299 |
+| 2026-10-30 | Q05 | TypeScript, ESLint, Jest | 0 | PASS; 13 suites / 46 tests |
+| 2026-10-30 | Q05 | `npx expo-doctor` | 1 | BLOCKED_ENV: registry phase emitted no output for 60 seconds; interrupted |
+| 2026-10-30 | Q05 | `npm audit --json` sandbox, then approved network retry | 1 | Read-only audit completed: 12 low, 3 high, 0 critical; offered fixes are incompatible major downgrades; no force fix |
+| 2026-10-30 | Q05 | Git/path/env checks | 0 | No tracked `mobile/`; only `.env.example` tracked; lockfile unchanged; diff check clean |
+| 2026-10-30 | Q05 | Create README links, Windows/Android setup and role/issue handoff | 0 | Marked `BASE_READY_FOR_PARALLEL_WORK` with database/cloud/device blockers explicit |
+| 2026-10-30 | Q06 | Official LiveKit/Supabase docs plus npm peer metadata review | 0 | Locked RN 3.1.0, WebRTC 150.1.1, client 2.23.0, Expo plugin 1.1.0, config plugin 15.0.2; declared peers compatible with Expo 58/RN 0.88.1 |
+| 2026-10-30 | Q06 | `npx expo install` exact LiveKit set; `npm ls` | 0 | 44 packages added; required peers deduped correctly; audit now reports 13 low/3 high |
+| 2026-10-30 | Q06 | Add globals bootstrap, permissions/plugins, EAS profiles, typed gateway and JWT/active-match Edge Function template | 0 | Tokens remain server-side; `connected` emitted only for subscribed remote media track |
+| 2026-10-30 | Q06 | TypeScript, ESLint, Jest, Expo public config | 0 | PASS; 14 suites / 52 tests; Android permissions/plugins resolved |
+| 2026-10-30 | Q06 | `npx expo prebuild --platform android --no-install` | 0 | Config plugin generated Android project with CAMERA/RECORD_AUDIO/MODIFY_AUDIO_SETTINGS and JitPack; verified disposable output removed |
+| 2026-10-30 | Q06 | approved `npx expo-doctor` | 0 | 20/20 checks PASS |
+| 2026-10-30 | Q06 | Android production export | 0 | 1,258 modules; 5 MB Hermes bundle; verified disposable output removed |
+| 2026-10-30 | Q06 | `static_livekit_function_checks.ps1`; `npm ls --depth=0` | 0 | 7 token-function security patterns PASS; package tree valid |
+| 2026-10-30 | Q06 | `deno --version` | 1 | BLOCKED_ENV: Deno not installed, so Edge Function type/runtime execution was not performed |
+| 2026-10-30 | Q07 | Review navigation/auth, public/private fields, match race, RLS, chat/call lifecycle and permission boundaries | 0 | Fixed SQLSTATE 28000 mapping, persistent/local call-state type mismatch, and expired-grant revalidation; recorded unimplemented integration gaps |
+| 2026-10-30 | Q07 | TypeScript, ESLint, Jest | 0 | PASS; 14 suites / 53 tests |
+| 2026-10-30 | Q07 | Static migration and LiveKit function gates | 0 | 14 RLS tables / 4 RPCs and 7 token checks PASS_STATIC_ONLY |
+| 2026-10-30 | Q07 | approved Expo Doctor | 0 | 20/20 checks PASS |
+| 2026-10-30 | Q07 | approved `npm audit --json` | 1 | 13 low, 3 high, 0 critical; Zod/Expo CLI and test-tool chains; proposed fixes are incompatible downgrades, no force fix |
+| 2026-10-30 | Q07 | high-confidence secret, tracked env/key, public-secret-name and direct-screen-data-access scans | 0 | No secret value, private key, client secret name, or direct screen query matched; only two tracked `.env.example` templates |
+| 2026-10-30 | Q07 | Update implementation-to-SRS/SDS delta | 0 | One actor/19 UCs retained; exact Class/ERD/Match/Chat/Call/Navigation edits listed; DOCX files explicitly unchanged |
+| 2026-10-30 | Q08 | Re-read queue; inventory required artifacts and Git history/status | 0 | Q03 retained as PARTIAL; all other queue scopes accurate; unrelated user files/deletion still unstaged |
+| 2026-10-30 | Q08 | Publish final README, release notes, artifact/blocker inventory and immediate owner plan | 0 | Marked `BASE_RELEASED_WITH_BLOCKERS`; no remote action or push |
+| 2026-10-30 | Q08 | Final TypeScript, ESLint, Jest, static migration/token gates, approved Expo Doctor | 0 | PASS; 14 suites / 53 tests; 14 RLS tables / 4 RPCs; 7 token patterns; Doctor 20/20 |
+| 2026-10-30 | Q08 | Required-file/local-link gate, high-confidence secret rescan, diff check | 0 | 13/13 docs exist; links resolve; no secret match; diff check clean |
+| 2026-10-30 | Post-Q08 / Q03 | Verify Docker, Supabase CLI, Deno and local config | mixed | Docker client present but daemon stopped; CLI/Deno/config/env initially absent |
+| 2026-10-30 | Post-Q08 / Q03 | Review current official Supabase CLI installation guidance and npm metadata | 0 | Selected stable CLI 2.122.0 as exact devDependency; Node requirement satisfied |
+| 2026-10-30 | Post-Q08 / Q03 | `npm install --save-dev --save-exact supabase@2.122.0`; local `supabase init` | 0 | CLI installed from lockfile; local config and ignore file generated; no login/link/remote operation |
+| 2026-10-30 | Post-Q08 / Q03 | Add local DB scripts and align config with HeartSync callbacks/password/JWT boundary | 0 | Reproducible start/reset/test/lint/type commands; seed disabled; token function JWT verification explicit |
+| 2026-10-30 | Post-Q08 / Q03 | Start Docker Desktop and inspect non-sensitive backend log | 1 | BLOCKED_ENV: Docker 4.66.0 crashes initializing Inference manager due invalid/inaccessible local path; factory reset intentionally not used |
+| 2026-10-30 | Post-Q08 / Q03 | Static migration and LiveKit token gates | 0 | 14 RLS tables / 4 RPCs and 7 token patterns still PASS_STATIC_ONLY |
+| 2026-10-30 | Post-Q08 / Q03 | `npm ci` after CLI pin | 0 | 1,349 packages installed from lockfile; 13 low / 3 high audit findings unchanged in severity; no force fix |
+| 2026-10-30 | Post-Q08 / Q03 | TypeScript, ESLint, Jest, Expo Doctor, CLI version, static gates | 0 | PASS; 14 suites / 53 tests; Doctor 20/20; CLI 2.122.0; static SQL/function gates PASS |
+| 2026-10-30 | Post-Q08 / Q03 | Create dedicated `heartsync-dev` Supabase cloud project and manually apply three migrations in SQL Editor | 0 | PASS_MANUAL: all three migration queries returned success; no secret/service-role key recorded |
+| 2026-10-30 | Post-Q08 / Q03 | Dashboard verification query | 0 | PASS_MANUAL: 14 public tables, 14 RLS-enabled tables, 1 private profile-photo bucket, 4 storage policies |
+| 2026-10-30 | Post-Q08 / Q03 | `npm run typecheck`; `npm run lint`; `npm test -- --runInBand`; Android cloud export | 0 | PASS: TypeScript/lint, 14 suites/53 tests, and 1,258-module/5 MB Android Hermes bundle; first sandboxed export failed only because AppData temp writes were denied, retry succeeded |
+| 2026-10-30 | MVP / Q03 | Apply `20261030150000_mvp_contracts.sql` once in Supabase SQL Editor Query6 | 0 | PASS_MANUAL: user-supplied SQL Editor evidence shows `Success. No rows returned` on `heartsync-dev`; no account, storage object or secret was created/logged |
+| 2026-10-30 | MVP / Q03 | Read-only contract verification in Supabase SQL Editor Query7 | 0 | PASS_MANUAL: `profile_photos` constraint permits sort order 0–5; 7 expected public RPCs; Realtime publication includes exactly required `calls` and `messages` tables |
+| 2026-10-30 | MVP | Prepare manual synthetic A/B/C profile seed | 0 | PASS_STATIC_ONLY: idempotent script requires exactly three pre-created confirmed Auth users, uses reserved synthetic emails and no password; execution remains pending |
+| 2026-10-30 | MVP | Run manual synthetic A/B/C profile seed in Supabase SQL Editor Query8 | 1 | User-supplied evidence: PostgreSQL syntax error at `DO NOTHING` because the initial script incorrectly retained `DO UPDATE`; statement aborted before writes and was rolled back |
+| 2026-10-30 | MVP | Correct seed `ON CONFLICT` syntax and add static contract gate | 0 | PASS: `npm run db:test:seed-contract`, TypeScript, ESLint and 16 Jest suites / 58 tests; cloud rerun remains pending |
+| 2026-10-30 | MVP | Align synthetic profile seed with pre-created Auth test accounts | 0 | Prepared: seed targets `test1/2/3@gmail.com` shown in the team dashboard and additionally requires `email_confirmed_at`; cloud execution remains pending |
+| 2026-10-30 | MVP | Re-run manual synthetic A/B/C profile seed in Supabase SQL Editor Query8 | 0 | PASS_MANUAL: three confirmed, completed synthetic profiles returned with ages 28/27/28, null distance and expected A/B/C language/gender preferences |
+| 2026-10-30 | MVP | Local profile/discovery/match/chat/audio implementation quality gate | 0 | PASS: typecheck, lint, 16 Jest suites / 58 tests, public Expo config and 1,280-module Android Hermes export; generated export removed after validation |

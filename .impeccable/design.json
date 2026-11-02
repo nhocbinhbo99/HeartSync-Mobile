@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T19:34:21.2523154+07:00",
+  "title": "Design System: HeartSync",
+  "extensions": {
+    "colorMeta": {
+      "background": { "role": "neutral", "displayName": "Cool Canvas", "canonical": "#F6FAFB", "tonalRamp": ["#172124", "#304044", "#56686C", "#7F9195", "#AAB9BC", "#D0DADC", "#E7EDEF", "#F6FAFB"] },
+      "surface": { "role": "neutral", "displayName": "Clear Surface", "canonical": "#FFFFFF", "tonalRamp": ["#1A1A1A", "#3A3A3A", "#626262", "#8C8C8C", "#B5B5B5", "#D8D8D8", "#EEEEEE", "#FFFFFF"] },
+      "surface-muted": { "role": "neutral", "displayName": "Quiet Mist", "canonical": "#EAF3F5", "tonalRamp": ["#152224", "#2D4145", "#50686D", "#769095", "#9EB7BC", "#C5D8DC", "#DCE8EB", "#F2F8F9"] },
+      "ink": { "role": "text", "displayName": "Deep Ink", "canonical": "#102A33", "tonalRamp": ["#08171C", "#102A33", "#274750", "#4B6870", "#748A90", "#A0B0B4", "#CBD4D6", "#EDF1F2"] },
+      "ink-muted": { "role": "text", "displayName": "Muted Ink", "canonical": "#587079", "tonalRamp": ["#172226", "#2A3B40", "#40555B", "#587079", "#7C9299", "#A7B7BC", "#D0DADC", "#EEF2F3"] },
+      "border": { "role": "neutral", "displayName": "Cool Border", "canonical": "#CFE0E4", "tonalRamp": ["#142326", "#2B4247", "#4B676D", "#708E95", "#98B4BA", "#BBD0D4", "#D7E5E8", "#F0F7F8"] },
+      "primary": { "role": "primary", "displayName": "Verified Cyan", "canonical": "#007E8C", "tonalRamp": ["#003137", "#004B54", "#006571", "#007E8C", "#22A3B0", "#61C4CC", "#A2E0E5", "#E5F7F8"] },
+      "primary-pressed": { "role": "primary", "displayName": "Pressed Cyan", "canonical": "#006674", "tonalRamp": ["#002B31", "#003F48", "#00535E", "#006674", "#218C98", "#5FB5BE", "#A1D9DE", "#E6F5F6"] },
+      "primary-soft": { "role": "primary", "displayName": "Signal Mist", "canonical": "#DDF8FB", "tonalRamp": ["#123033", "#285156", "#47777C", "#6DA0A5", "#95C7CB", "#B9E2E5", "#D4F0F2", "#F0FCFD"] },
+      "on-primary": { "role": "text", "displayName": "On Signal", "canonical": "#FFFFFF", "tonalRamp": ["#1A1A1A", "#3A3A3A", "#626262", "#8C8C8C", "#B5B5B5", "#D8D8D8", "#EEEEEE", "#FFFFFF"] },
+      "danger": { "role": "danger", "displayName": "Safety Red", "canonical": "#C5364D", "tonalRamp": ["#3B0D16", "#641725", "#8C2435", "#B83248", "#D85B6D", "#E98E9A", "#F4C2C8", "#FCECEF"] },
+      "disabled": { "role": "neutral", "displayName": "Disabled Mist", "canonical": "#E3EAEC", "tonalRamp": ["#1B2224", "#374144", "#5E6A6D", "#879396", "#AFBABC", "#CDD5D7", "#E3EAEC", "#F5F7F8"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "One direct screen statement." },
+      "title": { "displayName": "Title", "purpose": "Section and state-panel titles." },
+      "subtitle": { "displayName": "Subtitle", "purpose": "Native navigation titles." },
+      "body": { "displayName": "Body", "purpose": "Task and explanatory copy." },
+      "label": { "displayName": "Label", "purpose": "Buttons and form labels." },
+      "caption": { "displayName": "Caption", "purpose": "Secondary guidance and tab labels." }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action available in a task state.",
+      "html": "<button class=\"ds-btn-primary\">TIẾP TỤC</button>",
+      "css": ".ds-btn-primary { min-height:48px; padding:12px 16px; border:1px solid #007E8C; border-radius:14px; background:#007E8C; color:#FFFFFF; font:600 14px/20px system-ui; } .ds-btn-primary:hover,.ds-btn-primary:active { background:#006674; } .ds-btn-primary:focus-visible { outline:3px solid #A2E0E5; outline-offset:2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A safe alternate action without competing with the primary action.",
+      "html": "<button class=\"ds-btn-secondary\">QUAY LẠI</button>",
+      "css": ".ds-btn-secondary { min-height:48px; padding:12px 16px; border:1px solid #007E8C; border-radius:14px; background:#FFFFFF; color:#006674; font:600 14px/20px system-ui; } .ds-btn-secondary:hover,.ds-btn-secondary:active { background:#DDF8FB; } .ds-btn-secondary:focus-visible { outline:3px solid #A2E0E5; outline-offset:2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "A destructive or safety-sensitive action that remains visually explicit.",
+      "html": "<button class=\"ds-btn-danger\">BÁO CÁO</button>",
+      "css": ".ds-btn-danger { min-height:48px; padding:12px 16px; border:1px solid #C5364D; border-radius:14px; background:#FFFFFF; color:#C5364D; font:600 14px/20px system-ui; } .ds-btn-danger:hover,.ds-btn-danger:active { background:#FCECEF; } .ds-btn-danger:focus-visible { outline:3px solid #F4C2C8; outline-offset:2px; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "A low-emphasis text action for navigation or optional work.",
+      "html": "<button class=\"ds-btn-quiet\">QUÊN MẬT KHẨU</button>",
+      "css": ".ds-btn-quiet { min-height:48px; padding:12px 16px; border:1px solid transparent; border-radius:14px; background:transparent; color:#006674; font:600 14px/20px system-ui; } .ds-btn-quiet:hover,.ds-btn-quiet:active { background:#DDF8FB; } .ds-btn-quiet:focus-visible { outline:3px solid #A2E0E5; outline-offset:2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "text-input",
+      "description": "A labeled 52 dp field with a visible error contract.",
+      "html": "<label class=\"ds-field\"><span>Email</span><input placeholder=\"ban@example.com\"><small>Vui lòng nhập email hợp lệ.</small></label>",
+      "css": ".ds-field { display:grid; gap:8px; color:#102A33; font:600 14px/20px system-ui; } .ds-field input { min-height:52px; padding:0 16px; border:1px solid #CFE0E4; border-radius:14px; background:#F6FAFB; color:#102A33; font:400 16px/24px system-ui; } .ds-field input:focus-visible { border-color:#007E8C; outline:2px solid #A2E0E5; } .ds-field small { color:#C5364D; font:400 13px/18px system-ui; }"
+    },
+    {
+      "name": "State Panel",
+      "kind": "card",
+      "refersTo": "state-panel",
+      "description": "Truthful empty, error, or development context with one next action.",
+      "html": "<section class=\"ds-state\"><h3>Chưa có kết nối</h3><p>Chỉ mutual like do máy chủ xác nhận mới mở trò chuyện.</p></section>",
+      "css": ".ds-state { padding:24px; border:1px solid #CFE0E4; border-radius:22px; background:#FFFFFF; color:#102A33; font-family:system-ui; } .ds-state h3 { margin:0 0 12px; font-size:22px; line-height:29px; } .ds-state p { margin:0; color:#587079; font-size:16px; line-height:24px; } .ds-state:focus-within { border-color:#007E8C; }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "bottom-tabs",
+      "description": "Four stable Android-first primary destinations.",
+      "html": "<nav class=\"ds-tabs\"><button class=\"ds-tab-active\">Khám phá</button><button>Đã lưu</button><button>Kết nối</button><button>Hồ sơ</button></nav>",
+      "css": ".ds-tabs { min-height:66px; display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid #CFE0E4; background:#FFFFFF; } .ds-tabs button { border:0; background:transparent; color:#587079; font:400 13px/18px system-ui; } .ds-tabs button:hover,.ds-tabs button:focus-visible { background:#DDF8FB; outline:none; } .ds-tabs .ds-tab-active { color:#006674; font-weight:600; }"
+    },
+    {
+      "name": "Sync Line",
+      "kind": "custom",
+      "refersTo": "sync-line",
+      "description": "A real loading, selection, or readiness indicator; never fabricated progress.",
+      "html": "<div class=\"ds-sync\"><div><span></span></div><small>Đang đồng bộ</small></div>",
+      "css": ".ds-sync div { height:4px; overflow:hidden; border-radius:999px; background:#EAF3F5; } .ds-sync span { display:block; width:55%; height:100%; background:#007E8C; } .ds-sync small { display:block; margin-top:8px; color:#587079; font:400 13px/18px system-ui; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Verified Connection",
+    "overview": "HeartSync uses restrained cyan signals on cool, quiet surfaces. The interface names empty, unavailable, error, and development states instead of filling space with fake profiles or simulated success.\n\nThe Q01 implementation is code-verified only. Insets, keyboard behavior, large fonts, TalkBack, tablet/landscape layout, and perceived color remain pending Android-device review.",
+    "keyCharacteristics": [
+      "Cool white and mist surfaces with one disciplined cyan accent.",
+      "Dark, readable text and explicit state copy.",
+      "Flat bordered containers instead of decorative card grids.",
+      "Native stack and four-destination bottom navigation.",
+      "Minimum 48 dp interactive targets."
+    ],
+    "rules": [
+      { "name": "The Confirmed Signal Rule", "body": "Cyan is reserved for a real action, selection, readiness, or confirmed state; it is not ambient decoration.", "section": "colors" },
+      { "name": "The Semantic State Rule", "body": "Error states combine danger color with explanatory text, never color alone.", "section": "colors" },
+      { "name": "The Direct Hierarchy Rule", "body": "Use a direct title and supporting body copy; do not manufacture hierarchy with repeated uppercase kickers.", "section": "typography" },
+      { "name": "The Native Orientation Rule", "body": "Navigation and Back behavior remain platform-native; branded surfaces must not replace orientation controls.", "section": "layout" },
+      { "name": "The Flat-by-Default Rule", "body": "Do not add shadows unless a future interaction requires real elevation and a deliberate token is added.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep actions and explanations together within thumb reach.",
+      "Do preserve 48 dp minimum touch targets and native Back behavior.",
+      "Do use explicit empty, unavailable, error, and development copy.",
+      "Do prefer borders and tonal layering before introducing shadows."
+    ],
+    "donts": [
+      "Don't claim authentication, profiles, matches, realtime activity, or calls before server confirmation.",
+      "Don't repeat uppercase kickers or use-case identifiers as the primary production hierarchy; the Q01 placeholder labels are temporary traceability aids.",
+      "Don't use cyan as ambient decoration or display fabricated Sync Line progress.",
+      "Don't treat device behavior as approved until Android smoke and accessibility tests are recorded."
+    ]
+  }
+}
