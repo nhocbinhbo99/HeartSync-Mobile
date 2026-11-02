@@ -1,41 +1,34 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# HeartSync — Mobile App Guidelines for AI Agents
 
-## Expo has changed — do not trust your training data
+Welcome! This folder contains the React Native / Expo application for **HeartSync**.
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+## ⚠️ Critical Architecture Rules for HeartSync
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+1. **Navigation:**
+   - **Do NOT use Expo Router!** The project uses **React Navigation v7** (Native Stack + Bottom Tabs).
+   - Routes and params are defined in `src/navigation/types.ts` and `src/navigation/RootNavigator.tsx`.
+   - Never create `_layout.tsx` or file-based routes in `src/app/`.
 
-## Commands
+2. **Clean Architecture Boundary:**
+   - **Screens MUST NOT import `@supabase/supabase-js` or `livekit-client` directly.**
+   - All backend calls must go through the interfaces defined in `src/services/contracts.ts` (`ProfileRepository`, `DiscoveryRepository`, `MatchRepository`, `ChatRepository`, `CallGateway`, etc.).
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+3. **Privacy & Security:**
+   - Never expose `dob` (date of birth) or exact GPS coordinates in public profile models.
+   - Match creation is atomic on the server; use `record_swipe` RPC via `MatchRepository`.
+   - Never sign LiveKit tokens on the client; fetch from the Supabase Edge Function.
 
+4. **Available Documentation:**
+   - Read `../docs/PHAN_CHIA_CONG_VIEC_CHI_TIET.md` for task breakdown and current status.
+   - Read `../docs/TEAM_HANDOFF.md` and `../ARCHITECTURE.md` for architecture details.
+   - Read `../DATA_MODEL.md` for database schema and RPCs.
+   - Read `../docs/DOCUMENTATION_DELTA.md` for the 19 Use Cases and Business Rules.
+
+## 🛠️ Verification Commands
+
+Before completing any task, always ensure these pass:
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+npm run typecheck
+npm run lint
+npm test
 ```
-
-Run lint and typecheck before declaring any task done.
-
-## Navigation & Routing
-
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
-
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
-
-## Rules
-
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
