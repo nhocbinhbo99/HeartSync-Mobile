@@ -2,9 +2,9 @@ import { AppState } from 'react-native';
 import * as Linking from 'expo-linking';
 import type { PropsWithChildren } from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 
-import { getSupabaseClient } from '../../services/supabase';
+import { getSupabaseClient, type AppSupabaseClient } from '../../services/supabase';
 import { supabaseConfig } from '../../services/supabaseConfig';
 import { AUTH_CALLBACK_URL, PASSWORD_RECOVERY_URL, extractAuthCallback } from './deepLink';
 import { toSafeAuthMessage } from './authError';
@@ -31,7 +31,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-type AuthProviderProps = PropsWithChildren<{ client?: SupabaseClient | null }>;
+type AuthProviderProps = PropsWithChildren<{ client?: AppSupabaseClient | null }>;
 
 export function AuthProvider({ children, client = getSupabaseClient() }: AuthProviderProps) {
   const [status, setStatus] = useState<AuthStatus>(client ? 'loading' : 'setup_required');

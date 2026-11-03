@@ -51,11 +51,12 @@ jobs:
         run: supabase test db --local
       - name: Lint database functions
         run: supabase db lint --local --fail-on error
-      - name: Generate database types artifact
+      - name: Verify generated database types are current
         run: |
-          supabase gen types typescript --local --schema public > /tmp/database.types.ts
+          supabase gen types typescript --local --schema public --schema private > /tmp/database.types.ts
           test -s /tmp/database.types.ts
           grep -q "export type Database" /tmp/database.types.ts
+          diff -u heartsync/src/shared/types/database.types.ts /tmp/database.types.ts
       - uses: actions/upload-artifact@v4
         with:
           name: database-types

@@ -1,5 +1,3 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-
 import { calculateAge } from '../shared/domain/age';
 import { validateDiscoveryFilters } from '../shared/domain/filters';
 import type {
@@ -15,6 +13,7 @@ import type {
 import type { PreferencesRepository, ProfileRepository, SavedProfilesRepository } from './contracts';
 import { mapServiceError } from './errors';
 import { parseProfilePhoto, parseProfilePublic, profileFromRows, recordValue } from './profileMapper';
+import type { AppSupabaseClient } from './supabase';
 
 const DEFAULT_FILTERS: DiscoveryFilters = {
   ageMin: 18,
@@ -24,7 +23,7 @@ const DEFAULT_FILTERS: DiscoveryFilters = {
   preferredLanguages: [],
 };
 
-async function userId(client: SupabaseClient): Promise<Result<string>> {
+async function userId(client: AppSupabaseClient): Promise<Result<string>> {
   const { data, error } = await client.auth.getUser();
   return error || !data.user
     ? { ok: false, error: mapServiceError(error ?? { status: 401 }) }
@@ -49,7 +48,7 @@ function parseFilters(value: unknown): DiscoveryFilters | null {
 }
 
 export class SupabaseProfileRepository implements ProfileRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: AppSupabaseClient) {}
 
   async getMine(): Promise<Result<{ public: ProfilePublic; private: ProfilePrivate }>> {
     const identity = await userId(this.client);
@@ -127,15 +126,15 @@ export class SupabaseProfileRepository implements ProfileRepository {
       p_display_name: input.displayName.trim(),
       p_gender: input.gender,
       p_date_of_birth: input.dateOfBirth,
-      p_bio: input.bio,
-      p_occupation: input.occupation,
-      p_education: input.education,
-      p_public_location: input.publicLocation,
+      p_bio: input.bio ?? undefined,
+      p_occupation: input.occupation ?? undefined,
+      p_education: input.education ?? undefined,
+      p_public_location: input.publicLocation ?? undefined,
       p_interest_labels: input.interests,
       p_languages: input.languages,
       p_location_consent: input.locationConsent,
-      p_latitude: input.locationConsent ? input.latitude : null,
-      p_longitude: input.locationConsent ? input.longitude : null,
+      p_latitude: input.locationConsent ? input.latitude ?? undefined : undefined,
+      p_longitude: input.locationConsent ? input.longitude ?? undefined : undefined,
     });
     if (error) return { ok: false, error: mapServiceError(error) };
     const profile = parseProfilePublic(data);
@@ -230,7 +229,7 @@ export class SupabaseProfileRepository implements ProfileRepository {
 }
 
 export class SupabasePreferencesRepository implements PreferencesRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: AppSupabaseClient) {}
 
   async get(): Promise<Result<DiscoveryFilters>> {
     const identity = await userId(this.client);
@@ -256,7 +255,7 @@ export class SupabasePreferencesRepository implements PreferencesRepository {
     const { data, error } = await this.client.rpc('save_my_preferences', {
       p_age_min: checked.data.ageMin,
       p_age_max: checked.data.ageMax,
-      p_distance_km: checked.data.distanceKm,
+      p_distance_km: checked.data.distanceKm ?? undefined,
       p_preferred_genders: checked.data.preferredGenders,
       p_preferred_languages: checked.data.preferredLanguages,
     });
@@ -269,12 +268,12 @@ export class SupabasePreferencesRepository implements PreferencesRepository {
 }
 
 export class SupabaseSavedProfilesRepository implements SavedProfilesRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: AppSupabaseClient) {}
 
   async list(cursor?: string, limit = 20): Promise<Result<Page<ProfilePublic>>> {
     const { data, error } = await this.client.rpc('list_saved_profiles', {
       p_limit: limit,
-      p_cursor_created_at: cursor ?? null,
+      p_cursor_created_at: cursor,
     });
     if (error) return { ok: false, error: mapServiceError(error) };
     const rows = Array.isArray(data) ? data : [];

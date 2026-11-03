@@ -1,6 +1,5 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-
 import { SupabasePreferencesRepository, SupabaseProfileRepository, SupabaseSavedProfilesRepository } from '../supabaseProfileRepositories';
+import type { AppSupabaseClient } from '../supabase';
 
 const publicProfile = {
   id: 'profile-a', displayName: 'An Bình', age: 28, gender: 'man', bio: null,
@@ -14,7 +13,7 @@ describe('Supabase profile repositories', () => {
     const client = {
       auth: { getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'profile-a' } }, error: null }) },
       rpc,
-    } as unknown as SupabaseClient;
+    } as unknown as AppSupabaseClient;
     const repository = new SupabaseProfileRepository(client);
 
     const result = await repository.save({
@@ -28,7 +27,7 @@ describe('Supabase profile repositories', () => {
     } } });
     expect(rpc).toHaveBeenCalledWith('save_my_profile', expect.objectContaining({
       p_display_name: 'An Bình', p_date_of_birth: '1998-01-01', p_location_consent: false,
-      p_latitude: null, p_longitude: null,
+      p_latitude: undefined, p_longitude: undefined,
     }));
   });
 
@@ -36,7 +35,7 @@ describe('Supabase profile repositories', () => {
     const rpc = jest.fn().mockResolvedValue({ data: {
       ageMin: 22, ageMax: 35, distanceKm: null, preferredGenders: ['woman'], preferredLanguages: ['vi'],
     }, error: null });
-    const repository = new SupabasePreferencesRepository({ rpc } as unknown as SupabaseClient);
+    const repository = new SupabasePreferencesRepository({ rpc } as unknown as AppSupabaseClient);
 
     await expect(repository.save({
       ageMin: 22, ageMax: 35, distanceKm: 50, preferredGenders: ['woman'], preferredLanguages: ['vi'],
@@ -50,7 +49,7 @@ describe('Supabase profile repositories', () => {
       { profile: publicProfile, saved_at: '2026-11-03T09:00:00Z' },
       { profile: { ...publicProfile, id: 'profile-b' }, saved_at: '2026-11-02T09:00:00Z' },
     ], error: null });
-    const repository = new SupabaseSavedProfilesRepository({ rpc } as unknown as SupabaseClient);
+    const repository = new SupabaseSavedProfilesRepository({ rpc } as unknown as AppSupabaseClient);
 
     await expect(repository.list(undefined, 2)).resolves.toMatchObject({ ok: true, data: {
       items: [{ id: 'profile-a' }, { id: 'profile-b' }], nextCursor: '2026-11-02T09:00:00Z',
@@ -61,7 +60,7 @@ describe('Supabase profile repositories', () => {
     const rpc = jest.fn()
       .mockResolvedValueOnce({ data: [{ id: 'photo-b', storagePath: 'profile-a/b.jpg', sortOrder: 0, isPrimary: true }], error: null })
       .mockResolvedValueOnce({ data: null, error: null });
-    const repository = new SupabaseProfileRepository({ rpc } as unknown as SupabaseClient);
+    const repository = new SupabaseProfileRepository({ rpc } as unknown as AppSupabaseClient);
 
     await expect(repository.reorderPhotos(['photo-b'])).resolves.toMatchObject({ ok: true });
     await expect(repository.setPrimaryPhoto('photo-b')).resolves.toEqual({ ok: true, data: undefined });

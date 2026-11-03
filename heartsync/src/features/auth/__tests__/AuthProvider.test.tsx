@@ -1,8 +1,9 @@
 import type { PropsWithChildren } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import type { AuthChangeEvent, Session, SupabaseClient } from '@supabase/supabase-js';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 import { AuthProvider, useAuth } from '../AuthProvider';
+import type { AppSupabaseClient } from '../../../services/supabase';
 
 jest.mock('expo-linking', () => ({
   getInitialURL: jest.fn(async () => null),
@@ -36,7 +37,7 @@ function createMockClient() {
     signOut: jest.fn(),
   };
   return {
-    client: { auth, from } as unknown as SupabaseClient,
+    client: { auth, from } as unknown as AppSupabaseClient,
     auth,
     maybeSingle,
     emit: (event: AuthChangeEvent, session: Session | null) => listener?.(event, session),

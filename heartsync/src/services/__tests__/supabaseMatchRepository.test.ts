@@ -1,10 +1,10 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseMatchRepository } from '../supabaseMatchRepository';
+import type { AppSupabaseClient } from '../supabase';
 
 describe('SupabaseMatchRepository', () => {
   it('uses the atomic record_swipe RPC and trusts only its confirmed result', async () => {
     const rpc = jest.fn().mockResolvedValue({ data: [{ outcome: 'matched', match_id: 'match-1' }], error: null });
-    const repository = new SupabaseMatchRepository({ rpc } as unknown as SupabaseClient);
+    const repository = new SupabaseMatchRepository({ rpc } as unknown as AppSupabaseClient);
 
     await expect(repository.recordSwipe('target-1', 'like')).resolves.toEqual({
       ok: true,
@@ -15,7 +15,7 @@ describe('SupabaseMatchRepository', () => {
 
   it('rejects a phantom match returned without a match ID', async () => {
     const rpc = jest.fn().mockResolvedValue({ data: [{ outcome: 'matched', match_id: null }], error: null });
-    const repository = new SupabaseMatchRepository({ rpc } as unknown as SupabaseClient);
+    const repository = new SupabaseMatchRepository({ rpc } as unknown as AppSupabaseClient);
     await expect(repository.recordSwipe('target-1', 'like')).resolves.toMatchObject({ ok: false });
   });
 });
