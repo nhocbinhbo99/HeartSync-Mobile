@@ -10,7 +10,7 @@ export function Screen({ children, scroll = true, keyboardAware = false, safeTop
         showsVerticalScrollIndicator={false}>{children}</ScrollView>
     : <View style={[styles.content, styles.fill, contentStyle]}>{children}</View>;
   const keyboardContent = keyboardAware
-    ? <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>{content}</KeyboardAvoidingView>
+    ? <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>{content}</KeyboardAvoidingView>
     : content;
   return <SafeAreaView style={styles.fill} edges={safeTop ? ['top', 'left', 'right', 'bottom'] : ['left', 'right', 'bottom']}>
     {keyboardContent}

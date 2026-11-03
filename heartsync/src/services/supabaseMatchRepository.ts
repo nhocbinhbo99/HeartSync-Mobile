@@ -1,13 +1,13 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
 import type { MatchRepository } from './contracts';
 import { mapServiceError } from './errors';
 import { parseRecordSwipeResponse } from '../shared/domain/swipe';
 import { parseProfilePublic, recordValue } from './profileMapper';
 import type { MatchSummary, Page, Result, SwipeAction, SwipeResult } from '../shared/types/domain.types';
+import type { AppSupabaseClient } from './supabase';
 
 /** All match mutations use server RPCs; the app never inserts a match itself. */
 export class SupabaseMatchRepository implements MatchRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: AppSupabaseClient) {}
 
   async recordSwipe(targetProfileId: string, action: SwipeAction): Promise<Result<SwipeResult>> {
     const { data, error } = await this.client.rpc('record_swipe', {
@@ -21,7 +21,7 @@ export class SupabaseMatchRepository implements MatchRepository {
   async listMatches(cursor?: string): Promise<Result<Page<MatchSummary>>> {
     const cursorCreatedAt = cursor ? new Date(cursor) : null;
     if (cursor && Number.isNaN(cursorCreatedAt?.getTime())) return { ok: false, error: { code: 'validation', message: 'Trang dữ liệu không hợp lệ.', retryable: false } };
-    const { data, error } = await this.client.rpc('list_active_matches', { p_limit: 30, p_cursor_created_at: cursorCreatedAt?.toISOString() ?? null });
+    const { data, error } = await this.client.rpc('list_active_matches', { p_limit: 30, p_cursor_created_at: cursorCreatedAt?.toISOString() });
     if (error) return { ok: false, error: mapServiceError(error) };
     const rows = Array.isArray(data) ? data : [];
     const items = rows.flatMap((row) => {

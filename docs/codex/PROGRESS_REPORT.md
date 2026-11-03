@@ -1,10 +1,26 @@
 # Báo cáo tiến độ HeartSync
 
-Ngày cập nhật: 2026-10-30
+Ngày cập nhật: 2026-11-03
 
 Trạng thái tổng thể: **BASE_RELEASED_WITH_BLOCKERS**
 
 Mốc bàn giao: **BASE_READY_FOR_PARALLEL_WORK**
+
+Checkpoint MVP mới nhất: **MVP_LOCAL_IMPLEMENTED_CLOUD_CONTRACTS_APPLIED**
+
+Checkpoint phần Công: **CLOUD_CONTRACT_VERIFIED — DEVICE_QA_PENDING**
+
+## 0. Cập nhật phần Công — 2026-11-03
+
+- Auth/đăng ký đã dùng email chuẩn, xác nhận mật khẩu, ngày sinh bằng Android date picker, giới tính single-choice và route guard `ProfileSetup`.
+- Profile/Edit Profile đã dùng form theo section, catalog nghề nghiệp/học vấn/khu vực, multi-select sở thích/ngôn ngữ, vị trí có consent và lưới tối đa 6 ảnh với primary/reorder/delete/retry.
+- Preferences dùng age stepper, multi-select và khoảng cách chỉ khi có consent + tọa độ. Saved dùng RPC phân trang, signed photo URL và optimistic rollback.
+- Migration `20261103120000_profile_preferences_contracts.sql` thêm các RPC transaction/profile/photo/preferences/Saved và 26 pgTAP assertions; đã áp thủ công một lần lên `heartsync-dev` bằng PostgreSQL 17 sau khi tạo và kiểm tra custom-format backup schema `public`.
+- Truy vấn cloud chỉ đọc xác nhận đủ 6 RPC mới, 6 quyền execute cho `authenticated`, không có quyền execute cho `PUBLIC`/`anon`, đủ 15 interests và unique photo order là `DEFERRABLE INITIALLY DEFERRED`.
+- `database.types.ts` đã sinh từ `heartsync-dev`; Supabase client và adapters dùng generated transport types. Domain/UI types vẫn độc lập; CI so sánh generated type drift sau local migration reset.
+- Quality gate local: TypeScript PASS, ESLint PASS, 18 suites/70 Jest tests PASS, Android Hermes export PASS (1.310 modules, bundle 5,2 MB), static DB gate PASS (14 bảng RLS/10 RPC).
+- EAS Development APK mới đã build thành công từ commit `e881ab1`, có native date picker: build `375e3bc1-a8de-4e0a-8d7a-de54694e6bd9`.
+- Chưa thể tuyên bố hoàn tất device/database QA: pgTAP, DB lint và Android screenshot/TalkBack/font-scale/network/permission QA sau khi cài APK còn pending.
 
 ## 1. Tóm tắt
 
@@ -81,3 +97,12 @@ Chi tiết checkpoint: [`QUEUE_STATUS.md`](QUEUE_STATUS.md).
 - Commit base gần nhất: `14274de chore(database): add local Supabase CLI config`.
 - Các file prompt, `docs/reference/` và deletion `heartsync/.claude/settings.json` là trạng thái có sẵn của người dùng, không được stage/commit.
 - Báo cáo chi tiết: [`BASE_PROGRESS.md`](BASE_PROGRESS.md), [`TEST_REPORT.md`](TEST_REPORT.md), [`RUN_LOG.md`](RUN_LOG.md), [`MANUAL_ACTIONS.md`](MANUAL_ACTIONS.md).
+
+## 8. Checkpoint MVP sau Q08
+
+- Migration forward [`../../supabase/migrations/20261030150000_mvp_contracts.sql`](../../supabase/migrations/20261030150000_mvp_contracts.sql) đã được áp thủ công một lần vào `heartsync-dev`; Query6 trả về `Success. No rows returned`.
+- Local code cho profile/preferences/saved, discovery/swipe/match, chat/realtime và lifecycle audio call đã được commit tại `81df91e`. Video call được ghi rõ ngoài phạm vi MVP.
+- Quality gate local mới nhất: `npm run typecheck`, `npm run lint`, `npm test -- --runInBand` (16 suites / 58 tests), `npx expo config --type public` và Android Hermes export đều PASS.
+- Truy vấn chỉ đọc Query7 đã xác nhận RPC/publication/giới hạn ảnh; chưa coi đây là bằng chứng runtime cloud: vẫn cần tạo ba user synthetic A/B/C và thực hiện integration test theo vai trò.
+- Script idempotent [`../../supabase/manual/seed_synthetic_demo_profiles.sql`](../../supabase/manual/seed_synthetic_demo_profiles.sql) đã được ánh xạ tới ba Auth user test do nhóm tạo (`test1/2/3@gmail.com`), yêu cầu `email_confirmed_at`, không chứa mật khẩu và không được tự chạy trong `db reset`.
+- Lần chạy Query8 đầu tiên bị dừng bởi lỗi cú pháp seed trước mọi insert; PostgreSQL rollback toàn bộ. Lỗi `ON CONFLICT` đã được sửa và có static contract test. Lần chạy lại trả về đúng ba hồ sơ A/B/C: email đã xác nhận, profile hoàn thiện, tuổi 27–28 và `distance_km = NULL`.

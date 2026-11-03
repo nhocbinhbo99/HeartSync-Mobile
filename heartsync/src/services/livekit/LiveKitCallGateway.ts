@@ -1,15 +1,15 @@
 import { AudioSession } from '@livekit/react-native';
 import { Room, RoomEvent } from 'livekit-client';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CallGateway, CallJoinGrant, CallMediaEvent } from '../contracts';
 import { mapServiceError } from '../errors';
+import type { AppSupabaseClient } from '../supabase';
 import { parseCallJoinGrant } from './grant';
 import type { CallSession, CallType, Result } from '../../shared/types/domain.types';
 
 export class LiveKitCallGateway implements CallGateway {
   private room: Room | null = null;
 
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: AppSupabaseClient) {}
 
   async requestJoinGrant(callId: string, callType: CallType): Promise<Result<CallJoinGrant>> {
     const { data, error } = await this.client.functions.invoke('livekit-token', {

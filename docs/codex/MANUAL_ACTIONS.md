@@ -82,3 +82,12 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] Reopen Docker Desktop, go to **Settings → AI**, turn off **Enable Docker Model Runner**, apply and restart. Docker's local backend log shows the crash in the Inference manager path; HeartSync does not use Model Runner.
 - [ ] Verify from PowerShell that `docker info` returns normally. Then, from `heartsync/`, run `npm run db:start`, `npm run db:reset`, `npm run db:test`, `npm run db:lint`, and finally `npm run db:types`.
 - [ ] If Docker still crashes, collect Docker diagnostics or update/repair Docker Desktop while preserving unrelated images/volumes. Do not factory-reset without a reviewed backup.
+
+## Công structured profile checkpoint — 2026-11-03
+
+- [x] Review, back up schema `public`, explicitly approve and apply `supabase/migrations/20261103120000_profile_preferences_contracts.sql` once to dedicated `heartsync-dev` using PostgreSQL 17 with `ON_ERROR_STOP` and a single transaction.
+- [x] Log the Supabase CLI in locally without committing the access token; generate `database.types.ts` from `heartsync-dev`, wire it into adapters and review the null/default-argument drift.
+- [ ] Run the GitHub Actions database job or repair Docker, then capture real results for `supabase db reset`, all 26 pgTAP assertions, `supabase db lint --fail-on error`, and type generation. Static checks are not substitutes.
+- [x] Create a new Android Development APK through EAS with `@react-native-community/datetimepicker`: build `375e3bc1-a8de-4e0a-8d7a-de54694e6bd9` completed.
+- [ ] Install that new APK on each Android test device; the previous APK cannot load the date picker module.
+- [ ] On the new APK, test sign-up → confirm → ProfileSetup, edit profile/photos, location allow/deny/permanently-deny, filters, Saved rollback, system Back/unsaved dialog, offline/slow network, font scale 1.3 and TalkBack. Capture screenshots without personal data or credentials.

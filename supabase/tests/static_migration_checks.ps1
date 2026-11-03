@@ -4,6 +4,7 @@ $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $schema = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194000_initial_schema.sql')
 $security = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194100_rls_and_rpcs.sql')
 $storage = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194200_profile_photo_storage.sql')
+$profileContracts = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261103120000_profile_preferences_contracts.sql')
 $rlsTests = Get-Content -Raw -LiteralPath (Join-Path $root 'tests\rls_security.sql')
 
 $tables = @(
@@ -23,7 +24,7 @@ foreach ($table in $tables) {
 if ($security -match 'using\s*\(\s*true\s*\)') { throw 'Unconditional USING (true) policy found.' }
 
 $functionBlocks = [regex]::Matches(
-  $security,
+  "$security`n$profileContracts",
   'create or replace function[\s\S]*?\$\$;',
   [Text.RegularExpressions.RegexOptions]::IgnoreCase
 )
@@ -42,12 +43,27 @@ foreach ($rpc in @('record_swipe', 'unmatch', 'block_user', 'start_call')) {
   }
 }
 
+$profileRpcs = @(
+  'save_my_profile', 'save_my_private_location', 'save_my_preferences',
+  'reorder_profile_photos', 'set_primary_profile_photo', 'list_saved_profiles'
+)
+foreach ($rpc in $profileRpcs) {
+  if ($profileContracts -notmatch "revoke execute on function public\.$rpc[\s\S]*from public, anon") {
+    throw "Profile RPC execute not revoked from public/anon: $rpc"
+  }
+  if ($profileContracts -notmatch "grant execute on function public\.$rpc[\s\S]*to authenticated") {
+    throw "Profile RPC execute not granted to authenticated: $rpc"
+  }
+}
+
 if ($storage -notmatch "'profile-photos'[\s\S]*false[\s\S]*5242880") { throw 'Private photo bucket limits missing.' }
 foreach ($case in @('anonymous users cannot read profiles', 'user A cannot change user B profile',
     'non-participant chat is denied', 'self-like is denied', 'canonical pair has exactly one match',
-    'duplicate like is idempotent', 'blocked pair cannot insert', 'reported user cannot read report')) {
+    'duplicate like is idempotent', 'blocked pair cannot insert', 'reported user cannot read report',
+    'owner can atomically save public and private profile fields', 'public profile projection excludes private fields',
+    'a seventh photo order is rejected', 'saved profile RPC returns only the owner list')) {
   if ($rlsTests -notmatch [regex]::Escape($case)) { throw "Missing SQL test case: $case" }
 }
 
-Write-Output "Static migration checks passed for $($tables.Count) RLS tables and 4 public RPCs."
+Write-Output "Static migration checks passed for $($tables.Count) RLS tables and $((4 + $profileRpcs.Count)) public RPCs."
 Write-Output 'This is not a PostgreSQL execution test.'

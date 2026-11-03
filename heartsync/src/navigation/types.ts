@@ -14,6 +14,7 @@ export type RootStackParamList = {
   UpdatePassword: undefined;
   AuthLoading: undefined;
   SetupRequired: undefined;
+  ProfileSetup: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   EditProfile: undefined;
   Filters: undefined;

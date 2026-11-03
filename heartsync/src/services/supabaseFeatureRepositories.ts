@@ -1,4 +1,4 @@
-import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { dedupeMessages } from '../shared/domain/messages';
 import { validateDiscoveryFilters } from '../shared/domain/filters';
@@ -6,6 +6,7 @@ import type { CallType, ChatMessage, DiscoveryFilters, IncomingCall, Page, Profi
 import type { CallRepository, ChatRepository, DiscoveryRepository, MessageSubscription } from './contracts';
 import { mapServiceError } from './errors';
 import { parseProfilePublic, recordValue } from './profileMapper';
+import type { AppSupabaseClient } from './supabase';
 
 function invalid<T>(message = 'Máy chủ trả về dữ liệu không hợp lệ.'): Result<T> {
   return { ok: false, error: { code: 'conflict', message, retryable: false } };
@@ -25,12 +26,12 @@ function parseCall(value: unknown): IncomingCall | null {
   return { id: row.id, matchId: row.match_id, callerId: row.caller_id, calleeId: row.callee_id, type: row.type as CallType, status: row.status as IncomingCall['status'], startedAt: row.started_at };
 }
 
-function unsubscribe(channel: RealtimeChannel, client: SupabaseClient): MessageSubscription {
+function unsubscribe(channel: RealtimeChannel, client: AppSupabaseClient): MessageSubscription {
   return { unsubscribe: () => { void client.removeChannel(channel); } };
 }
 
 export class SupabaseDiscoveryRepository implements DiscoveryRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: AppSupabaseClient) {}
   async getCandidates(filters: DiscoveryFilters, cursor?: string): Promise<Result<Page<ProfilePublic>>> {
     const checked = validateDiscoveryFilters(filters);
     if (!checked.ok) return { ok: false, error: checked.error };
@@ -39,11 +40,11 @@ export class SupabaseDiscoveryRepository implements DiscoveryRepository {
     const { data, error } = await this.client.rpc('get_discovery_candidates', {
       p_age_min: filters.ageMin,
       p_age_max: filters.ageMax,
-      p_distance_km: filters.distanceKm,
+      p_distance_km: filters.distanceKm ?? undefined,
       p_preferred_genders: filters.preferredGenders,
       p_preferred_languages: filters.preferredLanguages,
       p_limit: 20,
-      p_cursor_created_at: cursorCreatedAt?.toISOString() ?? null,
+      p_cursor_created_at: cursorCreatedAt?.toISOString(),
     });
     if (error) return { ok: false, error: mapServiceError(error) };
     if (!Array.isArray(data)) return invalid();
@@ -56,7 +57,7 @@ export class SupabaseDiscoveryRepository implements DiscoveryRepository {
 }
 
 export class SupabaseChatRepository implements ChatRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: AppSupabaseClient) {}
   async listMessages(matchId: string, _cursor?: string): Promise<Result<Page<ChatMessage>>> {
     const { data, error } = await this.client.from('messages').select('*').eq('match_id', matchId).order('sent_at', { ascending: true }).limit(100);
     if (error) return { ok: false, error: mapServiceError(error) };
@@ -83,7 +84,7 @@ export class SupabaseChatRepository implements ChatRepository {
 }
 
 export class SupabaseCallRepository implements CallRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: AppSupabaseClient) {}
   private async loadCall(callId: string): Promise<Result<IncomingCall>> {
     const { data, error } = await this.client.from('calls').select('*').eq('id', callId).single();
     if (error) return { ok: false, error: mapServiceError(error) };

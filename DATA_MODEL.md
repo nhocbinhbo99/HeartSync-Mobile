@@ -1,6 +1,6 @@
 # HeartSync BASE Data Model
 
-Status: **SQL_PREPARED_NOT_APPLIED**. These migrations have not been run locally or remotely. The current machine has `psql`, but no Supabase CLI and no running Docker/PostgreSQL service. Do not treat this document as evidence of a working database.
+Status: **CLOUD_APPLIED_AND_READ_ONLY_VERIFIED**. Migrations through `20261103120000_profile_preferences_contracts.sql` were applied manually to dedicated development project `heartsync-dev`, with a verified PostgreSQL 17 custom-format pre-apply backup for schema `public`. Cloud type generation and the read-only RPC/grant/catalog/constraint verification pass; local reset, all 26 pgTAP assertions and database lint remain pending, so this is not production acceptance.
 
 ## Privacy boundary
 

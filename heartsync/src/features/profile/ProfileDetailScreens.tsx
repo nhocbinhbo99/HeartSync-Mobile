@@ -1,134 +1,114 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
+import { useCallback, useEffect, useState } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
-import { useAuth } from '../auth/AuthProvider';
-import { calculateAge, isAdult } from '../../shared/domain/age';
 import { AppButton } from '../../shared/components/AppButton';
-import { AppTextField } from '../../shared/components/AppTextField';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { Screen } from '../../shared/components/Screen';
+import { SelectedChip } from '../../shared/components/SelectedChip';
 import { StatePanel } from '../../shared/components/StatePanel';
-import { colors, type } from '../../shared/theme/tokens';
-import type { ProfilePhoto, ProfilePrivate, ProfilePublic } from '../../shared/types/domain.types';
+import { optionLabel, GENDER_OPTIONS, LANGUAGE_OPTIONS } from '../../shared/domain/profileOptions';
+import { colors, radii, spacing, type } from '../../shared/theme/tokens';
+import type { ProfilePublic } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
-
-const splitValues = (value: string) => [...new Set(value.split(',').map((item) => item.trim()).filter(Boolean))];
-type Draft = { displayName: string; gender: string; bio: string; occupation: string; education: string; publicLocation: string; dateOfBirth: string; interests: string; languages: string; locationConsent: boolean; latitude: number | null; longitude: number | null; photos: ProfilePhoto[] };
-const blankDraft: Draft = { displayName: '', gender: '', bio: '', occupation: '', education: '', publicLocation: '', dateOfBirth: '', interests: '', languages: '', locationConsent: false, latitude: null, longitude: null, photos: [] };
-
-function toDraft(publicProfile: ProfilePublic, privateProfile: ProfilePrivate): Draft {
-  return { displayName: publicProfile.displayName, gender: publicProfile.gender, bio: publicProfile.bio ?? '', occupation: publicProfile.occupation ?? '', education: publicProfile.education ?? '', publicLocation: publicProfile.publicLocation ?? '', dateOfBirth: privateProfile.dateOfBirth, interests: publicProfile.interests.join(', '), languages: publicProfile.languages.join(', '), locationConsent: privateProfile.locationConsent, latitude: privateProfile.latitude, longitude: privateProfile.longitude, photos: publicProfile.photos };
-}
+import { ProfileEditor } from './ProfileEditor';
 
 export function EditProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'EditProfile'>) {
-  const services = useAppServices();
-  const { user } = useAuth();
-  const [draft, setDraft] = useState<Draft>(blankDraft);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
-  const update = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((current) => ({ ...current, [key]: value }));
-  const load = useCallback(async () => {
-    if (!services) return;
-    setLoading(true);
-    const result = await services.profile.getMine();
-    if (result.ok) setDraft(toDraft(result.data.public, result.data.private));
-    else if (result.error.code !== 'not_found') setError(result.error.message);
-    setLoading(false);
-  }, [services]);
-  useEffect(() => { const timer = setTimeout(() => void load(), 0); return () => clearTimeout(timer); }, [load]);
-  const age = useMemo(() => calculateAge(draft.dateOfBirth, new Date()), [draft.dateOfBirth]);
-
-  const requestLocation = async () => {
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (permission.status !== 'granted') { setError('Bạn chưa cấp quyền vị trí. Bộ lọc khoảng cách sẽ bị tắt.'); return; }
-    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    setDraft((current) => ({ ...current, locationConsent: true, latitude: position.coords.latitude, longitude: position.coords.longitude }));
-    setError(''); setNotice('Đã lưu vị trí riêng tư để dùng cho lọc khoảng cách.');
-  };
-  const addPhoto = async () => {
-    if (!services || !user) return;
-    if (draft.photos.length >= 6) { setError('Bạn chỉ có thể thêm tối đa sáu ảnh.'); return; }
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) { setError('Cần quyền thư viện ảnh để chọn ảnh hồ sơ.'); return; }
-    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, quality: 0.75 });
-    if (picked.canceled || !picked.assets[0]) return;
-    setSaving(true); setError('');
-    const result = await services.profile.uploadPhoto(user.id, picked.assets[0].uri, draft.photos.length);
-    setSaving(false);
-    if (result.ok) setDraft((current) => ({ ...current, photos: [...current.photos, result.data] })); else setError(result.error.message);
-  };
-  const removePhoto = async (photo: ProfilePhoto) => {
-    if (!services) return;
-    setSaving(true); const result = await services.profile.deletePhoto(photo); setSaving(false);
-    if (result.ok) setDraft((current) => ({ ...current, photos: current.photos.filter((item) => item.id !== photo.id) })); else setError(result.error.message);
-  };
-  const save = async () => {
-    if (!services || !user) return;
-    if (draft.displayName.trim().length < 2 || !draft.gender.trim()) { setError('Tên hiển thị và giới tính là bắt buộc.'); return; }
-    if (!isAdult(draft.dateOfBirth)) { setError('Bạn phải nhập ngày sinh hợp lệ và từ 18 tuổi trở lên.'); return; }
-    setSaving(true); setError(''); setNotice('');
-    const publicProfile: ProfilePublic = { id: user.id, displayName: draft.displayName, age: age ?? 0, gender: draft.gender, bio: draft.bio || null, occupation: draft.occupation || null, education: draft.education || null, publicLocation: draft.publicLocation || null, profileCompletedAt: new Date().toISOString(), photos: draft.photos, interests: splitValues(draft.interests), languages: splitValues(draft.languages) };
-    const privateProfile: ProfilePrivate = { userId: user.id, dateOfBirth: draft.dateOfBirth, locationConsent: draft.locationConsent, latitude: draft.locationConsent ? draft.latitude : null, longitude: draft.locationConsent ? draft.longitude : null };
-    const publicResult = await services.profile.savePublic(publicProfile);
-    const privateResult = publicResult.ok ? await services.profile.savePrivate(privateProfile) : publicResult;
-    setSaving(false);
-    if (!privateResult.ok) { setError(privateResult.error.message); return; }
-    setNotice('Đã lưu hồ sơ. Dữ liệu riêng tư không xuất hiện trong Khám phá.');
-  };
-  if (!services || !user) return <Screen><StatePanel title="Không thể chỉnh sửa" description="Phiên đăng nhập đã hết hạn." /></Screen>;
-  if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tải form hồ sơ" description="Dữ liệu riêng tư chỉ được tải cho chính bạn." /></Screen>;
-  return <Screen keyboardAware>
-    <Text accessibilityRole="header" style={styles.title}>Hồ sơ của bạn</Text>
-    <Text style={styles.body}>Ngày sinh và tọa độ chỉ dùng để kiểm tra tuổi, quyền riêng tư và lọc khoảng cách.</Text>
-    <AppTextField label="Tên hiển thị" value={draft.displayName} onChangeText={(value) => update('displayName', value)} maxLength={80} />
-    <AppTextField label="Giới tính" value={draft.gender} onChangeText={(value) => update('gender', value)} maxLength={40} placeholder="Ví dụ: woman" />
-    <AppTextField label="Ngày sinh riêng tư" value={draft.dateOfBirth} onChangeText={(value) => update('dateOfBirth', value)} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
-    {age !== null ? <Text style={styles.hint}>{age >= 18 ? `Đã xác minh độ tuổi: ${age}` : 'Bạn cần từ 18 tuổi để hoàn tất hồ sơ.'}</Text> : null}
-    <AppTextField label="Giới thiệu" value={draft.bio} onChangeText={(value) => update('bio', value)} multiline maxLength={500} />
-    <AppTextField label="Nghề nghiệp" value={draft.occupation} onChangeText={(value) => update('occupation', value)} maxLength={120} />
-    <AppTextField label="Học vấn" value={draft.education} onChangeText={(value) => update('education', value)} maxLength={160} />
-    <AppTextField label="Khu vực công khai" value={draft.publicLocation} onChangeText={(value) => update('publicLocation', value)} maxLength={120} placeholder="Ví dụ: Quận 1, TP.HCM" />
-    <AppTextField label="Sở thích, cách nhau bằng dấu phẩy" value={draft.interests} onChangeText={(value) => update('interests', value)} />
-    <AppTextField label="Ngôn ngữ, cách nhau bằng dấu phẩy" value={draft.languages} onChangeText={(value) => update('languages', value)} placeholder="vi, en" />
-    <StatePanel title="Vị trí riêng tư" description={draft.locationConsent && draft.latitude !== null ? 'Đã bật lọc khoảng cách. Tọa độ không hiển thị cho người khác.' : 'Chưa dùng vị trí. Bạn vẫn có thể khám phá người khác, nhưng không lọc được theo khoảng cách.'} />
-    <AppButton label={draft.locationConsent ? 'Cập nhật vị trí riêng tư' : 'Bật vị trí cho lọc khoảng cách'} variant="secondary" onPress={() => void requestLocation()} />
-    {draft.locationConsent ? <AppButton label="Tắt dùng vị trí" variant="quiet" onPress={() => setDraft((current) => ({ ...current, locationConsent: false, latitude: null, longitude: null }))} /> : null}
-    <StatePanel title={`Ảnh hồ sơ (${draft.photos.length}/6)`} description="Ảnh được lưu trong bucket private và chỉ người có quyền xem profile mới nhận URL tạm thời." />
-    <AppButton label="Thêm ảnh" variant="secondary" disabled={saving || draft.photos.length >= 6} onPress={() => void addPhoto()} />
-    {draft.photos.map((photo, index) => <AppButton key={photo.id} label={`Xóa ảnh ${index + 1}`} variant="danger" disabled={saving} onPress={() => void removePhoto(photo)} />)}
-    {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
-    {notice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
-    <AppButton label={saving ? 'Đang lưu…' : 'Lưu hồ sơ'} disabled={saving} onPress={() => void save()} />
-    <AppButton label="Quay lại" variant="quiet" onPress={() => navigation.goBack()} />
-  </Screen>;
+  return <ProfileEditor mode="edit" onCancel={() => navigation.goBack()} />;
 }
 
 export function OtherProfileScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'OtherProfile'>) {
   const services = useAppServices();
+  const profileId = route.params?.profileId;
   const [profile, setProfile] = useState<ProfilePublic>();
+  const [photoUrl, setPhotoUrl] = useState<string>();
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { if (services && route.params?.profileId) void services.profile.getPublic(route.params.profileId).then((result) => result.ok ? setProfile(result.data) : setError(result.error.message)); }, [route.params?.profileId, services]);
-  if (!route.params?.profileId) return <Screen><StatePanel title="Chưa chọn hồ sơ" description="Hãy chọn một hồ sơ từ Khám phá hoặc Đã lưu." /></Screen>;
-  if (error) return <Screen><AsyncStatePanel state="error" title="Không thể xem hồ sơ" description={error} actionLabel="Quay lại" onAction={navigation.goBack} /></Screen>;
+
+  const load = useCallback(async () => {
+    if (!services || !profileId) return;
+    setError('');
+    const [profileResult, savedResult] = await Promise.all([
+      services.profile.getPublic(profileId),
+      services.saved.isSaved(profileId),
+    ]);
+    if (!profileResult.ok) { setError(profileResult.error.message); return; }
+    setProfile(profileResult.data);
+    if (savedResult.ok) setSaved(savedResult.data);
+    const primary = profileResult.data.photos.find((photo) => photo.isPrimary) ?? profileResult.data.photos[0];
+    if (primary) {
+      const url = await services.profile.createPhotoUrl(primary.storagePath);
+      if (url.ok) setPhotoUrl(url.data);
+    }
+  }, [profileId, services]);
+
+  useEffect(() => { const timer = setTimeout(() => void load(), 0); return () => clearTimeout(timer); }, [load]);
+
+  const toggleSaved = async () => {
+    if (!services || !profile) return;
+    const previous = saved;
+    const next = !previous;
+    setSaved(next);
+    setSaving(true);
+    setError('');
+    const result = await services.saved.setSaved(profile.id, next);
+    setSaving(false);
+    if (!result.ok) { setSaved(previous); setError(result.error.message); }
+  };
+
+  if (!profileId) return <Screen><StatePanel title="Chưa chọn hồ sơ" description="Hãy chọn một hồ sơ từ Khám phá hoặc Đã lưu." /></Screen>;
+  if (!services) return <Screen><StatePanel title="Chưa thể tải hồ sơ" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
+  if (error && !profile) return <Screen><AsyncStatePanel state="error" title="Không thể xem hồ sơ" description={error}
+    actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
   if (!profile) return <Screen><AsyncStatePanel state="loading" title="Đang tải hồ sơ" description="Chỉ dữ liệu công khai được tải." /></Screen>;
+
   return <Screen>
-    <Text accessibilityRole="header" style={styles.title}>{profile.displayName}, {profile.age}</Text>
-    <Text style={styles.body}>{profile.bio || 'Chưa có giới thiệu.'}</Text>
-    <StatePanel title="Thông tin công khai" description={[profile.occupation, profile.education, profile.publicLocation, profile.interests.join(', '), profile.languages.join(', ')].filter(Boolean).join('\n') || 'Chưa bổ sung thêm thông tin.'} />
-    <AppButton label="Lưu hồ sơ" onPress={() => void services?.saved.setSaved(profile.id, true)} />
+    {photoUrl ? <Image accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`} source={{ uri: photoUrl }} style={styles.heroImage} resizeMode="cover" />
+      : <View style={styles.photoPlaceholder}><Text style={styles.photoPlaceholderText}>Hồ sơ chưa có ảnh hiển thị</Text></View>}
+    <View style={styles.heading}>
+      <Text accessibilityRole="header" style={styles.title}>{profile.displayName}, {profile.age}</Text>
+      <Text style={styles.meta}>{optionLabel(GENDER_OPTIONS, profile.gender)}{profile.publicLocation ? ` · ${profile.publicLocation}` : ''}</Text>
+    </View>
+    <Text style={styles.bio}>{profile.bio || 'Người này chưa thêm phần giới thiệu.'}</Text>
+    <View style={styles.details}>
+      {profile.occupation ? <Detail label="Nghề nghiệp" value={profile.occupation} /> : null}
+      {profile.education ? <Detail label="Học vấn" value={profile.education} /> : null}
+    </View>
+    {profile.interests.length ? <View style={styles.section}><Text style={styles.sectionTitle}>Sở thích</Text>
+      <View style={styles.chips}>{profile.interests.map((interest) => <SelectedChip key={interest} label={interest} />)}</View></View> : null}
+    {profile.languages.length ? <View style={styles.section}><Text style={styles.sectionTitle}>Ngôn ngữ</Text>
+      <View style={styles.chips}>{profile.languages.map((language) => <SelectedChip key={language} label={optionLabel(LANGUAGE_OPTIONS, language)} />)}</View></View> : null}
+    {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
+    <AppButton label={saving ? 'Đang cập nhật…' : saved ? 'Bỏ khỏi Đã lưu' : 'Lưu hồ sơ'}
+      variant={saved ? 'secondary' : 'primary'} disabled={saving} onPress={() => void toggleSaved()} />
     <AppButton label="Quay lại" variant="quiet" onPress={() => navigation.goBack()} />
   </Screen>;
 }
 
-export function SafetyScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Safety'>) {
-  return <Screen><StatePanel title="An toàn & quyền riêng tư" description="Email, ngày sinh, tọa độ và báo cáo không xuất hiện trong Khám phá. Chặn một người sẽ kết thúc match và ẩn lịch sử tương tác." />
-    <AppButton label="Quay lại" variant="quiet" onPress={() => navigation.goBack()} /></Screen>;
+function Detail({ label, value }: { label: string; value: string }) {
+  return <View style={styles.detailRow}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailValue}>{value}</Text></View>;
 }
 
-const styles = StyleSheet.create({ title: { ...type.title, color: colors.ink }, body: { ...type.body, color: colors.inkMuted }, hint: { ...type.caption, color: colors.primaryPressed }, error: { ...type.caption, color: colors.danger }, notice: { ...type.caption, color: colors.success } });
+export function SafetyScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Safety'>) {
+  return <Screen>
+    <Text accessibilityRole="header" style={styles.title}>An toàn & quyền riêng tư</Text>
+    <StatePanel title="Dữ liệu công khai được giới hạn" description="Email, ngày sinh và tọa độ chính xác không xuất hiện trong Khám phá hoặc hồ sơ công khai." />
+    <StatePanel title="Bạn kiểm soát tương tác" description="Chặn một người sẽ kết thúc kết nối và ngăn các tương tác mới theo chính sách máy chủ." />
+    <AppButton label="Quay lại" variant="quiet" onPress={() => navigation.goBack()} />
+  </Screen>;
+}
+
+const styles = StyleSheet.create({
+  heroImage: { width: '100%', aspectRatio: 0.84, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
+  photoPlaceholder: { width: '100%', aspectRatio: 1.4, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted,
+    alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  photoPlaceholderText: { ...type.body, color: colors.inkMuted, textAlign: 'center' },
+  heading: { gap: spacing.xxs }, title: { ...type.title, color: colors.ink }, meta: { ...type.body, color: colors.inkMuted },
+  bio: { ...type.body, color: colors.ink }, details: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border },
+  detailRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  detailLabel: { ...type.label, color: colors.inkMuted, width: 96 }, detailValue: { ...type.body, color: colors.ink, flex: 1 },
+  section: { gap: spacing.sm }, sectionTitle: { ...type.subtitle, color: colors.ink }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  error: { ...type.body, color: colors.danger },
+});
