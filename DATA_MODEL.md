@@ -1,6 +1,6 @@
 # HeartSync BASE Data Model
 
-Status: **CLOUD_APPLIED_MANUAL_VALIDATION**. Migrations through `20261103120000_profile_preferences_contracts.sql` were applied manually to dedicated development project `heartsync-dev`, with a verified PostgreSQL 17 custom-format pre-apply backup for schema `public`. Local reset, all 26 pgTAP assertions, database lint, generated types and read-only post-apply cloud verification remain pending; do not treat this status as production acceptance.
+Status: **CLOUD_APPLIED_AND_READ_ONLY_VERIFIED**. Migrations through `20261103120000_profile_preferences_contracts.sql` were applied manually to dedicated development project `heartsync-dev`, with a verified PostgreSQL 17 custom-format pre-apply backup for schema `public`. Cloud type generation and the read-only RPC/grant/catalog/constraint verification pass; local reset, all 26 pgTAP assertions and database lint remain pending, so this is not production acceptance.
 
 ## Privacy boundary
 
