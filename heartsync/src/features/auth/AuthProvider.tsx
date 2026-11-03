@@ -8,8 +8,9 @@ import { getSupabaseClient } from '../../services/supabase';
 import { supabaseConfig } from '../../services/supabaseConfig';
 import { AUTH_CALLBACK_URL, PASSWORD_RECOVERY_URL, extractAuthCallback } from './deepLink';
 import { toSafeAuthMessage } from './authError';
+import type { SignUpInput } from '../../services/contracts';
 
-export type AuthStatus = 'loading' | 'setup_required' | 'unauthenticated' | 'authenticated';
+export type AuthStatus = 'loading' | 'setup_required' | 'unauthenticated' | 'profile_required' | 'authenticated';
 export type AuthActionResult = { ok: true; notice?: string } | { ok: false; message: string };
 
 type AuthContextValue = {
@@ -20,10 +21,12 @@ type AuthContextValue = {
   setupMessage?: string;
   bootstrapError?: string;
   signIn: (email: string, password: string) => Promise<AuthActionResult>;
-  signUp: (email: string, password: string) => Promise<AuthActionResult>;
+  signUp: (input: SignUpInput) => Promise<AuthActionResult>;
   requestPasswordReset: (email: string) => Promise<AuthActionResult>;
   updatePassword: (password: string) => Promise<AuthActionResult>;
   signOut: () => Promise<AuthActionResult>;
+  completeOnboarding: () => Promise<AuthActionResult>;
+  refreshProfileStatus: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -36,14 +39,30 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
   const [recoveryPending, setRecoveryPending] = useState(false);
   const [bootstrapError, setBootstrapError] = useState<string>();
 
+  const resolveProfileStatus = useCallback(async (activeSession: Session | null) => {
+    setSession(activeSession);
+    if (!client || !activeSession) {
+      setStatus(client ? 'unauthenticated' : 'setup_required');
+      return;
+    }
+    const { data, error } = await client.from('profiles').select('profile_completed_at')
+      .eq('id', activeSession.user.id).maybeSingle();
+    if (error) {
+      setBootstrapError('Không thể kiểm tra trạng thái hồ sơ. Vui lòng thử lại.');
+      setStatus('profile_required');
+      return;
+    }
+    setBootstrapError(undefined);
+    setStatus(data?.profile_completed_at ? 'authenticated' : 'profile_required');
+  }, [client]);
+
   useEffect(() => {
     if (!client) return;
     let mounted = true;
     void client.auth.getSession().then(({ data, error }) => {
       if (!mounted) return;
       if (error) setBootstrapError(toSafeAuthMessage(error));
-      setSession(data.session);
-      setStatus(data.session ? 'authenticated' : 'unauthenticated');
+      void resolveProfileStatus(data.session);
     }).catch(() => {
       if (!mounted) return;
       setBootstrapError('Không thể đọc phiên đã lưu. Vui lòng thử lại.');
@@ -52,8 +71,7 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
 
     const { data: authListener } = client.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
-      setSession(nextSession);
-      setStatus(nextSession ? 'authenticated' : 'unauthenticated');
+      void resolveProfileStatus(nextSession);
       if (event === 'PASSWORD_RECOVERY') setRecoveryPending(true);
       if (event === 'SIGNED_OUT') setRecoveryPending(false);
     });
@@ -69,8 +87,7 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
           setBootstrapError(toSafeAuthMessage(error));
           return;
         }
-        setSession(data.session);
-        setStatus('authenticated');
+        await resolveProfileStatus(data.session);
         setRecoveryPending(callback.purpose === 'recovery');
       } catch {
         if (mounted) setBootstrapError('Không thể xác minh liên kết đăng nhập. Vui lòng thử lại.');
@@ -96,7 +113,7 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
       appStateSubscription.remove();
       client.auth.stopAutoRefresh();
     };
-  }, [client]);
+  }, [client, resolveProfileStatus]);
 
   const signIn = useCallback(async (email: string, password: string): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
@@ -104,16 +121,40 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
     return error ? { ok: false, message: toSafeAuthMessage(error) } : { ok: true };
   }, [client]);
 
-  const signUp = useCallback(async (email: string, password: string): Promise<AuthActionResult> => {
+  const signUp = useCallback(async (input: SignUpInput): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
     const { data, error } = await client.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { emailRedirectTo: AUTH_CALLBACK_URL },
+      email: input.email.trim(),
+      password: input.password,
+      options: {
+        emailRedirectTo: AUTH_CALLBACK_URL,
+        data: {
+          onboarding_display_name: input.displayName.trim(),
+          onboarding_date_of_birth: input.dateOfBirth,
+          onboarding_gender: input.gender,
+        },
+      },
     });
     if (error) return { ok: false, message: toSafeAuthMessage(error) };
     return { ok: true, notice: data.session ? undefined : 'Kiểm tra email để xác nhận tài khoản trước khi đăng nhập.' };
   }, [client]);
+
+  const refreshProfileStatus = useCallback(async () => {
+    await resolveProfileStatus(session);
+  }, [resolveProfileStatus, session]);
+
+  const completeOnboarding = useCallback(async (): Promise<AuthActionResult> => {
+    if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
+    const { error } = await client.auth.updateUser({ data: {
+      onboarding_display_name: null,
+      onboarding_date_of_birth: null,
+      onboarding_gender: null,
+    } });
+    if (error) return { ok: false, message: toSafeAuthMessage(error) };
+    const { data } = await client.auth.getSession();
+    await resolveProfileStatus(data.session);
+    return { ok: true };
+  }, [client, resolveProfileStatus]);
 
   const requestPasswordReset = useCallback(async (email: string): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
@@ -148,7 +189,9 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
     requestPasswordReset,
     updatePassword,
     signOut,
-  }), [bootstrapError, recoveryPending, requestPasswordReset, session, signIn, signOut, signUp, status, updatePassword]);
+    completeOnboarding,
+    refreshProfileStatus,
+  }), [bootstrapError, completeOnboarding, recoveryPending, refreshProfileStatus, requestPasswordReset, session, signIn, signOut, signUp, status, updatePassword]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

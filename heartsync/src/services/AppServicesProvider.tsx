@@ -27,7 +27,7 @@ export function AppServicesProvider({ children }: PropsWithChildren) {
     return {
       profile,
       preferences: new SupabasePreferencesRepository(client),
-      saved: new SupabaseSavedProfilesRepository(client, profile),
+      saved: new SupabaseSavedProfilesRepository(client),
       discovery: new SupabaseDiscoveryRepository(client),
       matches: new SupabaseMatchRepository(client),
       chat: new SupabaseChatRepository(client),

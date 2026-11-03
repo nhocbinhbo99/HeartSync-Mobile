@@ -16,6 +16,10 @@ jest.mock('../../../services/supabaseConfig', () => ({
 function createMockClient() {
   let listener: ((event: AuthChangeEvent, session: Session | null) => void) | undefined;
   const unsubscribe = jest.fn();
+  const maybeSingle = jest.fn(async (): Promise<{ data: { profile_completed_at: string } | null; error: null }> => ({
+    data: { profile_completed_at: '2026-11-03T00:00:00Z' }, error: null,
+  }));
+  const from = jest.fn(() => ({ select: jest.fn(() => ({ eq: jest.fn(() => ({ maybeSingle })) })) }));
   const auth = {
     getSession: jest.fn(async () => ({ data: { session: null }, error: null })),
     onAuthStateChange: jest.fn((callback: typeof listener) => {
@@ -32,8 +36,9 @@ function createMockClient() {
     signOut: jest.fn(),
   };
   return {
-    client: { auth } as unknown as SupabaseClient,
+    client: { auth, from } as unknown as SupabaseClient,
     auth,
+    maybeSingle,
     emit: (event: AuthChangeEvent, session: Session | null) => listener?.(event, session),
     unsubscribe,
   };
@@ -69,5 +74,39 @@ describe('AuthProvider', () => {
     await unmount();
     expect(mock.unsubscribe).toHaveBeenCalledTimes(1);
     expect(mock.auth.stopAutoRefresh).toHaveBeenCalled();
+  });
+
+  it('requires profile setup when the signed-in user has no completed profile', async () => {
+    const mock = createMockClient();
+    mock.maybeSingle.mockResolvedValue({ data: null, error: null });
+    const wrapper = ({ children }: PropsWithChildren) => <AuthProvider client={mock.client}>{children}</AuthProvider>;
+    const { result } = await renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('unauthenticated'));
+    const fakeSession = {
+      access_token: 'test-access-token', refresh_token: 'test-refresh-token', expires_in: 3600,
+      expires_at: 4102444800, token_type: 'bearer', user: { id: 'user-2', email: 'new@example.com' },
+    } as Session;
+    await act(() => mock.emit('SIGNED_IN', fakeSession));
+    await waitFor(() => expect(result.current.status).toBe('profile_required'));
+  });
+
+  it('stores structured onboarding metadata during sign up', async () => {
+    const mock = createMockClient();
+    mock.auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+    const wrapper = ({ children }: PropsWithChildren) => <AuthProvider client={mock.client}>{children}</AuthProvider>;
+    const { result } = await renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('unauthenticated'));
+    await act(async () => {
+      await result.current.signUp({
+        email: ' new@example.com ', password: 'password123', displayName: ' An Bình ',
+        dateOfBirth: '1998-02-03', gender: 'man',
+      });
+    });
+    expect(mock.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'new@example.com',
+      options: expect.objectContaining({ data: {
+        onboarding_display_name: 'An Bình', onboarding_date_of_birth: '1998-02-03', onboarding_gender: 'man',
+      } }),
+    }));
   });
 });

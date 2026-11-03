@@ -1,45 +1,72 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../../shared/components/AppButton';
 import { AppTextField } from '../../shared/components/AppTextField';
+import { DateField } from '../../shared/components/DateField';
+import { FormField } from '../../shared/components/FormField';
+import { SingleChoiceField } from '../../shared/components/ChoiceFields';
 import { Screen } from '../../shared/components/Screen';
+import { GENDER_OPTIONS } from '../../shared/domain/profileOptions';
 import { colors, radii, spacing, type } from '../../shared/theme/tokens';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAuth } from './AuthProvider';
-import { validateAuthFields, type AuthFieldErrors } from './validation';
+import { validateAuthFields, validateSignUpFields, type AuthFieldErrors } from './validation';
 
 type AuthRoute = 'SignIn' | 'SignUp' | 'ForgotPassword';
 type Props = NativeStackScreenProps<RootStackParamList, AuthRoute> & { mode: 'sign-in' | 'sign-up' | 'forgot-password' };
 
 const copy = {
-  'sign-in': { eyebrow: 'HeartSync', title: 'Chào mừng bạn trở lại', body: 'Đăng nhập để tiếp tục những kết nối đã được xác nhận.', submit: 'Đăng nhập' },
-  'sign-up': { eyebrow: 'Tạo tài khoản', title: 'Bắt đầu có chủ đích', body: 'Chỉ dành cho người dùng từ 18 tuổi. Bạn có thể cần xác nhận email trước khi đăng nhập.', submit: 'Tạo tài khoản' },
-  'forgot-password': { eyebrow: 'Khôi phục', title: 'Lấy lại quyền truy cập', body: 'Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.', submit: 'Gửi liên kết' },
+  'sign-in': { title: 'Chào mừng bạn trở lại', body: 'Đăng nhập để tiếp tục những kết nối đã được xác nhận.', submit: 'Đăng nhập' },
+  'sign-up': { title: 'Tạo tài khoản HeartSync', body: 'Thông tin cơ bản giúp xác minh độ tuổi và chuẩn bị hồ sơ của bạn.', submit: 'Tạo tài khoản' },
+  'forgot-password': { title: 'Lấy lại quyền truy cập', body: 'Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.', submit: 'Gửi liên kết' },
 } as const;
+
+function PasswordAccessory({ visible, onPress }: { visible: boolean; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+    onPress={onPress} style={styles.passwordAction}>
+    <Text style={styles.passwordActionText}>{visible ? 'Ẩn' : 'Hiện'}</Text>
+  </Pressable>;
+}
 
 export function AuthScreen({ navigation, mode }: Props) {
   const { signIn, signUp, requestPasswordReset, bootstrapError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [actionError, setActionError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
   const details = copy[mode];
   const needsPassword = mode !== 'forgot-password';
+  const dateLimits = useMemo(() => {
+    const maximum = new Date();
+    maximum.setHours(0, 0, 0, 0);
+    maximum.setFullYear(maximum.getFullYear() - 18);
+    const minimum = new Date(maximum);
+    minimum.setFullYear(minimum.getFullYear() - 102);
+    return { maximum, minimum };
+  }, []);
 
   const submit = async () => {
-    const nextErrors = validateAuthFields(email, needsPassword ? password : undefined, mode !== 'sign-up' || ageConfirmed);
-    setErrors(nextErrors); setActionError(undefined); setNotice(undefined);
+    const nextErrors = mode === 'sign-up'
+      ? validateSignUpFields({ email, password, passwordConfirm, displayName, dateOfBirth, gender })
+      : validateAuthFields(email, needsPassword ? password : undefined);
+    setErrors(nextErrors);
+    setActionError(undefined);
+    setNotice(undefined);
     if (Object.keys(nextErrors).length > 0) return;
     setBusy(true);
     const result = mode === 'sign-in'
       ? await signIn(email, password)
       : mode === 'sign-up'
-        ? await signUp(email, password)
+        ? await signUp({ email, password, displayName, dateOfBirth, gender })
         : await requestPasswordReset(email);
     setBusy(false);
     if (result.ok) setNotice(result.notice);
@@ -48,22 +75,28 @@ export function AuthScreen({ navigation, mode }: Props) {
 
   return <Screen keyboardAware safeTop={mode === 'sign-in'} contentStyle={styles.page}>
     <View style={styles.hero}>
-      <Text style={styles.eyebrow}>{details.eyebrow}</Text>
       <Text accessibilityRole="header" style={styles.title}>{details.title}</Text>
       <Text style={styles.body}>{details.body}</Text>
-      <Text style={styles.trustNote}>Kết nối chỉ được tạo khi cả hai cùng đồng ý.</Text>
+      <View style={styles.trustNote}><Text style={styles.trustText}>Kết nối chỉ được tạo khi cả hai cùng đồng ý.</Text></View>
     </View>
     <View style={styles.form}>
-      <AppTextField label="Email" autoCapitalize="none" autoComplete="email" keyboardType="email-address"
-        placeholder="ban@example.com" value={email} onChangeText={setEmail} error={errors.email} />
+      <AppTextField label="Email" autoCapitalize="none" autoCorrect={false} autoComplete="email"
+        keyboardType="email-address" placeholder="ban@example.com" value={email} onChangeText={setEmail} error={errors.email} />
+      {mode === 'sign-up' ? <>
+        <FormField label="Tên hiển thị" value={displayName} onChangeText={setDisplayName} maxLength={80}
+          showCharacterCount error={errors.displayName} placeholder="Tên mọi người sẽ nhìn thấy" />
+        <DateField label="Ngày sinh" value={dateOfBirth} onChange={setDateOfBirth}
+          maximumDate={dateLimits.maximum} minimumDate={dateLimits.minimum} error={errors.dateOfBirth} />
+        <SingleChoiceField label="Giới tính" options={GENDER_OPTIONS} value={gender} onChange={setGender}
+          error={errors.gender} searchable={false} />
+      </> : null}
       {needsPassword ? <AppTextField label="Mật khẩu" autoCapitalize="none"
         autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} placeholder="Tối thiểu 8 ký tự"
-        secureTextEntry value={password} onChangeText={setPassword} error={errors.password} /> : null}
-      {mode === 'sign-up' ? <>
-        <AppButton label={ageConfirmed ? 'Đã xác nhận: Tôi từ 18 tuổi' : 'Xác nhận tôi từ 18 tuổi'}
-          variant="secondary" onPress={() => setAgeConfirmed((value) => !value)} />
-        {errors.age ? <Text accessibilityLiveRegion="polite" style={styles.error}>{errors.age}</Text> : null}
-      </> : null}
+        secureTextEntry={!passwordVisible} value={password} onChangeText={setPassword} error={errors.password}
+        rightAccessory={<PasswordAccessory visible={passwordVisible} onPress={() => setPasswordVisible((value) => !value)} />} /> : null}
+      {mode === 'sign-up' ? <AppTextField label="Xác nhận mật khẩu" autoCapitalize="none" autoComplete="new-password"
+        placeholder="Nhập lại mật khẩu" secureTextEntry={!passwordVisible} value={passwordConfirm}
+        onChangeText={setPasswordConfirm} error={errors.passwordConfirm} /> : null}
       {actionError || bootstrapError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{actionError ?? bootstrapError}</Text> : null}
       {notice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
       <AppButton disabled={busy} label={busy ? 'Đang xử lý…' : details.submit} onPress={() => void submit()} />
@@ -77,10 +110,15 @@ export function AuthScreen({ navigation, mode }: Props) {
 }
 
 const styles = StyleSheet.create({
-  page: { justifyContent: 'center' }, hero: { gap: spacing.sm, marginBottom: spacing.md },
-  eyebrow: { ...type.label, color: colors.primaryPressed, textTransform: 'uppercase', letterSpacing: 1.2 },
-  title: { ...type.display, color: colors.ink }, body: { ...type.body, color: colors.inkMuted },
-  trustNote: { ...type.label, color: colors.primaryPressed, borderLeftWidth: 3, borderLeftColor: colors.primary, paddingLeft: spacing.sm },
-  form: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.sm },
-  error: { ...type.caption, color: colors.danger }, notice: { ...type.body, color: colors.success },
+  page: { justifyContent: 'center' },
+  hero: { gap: spacing.sm, marginBottom: spacing.md },
+  title: { ...type.display, color: colors.ink },
+  body: { ...type.body, color: colors.inkMuted },
+  trustNote: { backgroundColor: colors.primarySoft, borderRadius: radii.md, padding: spacing.sm },
+  trustText: { ...type.label, color: colors.primaryPressed },
+  form: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.md },
+  passwordAction: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  passwordActionText: { ...type.label, color: colors.primaryPressed },
+  error: { ...type.caption, color: colors.danger },
+  notice: { ...type.body, color: colors.success },
 });

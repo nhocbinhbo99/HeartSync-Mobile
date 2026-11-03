@@ -41,6 +41,27 @@ export type ProfilePrivate = {
   locationConsent: boolean;
 };
 
+export type InterestOption = {
+  id: string;
+  slug: string;
+  label: string;
+};
+
+export type ProfileSaveInput = {
+  displayName: string;
+  gender: string;
+  dateOfBirth: string;
+  bio: string | null;
+  occupation: string | null;
+  education: string | null;
+  publicLocation: string | null;
+  interests: string[];
+  languages: string[];
+  locationConsent: boolean;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 export type DiscoveryFilters = {
   ageMin: number;
   ageMax: number;

@@ -14,6 +14,7 @@ import { MatchFoundScreen } from '../features/matching/MatchFoundScreen';
 import { MatchesScreen } from '../features/matching/MatchesScreen';
 import { EditProfileScreen, OtherProfileScreen, SafetyScreen } from '../features/profile/ProfileDetailScreens';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
+import { ProfileSetupScreen } from '../features/profile/ProfileSetupScreen';
 import { FiltersScreen } from '../features/preferences/FiltersScreen';
 import { SavedScreen } from '../features/saved/SavedScreen';
 import { colors, type } from '../shared/theme/tokens';
@@ -63,6 +64,8 @@ export function RootNavigator() {
         <Stack.Screen name="ForgotPassword" options={{ title: 'Quên mật khẩu' }}>{(props) => <AuthScreen {...props} mode="forgot-password" />}</Stack.Screen>
       </> : null}
       {mode === 'recovery' ? <Stack.Screen name="UpdatePassword" component={UpdatePasswordScreen} options={{ headerShown: false }} /> : null}
+      {mode === 'profile-setup' ? <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen}
+        options={{ title: 'Thiết lập hồ sơ', headerBackVisible: false, gestureEnabled: false }} /> : null}
       {mode === 'main' ? <>
         <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Chỉnh sửa hồ sơ' }} />
