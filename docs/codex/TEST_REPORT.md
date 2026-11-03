@@ -119,4 +119,5 @@ The following are release blockers, not accepted residual behavior:
 | C01-DOCTOR | Expo registry health | `npx expo-doctor` | Complete checks | No output for 60 seconds; interrupted | BLOCKED_ENV |
 | C01-DB-RUNTIME | PostgreSQL migrations/pgTAP/lint/types | Docker/Supabase CLI | 26 pgTAP assertions, lint and generated types pass | Docker Linux engine pipe absent | BLOCKED_ENV |
 | C01-AUDIT | Dependency advisory scan | `npm audit --json` | Record without breaking mutation | 1 low / 44 moderate / 2 high / 0 critical; proposed fixes downgrade incompatible Expo/Jest packages | RISK |
-| C01-DEVICE-QA | Android development build | Real-device form, permission, font 1.3, TalkBack, network and Back tests | Evidence captured on current native build | New APK and physical-device evidence pending | BLOCKED_MANUAL |
+| C01-EAS-APK | Android development build | EAS `development` / internal APK | Native build from current commits completes | Build `375e3bc1-a8de-4e0a-8d7a-de54694e6bd9` finished | PASS |
+| C01-DEVICE-QA | Android device QA | Real-device form, permission, font 1.3, TalkBack, network and Back tests | Evidence captured on current native build | Install/screenshot/physical-device evidence pending | BLOCKED_MANUAL |

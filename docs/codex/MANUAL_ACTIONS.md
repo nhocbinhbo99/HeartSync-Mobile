@@ -88,5 +88,6 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] Review `supabase/migrations/20261103120000_profile_preferences_contracts.sql`. Only after exact approval, apply it once to the dedicated `heartsync-dev` project; do not run it on a production/shared project.
 - [ ] Log the Supabase CLI in locally (`npx supabase login`) without pasting the access token into chat or Git. After the migration exists on cloud, generate `database.types.ts` from `heartsync-dev` and review the drift before committing it.
 - [ ] Run the GitHub Actions database job or repair Docker, then capture real results for `supabase db reset`, all 26 pgTAP assertions, `supabase db lint --fail-on error`, and type generation. Static checks are not substitutes.
-- [ ] Because `@react-native-community/datetimepicker` is a new native dependency, create a new Android Development APK through EAS and reinstall it; the previous APK cannot load this module.
+- [x] Create a new Android Development APK through EAS with `@react-native-community/datetimepicker`: build `375e3bc1-a8de-4e0a-8d7a-de54694e6bd9` completed.
+- [ ] Install that new APK on each Android test device; the previous APK cannot load the date picker module.
 - [ ] On the new APK, test sign-up → confirm → ProfileSetup, edit profile/photos, location allow/deny/permanently-deny, filters, Saved rollback, system Back/unsaved dialog, offline/slow network, font scale 1.3 and TalkBack. Capture screenshots without personal data or credentials.

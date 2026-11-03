@@ -97,3 +97,4 @@ All commands were run from the verified repository root unless a different worki
 | 2026-11-03 | Công / Android bundle | `npx expo export --platform android --output-dir dist` | 0 | PASS: 1,310 modules, 5.2 MB Hermes bundle, 18 assets |
 | 2026-11-03 | Công / Environment | `docker info`; `npx expo-doctor` | 1 | Docker Linux engine pipe absent; Expo Doctor registry step emitted no output for 60 seconds and was interrupted |
 | 2026-11-03 | Công / Audit | `npm audit --json` (read-only) | 1 | 47 advisories: 1 low, 44 moderate, 2 high, 0 critical; no forced/incompatible fix applied |
+| 2026-11-03 | Công / EAS | `npx eas-cli@latest build --platform android --profile development --non-interactive` | 0 | First request hit transient GraphQL Service Unavailable; one retry produced Android Development Build `375e3bc1-a8de-4e0a-8d7a-de54694e6bd9` from commit `e881ab1` |
