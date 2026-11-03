@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { calculateAge } from '../shared/domain/age';
+import { validateDiscoveryFilters } from '../shared/domain/filters';
 import type { DiscoveryFilters, Page, ProfilePhoto, ProfilePrivate, ProfilePublic, Result } from '../shared/types/domain.types';
 import type { PreferencesRepository, ProfileRepository, SavedProfilesRepository } from './contracts';
 import { mapServiceError } from './errors';
@@ -125,13 +126,23 @@ export class SupabasePreferencesRepository implements PreferencesRepository {
     const { data, error } = await this.client.from('user_preferences').select('*').eq('user_id', identity.data).maybeSingle();
     if (error) return { ok: false, error: mapServiceError(error) };
     if (!data) return { ok: true, data: DEFAULT_FILTERS };
-    return { ok: true, data: { ageMin: data.age_min, ageMax: data.age_max, distanceKm: data.distance_km, preferredGenders: data.preferred_genders ?? [], preferredLanguages: data.preferred_languages ?? [] } };
+    const filters: DiscoveryFilters = {
+      ageMin: data.age_min,
+      ageMax: data.age_max,
+      distanceKm: data.distance_km,
+      preferredGenders: data.preferred_genders ?? [],
+      preferredLanguages: data.preferred_languages ?? [],
+    };
+    const checked = validateDiscoveryFilters(filters);
+    return checked.ok ? checked : { ok: false, error: checked.error };
   }
   async save(filters: DiscoveryFilters): Promise<Result<DiscoveryFilters>> {
+    const checked = validateDiscoveryFilters(filters);
+    if (!checked.ok) return { ok: false, error: checked.error };
     const identity = await userId(this.client);
     if (!identity.ok) return identity;
-    const { error } = await this.client.from('user_preferences').upsert({ user_id: identity.data, age_min: filters.ageMin, age_max: filters.ageMax, distance_km: filters.distanceKm, preferred_genders: filters.preferredGenders, preferred_languages: filters.preferredLanguages });
-    return error ? { ok: false, error: mapServiceError(error) } : { ok: true, data: filters };
+    const { error } = await this.client.from('user_preferences').upsert({ user_id: identity.data, age_min: checked.data.ageMin, age_max: checked.data.ageMax, distance_km: checked.data.distanceKm, preferred_genders: checked.data.preferredGenders, preferred_languages: checked.data.preferredLanguages });
+    return error ? { ok: false, error: mapServiceError(error) } : { ok: true, data: checked.data };
   }
 }
 
