@@ -1,12 +1,23 @@
 # Báo cáo tiến độ HeartSync
 
-Ngày cập nhật: 2026-10-30
+Ngày cập nhật: 2026-11-03
 
 Trạng thái tổng thể: **BASE_RELEASED_WITH_BLOCKERS**
 
 Mốc bàn giao: **BASE_READY_FOR_PARALLEL_WORK**
 
 Checkpoint MVP mới nhất: **MVP_LOCAL_IMPLEMENTED_CLOUD_CONTRACTS_APPLIED**
+
+Checkpoint phần Công: **LOCAL_COMPLETE — CLOUD_AND_DEVICE_PENDING**
+
+## 0. Cập nhật phần Công — 2026-11-03
+
+- Auth/đăng ký đã dùng email chuẩn, xác nhận mật khẩu, ngày sinh bằng Android date picker, giới tính single-choice và route guard `ProfileSetup`.
+- Profile/Edit Profile đã dùng form theo section, catalog nghề nghiệp/học vấn/khu vực, multi-select sở thích/ngôn ngữ, vị trí có consent và lưới tối đa 6 ảnh với primary/reorder/delete/retry.
+- Preferences dùng age stepper, multi-select và khoảng cách chỉ khi có consent + tọa độ. Saved dùng RPC phân trang, signed photo URL và optimistic rollback.
+- Migration mới `20261103120000_profile_preferences_contracts.sql` thêm các RPC transaction/profile/photo/preferences/Saved và 26 pgTAP assertions; migration chưa áp lên cloud.
+- Quality gate local: TypeScript PASS, ESLint PASS, 18 suites/70 Jest tests PASS, Android Hermes export PASS (1.310 modules, bundle 5,2 MB), static DB gate PASS (14 bảng RLS/10 RPC).
+- Chưa thể tuyên bố hoàn tất cloud/device: Docker daemon không chạy; pgTAP, DB lint, generated `database.types.ts`, Android screenshot/TalkBack/font-scale/network/permission QA và APK mới cho native date picker còn pending.
 
 ## 1. Tóm tắt
 

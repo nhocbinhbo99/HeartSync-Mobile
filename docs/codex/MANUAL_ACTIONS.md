@@ -82,3 +82,11 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 - [ ] Reopen Docker Desktop, go to **Settings → AI**, turn off **Enable Docker Model Runner**, apply and restart. Docker's local backend log shows the crash in the Inference manager path; HeartSync does not use Model Runner.
 - [ ] Verify from PowerShell that `docker info` returns normally. Then, from `heartsync/`, run `npm run db:start`, `npm run db:reset`, `npm run db:test`, `npm run db:lint`, and finally `npm run db:types`.
 - [ ] If Docker still crashes, collect Docker diagnostics or update/repair Docker Desktop while preserving unrelated images/volumes. Do not factory-reset without a reviewed backup.
+
+## Công structured profile checkpoint — 2026-11-03
+
+- [ ] Review `supabase/migrations/20261103120000_profile_preferences_contracts.sql`. Only after exact approval, apply it once to the dedicated `heartsync-dev` project; do not run it on a production/shared project.
+- [ ] Log the Supabase CLI in locally (`npx supabase login`) without pasting the access token into chat or Git. After the migration exists on cloud, generate `database.types.ts` from `heartsync-dev` and review the drift before committing it.
+- [ ] Run the GitHub Actions database job or repair Docker, then capture real results for `supabase db reset`, all 26 pgTAP assertions, `supabase db lint --fail-on error`, and type generation. Static checks are not substitutes.
+- [ ] Because `@react-native-community/datetimepicker` is a new native dependency, create a new Android Development APK through EAS and reinstall it; the previous APK cannot load this module.
+- [ ] On the new APK, test sign-up → confirm → ProfileSetup, edit profile/photos, location allow/deny/permanently-deny, filters, Saved rollback, system Back/unsaved dialog, offline/slow network, font scale 1.3 and TalkBack. Capture screenshots without personal data or credentials.

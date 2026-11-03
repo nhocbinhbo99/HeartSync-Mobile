@@ -111,3 +111,12 @@ The following are release blockers, not accepted residual behavior:
 | MVP-SYNTHETIC-SEED | Demo data preparation | `npm run db:test:seed-contract` | Script is explicit, re-runnable, has no password and refuses incomplete Auth-user prerequisites | Static contract PASS: three team-created synthetic test emails, `email_confirmed_at`, no `auth.users` insert, valid `ON CONFLICT`, seed disabled locally | PASS_STATIC_ONLY |
 | MVP-SYNTHETIC-SEED-CLOUD | Cloud demo data execution | Supabase SQL Editor Query8, user-supplied result screenshot | Seed inserts confirmed synthetic profiles after Auth users exist | Three rows: `email_confirmed=true`; complete profiles An Bình/Bảo Chi/Cẩm Dương; derived ages 28/27/28; null distances and expected preferences | PASS_MANUAL |
 | MVP-LOCAL-GATE | Local application quality | `npm run typecheck`; `npm run lint`; `npm test -- --runInBand`; `npx expo config --type public`; Android Hermes export | All static/unit/config/bundle checks pass | TypeScript PASS; ESLint PASS; 16 suites / 58 tests; config PASS; 1,280-module Android export PASS | PASS |
+| C01-TS | Công profile MVP | `npm run typecheck` | Exit 0 | Exit 0 | PASS |
+| C01-LINT | Công profile MVP | `npm run lint` | Exit 0 | Exit 0 | PASS |
+| C01-UNIT | Auth/profile/repository/domain | `npm test -- --runInBand` | All tests pass | 18 suites / 70 tests | PASS |
+| C01-STATIC-DB | Migration static contract | `static_migration_checks.ps1`; `static_demo_seed_checks.ps1` | Expected RLS/RPC/test/seed patterns | 14 RLS tables / 10 RPCs; seed contract PASS | PASS_STATIC_ONLY |
+| C01-ANDROID-BUNDLE | Android Hermes | `npx expo export --platform android --output-dir dist` | Bundle and assets generated | 1,310 modules; 5.2 MB HBC; 18 assets | PASS |
+| C01-DOCTOR | Expo registry health | `npx expo-doctor` | Complete checks | No output for 60 seconds; interrupted | BLOCKED_ENV |
+| C01-DB-RUNTIME | PostgreSQL migrations/pgTAP/lint/types | Docker/Supabase CLI | 26 pgTAP assertions, lint and generated types pass | Docker Linux engine pipe absent | BLOCKED_ENV |
+| C01-AUDIT | Dependency advisory scan | `npm audit --json` | Record without breaking mutation | 1 low / 44 moderate / 2 high / 0 critical; proposed fixes downgrade incompatible Expo/Jest packages | RISK |
+| C01-DEVICE-QA | Android development build | Real-device form, permission, font 1.3, TalkBack, network and Back tests | Evidence captured on current native build | New APK and physical-device evidence pending | BLOCKED_MANUAL |
