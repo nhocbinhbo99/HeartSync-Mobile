@@ -85,7 +85,7 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 
 ## Công structured profile checkpoint — 2026-11-03
 
-- [ ] Review `supabase/migrations/20261103120000_profile_preferences_contracts.sql`. Only after exact approval, apply it once to the dedicated `heartsync-dev` project; do not run it on a production/shared project.
+- [x] Review, back up schema `public`, explicitly approve and apply `supabase/migrations/20261103120000_profile_preferences_contracts.sql` once to dedicated `heartsync-dev` using PostgreSQL 17 with `ON_ERROR_STOP` and a single transaction.
 - [ ] Log the Supabase CLI in locally (`npx supabase login`) without pasting the access token into chat or Git. After the migration exists on cloud, generate `database.types.ts` from `heartsync-dev` and review the drift before committing it.
 - [ ] Run the GitHub Actions database job or repair Docker, then capture real results for `supabase db reset`, all 26 pgTAP assertions, `supabase db lint --fail-on error`, and type generation. Static checks are not substitutes.
 - [x] Create a new Android Development APK through EAS with `@react-native-community/datetimepicker`: build `375e3bc1-a8de-4e0a-8d7a-de54694e6bd9` completed.
