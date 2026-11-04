@@ -7,13 +7,16 @@ import { useNavigation, type NavigationAction, type NavigationProp } from '@reac
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppButton } from '../../shared/components/AppButton';
+import { AnimatedSection } from '../../shared/components/AnimatedSection';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
+import { BottomActionBar } from '../../shared/components/BottomActionBar';
 import { DateField } from '../../shared/components/DateField';
 import { FormField } from '../../shared/components/FormField';
 import { LocationConsentField } from '../../shared/components/LocationConsentField';
 import { MultiChoiceField, SingleChoiceField } from '../../shared/components/ChoiceFields';
 import { PhotoGrid, type PhotoGridItem } from '../../shared/components/PhotoGrid';
 import { Screen } from '../../shared/components/Screen';
+import { useSnackbar } from '../../shared/components/Snackbar';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { UnsavedChangesDialog } from '../../shared/components/UnsavedChangesDialog';
 import {
@@ -25,7 +28,7 @@ import {
   type ChoiceOption,
 } from '../../shared/domain/profileOptions';
 import { hasProfileErrors, validateProfile, type ProfileFieldErrors } from '../../shared/domain/profileValidation';
-import { colors, radii, spacing, type } from '../../shared/theme/tokens';
+import { colors, spacing, type } from '../../shared/theme/tokens';
 import type { InterestOption, ProfilePhoto, ProfilePrivate, ProfilePublic, ProfileSaveInput } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAuth } from '../auth/AuthProvider';
@@ -98,6 +101,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
   const services = useAppServices();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, completeOnboarding, refreshProfileStatus } = useAuth();
+  const snackbar = useSnackbar();
   const [draft, setDraft] = useState<Draft>(blankDraft);
   const [interestOptions, setInterestOptions] = useState<ChoiceOption[]>([]);
   const [photoItems, setPhotoItems] = useState<PhotoGridItem[]>([]);
@@ -106,7 +110,6 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [errors, setErrors] = useState<ProfileFieldErrors>({});
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [initialSnapshot, setInitialSnapshot] = useState('');
   const [customOccupation, setCustomOccupation] = useState(false);
   const [customLocation, setCustomLocation] = useState(false);
@@ -126,7 +129,6 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
-    setNotice('');
   };
 
   const loadPhotoUrls = useCallback(async (photos: ProfilePhoto[]) => {
@@ -191,7 +193,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setDraft((current) => ({ ...current, locationConsent: true, latitude: position.coords.latitude, longitude: position.coords.longitude }));
-      setNotice('Đã cập nhật vị trí riêng tư. Tọa độ không hiển thị cho người khác.');
+      snackbar.show({ message: 'Đã cập nhật vị trí riêng tư.', tone: 'success' });
     } catch {
       setError('Không thể lấy vị trí lúc này. Hãy kiểm tra GPS và thử lại.');
     }
@@ -246,13 +248,13 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     await loadPhotoUrls(reordered.data);
   };
 
-  const movePhoto = async (photoId: string, direction: -1 | 1) => {
+  const reorderPhoto = async (photoId: string, targetIndex: number) => {
     if (!services) return;
     const ids = draft.photos.map((photo) => photo.id);
     const currentIndex = ids.indexOf(photoId);
-    const nextIndex = currentIndex + direction;
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= ids.length) return;
-    [ids[currentIndex], ids[nextIndex]] = [ids[nextIndex], ids[currentIndex]];
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= ids.length || targetIndex === currentIndex) return;
+    const [moved] = ids.splice(currentIndex, 1);
+    ids.splice(targetIndex, 0, moved);
     setPhotoBusy(true);
     const result = await services.profile.reorderPhotos(ids);
     setPhotoBusy(false);
@@ -279,7 +281,6 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     const fieldErrors = validateProfile(draft);
     setErrors(fieldErrors);
     setError('');
-    setNotice('');
     if (hasProfileErrors(fieldErrors)) return;
     if (draft.locationConsent && (draft.latitude === null || draft.longitude === null)) {
       setError('Hãy cập nhật vị trí hoặc tắt dùng vị trí trước khi lưu.');
@@ -314,7 +315,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     }
     await refreshProfileStatus();
     setSaving(false);
-    setNotice('Đã lưu hồ sơ. Dữ liệu riêng tư không xuất hiện trong Khám phá.');
+    snackbar.show({ message: 'Đã lưu hồ sơ. Dữ liệu riêng tư không xuất hiện trong Khám phá.', tone: 'success' });
   };
 
   const cancel = () => {
@@ -326,15 +327,22 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
 
   const occupationChoice = customOccupation ? '__other__' : otherValue(draft.occupation, OCCUPATION_OPTIONS);
   const locationChoice = customLocation ? '__other__' : otherValue(draft.publicLocation, LOCATION_OPTIONS);
-  return <Screen keyboardAware>
+  const actions = <BottomActionBar>
+    <AppButton label={saving ? 'Đang lưu' : mode === 'setup' ? 'Hoàn tất hồ sơ' : 'Lưu thay đổi'} loading={saving}
+      trailingIcon="check" disabled={saving || photoBusy || !isDirty && mode === 'edit'} onPress={() => void save()} />
+    {onCancel ? <AppButton label={mode === 'setup' ? 'Đăng xuất và làm sau' : 'Quay lại'} variant="quiet" leadingIcon="back" disabled={saving}
+      onPress={cancel} /> : null}
+  </BottomActionBar>;
+
+  return <Screen keyboardAware footer={actions}>
     <View style={styles.intro}>
       <Text accessibilityRole="header" style={styles.title}>{mode === 'setup' ? 'Hoàn thiện hồ sơ' : 'Chỉnh sửa hồ sơ'}</Text>
       <Text style={styles.body}>Ngày sinh và tọa độ chỉ dùng để xác minh tuổi và lọc phù hợp. Người khác chỉ thấy thông tin công khai.</Text>
     </View>
 
-    {mode === 'edit' ? <Section title="Ảnh hồ sơ" description="Ảnh chính xuất hiện đầu tiên trong hồ sơ. Bạn có thể dùng tối đa 6 ảnh.">
+    {mode === 'edit' ? <Section title="Ảnh hồ sơ" description="Ảnh chính xuất hiện đầu tiên. Bạn có thể dùng tối đa 6 ảnh.">
       <PhotoGrid photos={photoItems} busy={photoBusy} onAdd={() => void addPhoto()} onDelete={removePhoto}
-        onMove={(id, direction) => void movePhoto(id, direction)} onSetPrimary={(id) => void setPrimaryPhoto(id)}
+        onReorder={(id, targetIndex) => void reorderPhoto(id, targetIndex)} onSetPrimary={(id) => void setPrimaryPhoto(id)}
         onRetry={() => void loadPhotoUrls(draft.photos)} />
     </Section> : null}
 
@@ -353,8 +361,8 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
         placeholder="Sở thích, lối sống hoặc điều bạn đang tìm kiếm…" />
       <SingleChoiceField label="Nghề nghiệp" options={OCCUPATION_OPTIONS} value={occupationChoice}
         onChange={(value) => { setCustomOccupation(value === '__other__'); update('occupation', value === '__other__' ? '' : value); }} error={errors.occupation} />
-      {occupationChoice === '__other__' ? <FormField label="Nghề nghiệp của bạn" value={draft.occupation}
-        onChangeText={(value) => update('occupation', value)} maxLength={120} showCharacterCount error={errors.occupation} /> : null}
+      {occupationChoice === '__other__' ? <AnimatedSection><FormField label="Nghề nghiệp của bạn" value={draft.occupation}
+        onChangeText={(value) => update('occupation', value)} maxLength={120} showCharacterCount error={errors.occupation} /></AnimatedSection> : null}
       <SingleChoiceField label="Học vấn" options={EDUCATION_OPTIONS} value={draft.education}
         onChange={(value) => update('education', value)} error={errors.education} searchable={false} />
     </Section>
@@ -370,9 +378,9 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     <Section title="Vị trí và quyền riêng tư" description="Khu vực công khai là thông tin thô. Tọa độ GPS luôn được giữ riêng tư.">
       <SingleChoiceField label="Khu vực công khai" options={LOCATION_OPTIONS} value={locationChoice}
         onChange={(value) => { setCustomLocation(value === '__other__'); update('publicLocation', value === '__other__' ? '' : value); }} error={errors.publicLocation} />
-      {locationChoice === '__other__' ? <FormField label="Khu vực của bạn" value={draft.publicLocation}
+      {locationChoice === '__other__' ? <AnimatedSection><FormField label="Khu vực của bạn" value={draft.publicLocation}
         onChangeText={(value) => update('publicLocation', value)} maxLength={120} showCharacterCount error={errors.publicLocation}
-        placeholder="Chỉ ghi tỉnh/thành phố hoặc khu vực chung" /> : null}
+        placeholder="Chỉ ghi tỉnh/thành phố hoặc khu vực chung" /></AnimatedSection> : null}
       <LocationConsentField value={draft.locationConsent} onChange={setLocationConsent}
         disabled={saving} hasCoordinates={draft.latitude !== null && draft.longitude !== null} />
       {draft.locationConsent ? <AppButton label="Cập nhật vị trí hiện tại" variant="secondary" disabled={saving}
@@ -380,11 +388,6 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     </Section>
 
     {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
-    {notice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
-    <AppButton label={saving ? 'Đang lưu…' : mode === 'setup' ? 'Hoàn tất hồ sơ' : 'Lưu thay đổi'}
-      disabled={saving || photoBusy} onPress={() => void save()} />
-    {onCancel ? <AppButton label={mode === 'setup' ? 'Đăng xuất và làm sau' : 'Quay lại'} variant="quiet" disabled={saving}
-      onPress={cancel} /> : null}
     <UnsavedChangesDialog visible={pendingNavigation !== undefined} onKeepEditing={() => setPendingNavigation(undefined)}
       onDiscard={() => {
         const action = pendingNavigation;
@@ -398,16 +401,15 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
 }
 
 function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
-  return <View style={styles.section}>
+  return <AnimatedSection><View style={styles.section}>
     <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionBody}>{description}</Text></View>
     {children}
-  </View>;
+  </View></AnimatedSection>;
 }
 
 const styles = StyleSheet.create({
   intro: { gap: spacing.xs }, title: { ...type.title, color: colors.ink }, body: { ...type.body, color: colors.inkMuted },
-  section: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg,
-    padding: spacing.lg, gap: spacing.md },
+  section: { borderTopColor: colors.border, borderTopWidth: 1, paddingTop: spacing.lg, gap: spacing.md },
   sectionHeading: { gap: spacing.xs }, sectionTitle: { ...type.subtitle, color: colors.ink }, sectionBody: { ...type.caption, color: colors.inkMuted },
-  multiline: { minHeight: 132, paddingTop: spacing.md }, error: { ...type.body, color: colors.danger }, notice: { ...type.body, color: colors.success },
+  multiline: { minHeight: 132, paddingTop: spacing.md }, error: { ...type.body, color: colors.danger },
 });
