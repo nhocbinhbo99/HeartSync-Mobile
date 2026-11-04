@@ -1,3 +1,5 @@
+/* Jest's native/Reanimated mocks must be hoisted before these component imports. */
+/* eslint-disable @typescript-eslint/no-require-imports, import/first */
 import { fireEvent, render } from '@testing-library/react-native';
 
 jest.mock('expo-symbols', () => ({ SymbolView: 'SymbolView' }));
