@@ -2,6 +2,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radii, spacing, type } from '../theme/tokens';
 import { AppButton } from './AppButton';
+import { AppIcon } from './AppIcon';
 
 type Props = {
   visible: boolean;
@@ -14,6 +15,7 @@ export function UnsavedChangesDialog({ visible, onKeepEditing, onDiscard }: Prop
     <View style={styles.layer}>
       <Pressable accessibilityLabel="Tiếp tục chỉnh sửa" style={styles.backdrop} onPress={onKeepEditing} />
       <View accessibilityViewIsModal style={styles.dialog}>
+        <View style={styles.icon}><AppIcon name="warning" color={colors.warning} size={22} /></View>
         <Text accessibilityRole="header" style={styles.title}>Bỏ thay đổi chưa lưu?</Text>
         <Text style={styles.body}>Thông tin bạn vừa chỉnh sửa sẽ không được lưu.</Text>
         <View style={styles.actions}>
@@ -30,6 +32,7 @@ const styles = StyleSheet.create({
   backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(16,42,51,0.42)' },
   dialog: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: radii.lg,
     padding: spacing.lg, gap: spacing.md },
+  icon: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: '#FFF4DE', alignItems: 'center', justifyContent: 'center' },
   title: { ...type.title, color: colors.ink },
   body: { ...type.body, color: colors.inkMuted },
   actions: { gap: spacing.sm },

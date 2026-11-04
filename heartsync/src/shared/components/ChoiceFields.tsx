@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { ChoiceOption } from '../domain/profileOptions';
 import { optionLabel } from '../domain/profileOptions';
 import { colors, radii, spacing, type } from '../theme/tokens';
+import { AnimatedPressable } from './AnimatedPressable';
+import { AppIcon } from './AppIcon';
 import { ChoiceBottomSheet } from './ChoiceBottomSheet';
 import { InlineFieldError } from './InlineFieldError';
 import { SelectedChip } from './SelectedChip';
@@ -21,11 +23,11 @@ export function SingleChoiceField({ label, options, value, onChange, error, help
   const [open, setOpen] = useState(false);
   return <View style={styles.group}>
     <Text style={styles.label}>{label}</Text>
-    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled}
-      onPress={() => setOpen(true)} style={({ pressed }) => [styles.field, error && styles.fieldError, disabled && styles.disabled, pressed && styles.pressed]}>
+    <AnimatedPressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint="Mở danh sách lựa chọn"
+      accessibilityState={{ disabled }} disabled={disabled} onPress={() => setOpen(true)} style={[styles.field, error && styles.fieldError, disabled && styles.disabled]}>
       <Text style={[styles.value, !value && styles.placeholder]}>{value ? optionLabel(options, value) : 'Chọn một lựa chọn'}</Text>
-      <Text aria-hidden style={styles.disclosure}>Mở</Text>
-    </Pressable>
+      <View pointerEvents="none" accessible={false}><AppIcon name="chevronDown" color={colors.primaryPressed} size={22} /></View>
+    </AnimatedPressable>
     {helperText ? <Text style={styles.helper}>{helperText}</Text> : null}
     <InlineFieldError message={error} />
     <ChoiceBottomSheet visible={open} title={label} options={options} selectedValues={value ? [value] : []}
@@ -40,11 +42,11 @@ export function MultiChoiceField({ label, options, values, onChange, error, help
     <Text style={styles.label}>{label}</Text>
     {values.length ? <View style={styles.chips}>{values.map((value) => <SelectedChip key={value}
       label={optionLabel(options, value)} disabled={disabled} onRemove={() => onChange(values.filter((item) => item !== value))} />)}</View> : null}
-    <Pressable accessibilityRole="button" accessibilityLabel={`Chọn ${label}`} accessibilityState={{ disabled }} disabled={disabled}
-      onPress={() => setOpen(true)} style={({ pressed }) => [styles.field, error && styles.fieldError, disabled && styles.disabled, pressed && styles.pressed]}>
+    <AnimatedPressable accessibilityRole="button" accessibilityLabel={`Chọn ${label}`} accessibilityHint="Mở danh sách có thể chọn nhiều mục"
+      accessibilityState={{ disabled }} disabled={disabled} onPress={() => setOpen(true)} style={[styles.field, error && styles.fieldError, disabled && styles.disabled]}>
       <Text style={[styles.value, values.length === 0 && styles.placeholder]}>{values.length ? `${values.length} lựa chọn` : 'Chọn một hoặc nhiều'}</Text>
-      <Text aria-hidden style={styles.disclosure}>Mở</Text>
-    </Pressable>
+      <View pointerEvents="none" accessible={false}><AppIcon name="chevronDown" color={colors.primaryPressed} size={22} /></View>
+    </AnimatedPressable>
     {helperText ? <Text style={styles.helper}>{helperText}</Text> : null}
     <InlineFieldError message={error} />
     <ChoiceBottomSheet visible={open} title={label} options={options} selectedValues={values} multiple
@@ -60,9 +62,7 @@ const styles = StyleSheet.create({
   fieldError: { borderColor: colors.danger },
   value: { ...type.body, color: colors.ink, flex: 1 },
   placeholder: { color: colors.inkMuted },
-  disclosure: { ...type.label, color: colors.primaryPressed },
   helper: { ...type.caption, color: colors.inkMuted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   disabled: { opacity: 0.55 },
-  pressed: { opacity: 0.72 },
 });

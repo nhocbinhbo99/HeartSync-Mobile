@@ -1,5 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing, type } from '../theme/tokens';
+import { feedback } from '../motion/feedback';
+import { AnimatedPressable } from './AnimatedPressable';
+import { AppIcon } from './AppIcon';
 import { InlineFieldError } from './InlineFieldError';
 
 type Props = {
@@ -29,18 +32,17 @@ export function NumberStepperField({ label, value, min, max, step = 1, unit, err
 }
 
 function StepButton({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}
-    disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, pressed && styles.pressed, disabled && styles.disabled]}>
-    <Text style={styles.buttonText}>{label}</Text>
-  </Pressable>;
+  return <AnimatedPressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled}
+    onPress={() => { feedback('selection'); onPress(); }} style={styles.button}>
+    <AppIcon name={label === 'Giảm' ? 'minus' : 'add'} color={colors.primaryPressed} size={22} />
+  </AnimatedPressable>;
 }
 
 const styles = StyleSheet.create({
   group: { gap: spacing.xs }, label: { ...type.label, color: colors.ink },
   control: { minHeight: 56, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md,
     backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center' },
-  button: { minWidth: 72, minHeight: 54, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm },
-  buttonText: { ...type.label, color: colors.primaryPressed },
+  button: { minWidth: 64, minHeight: 54, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm },
   value: { ...type.subtitle, color: colors.ink, flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  errorBorder: { borderColor: colors.danger }, disabled: { opacity: 0.48 }, pressed: { opacity: 0.72 },
+  errorBorder: { borderColor: colors.danger }, disabled: { opacity: 0.48 },
 });

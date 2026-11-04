@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing, type } from '../theme/tokens';
+import { AnimatedPressable } from './AnimatedPressable';
+import { AppIcon } from './AppIcon';
 import { InlineFieldError } from './InlineFieldError';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -37,11 +39,11 @@ export function DateField({ label, value, onChange, maximumDate, minimumDate, er
   };
   return <View style={styles.group}>
     <Text style={styles.label}>{label}</Text>
-    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled}
-      onPress={() => setOpen(true)} style={({ pressed }) => [styles.field, error && styles.fieldError, disabled && styles.disabled, pressed && styles.pressed]}>
+    <AnimatedPressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint="Mở bộ chọn ngày"
+      accessibilityState={{ disabled }} disabled={disabled} onPress={() => setOpen(true)} style={[styles.field, error && styles.fieldError, disabled && styles.disabled]}>
       <Text style={[styles.value, !value && styles.placeholder]}>{value ? displayDate(selected) : 'Chọn ngày sinh'}</Text>
-      <Text aria-hidden style={styles.disclosure}>Chọn ngày</Text>
-    </Pressable>
+      <View pointerEvents="none" accessible={false} style={styles.trailing}><AppIcon name="lock" color={colors.inkMuted} size={16} /><AppIcon name="calendar" color={colors.primaryPressed} size={22} /></View>
+    </AnimatedPressable>
     <InlineFieldError message={error} />
     {open ? <DateTimePicker value={selected} mode="date" display="default" maximumDate={maximumDate}
       minimumDate={minimumDate} onChange={handleChange} /> : null}
@@ -53,6 +55,6 @@ const styles = StyleSheet.create({
   field: { minHeight: 52, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md,
     backgroundColor: colors.background, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   fieldError: { borderColor: colors.danger }, value: { ...type.body, color: colors.ink, flex: 1 },
-  placeholder: { color: colors.inkMuted }, disclosure: { ...type.label, color: colors.primaryPressed },
-  disabled: { opacity: 0.55 }, pressed: { opacity: 0.72 },
+  placeholder: { color: colors.inkMuted }, trailing: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  disabled: { opacity: 0.55 },
 });
