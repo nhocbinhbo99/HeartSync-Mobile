@@ -1,15 +1,18 @@
 import { useCallback, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
-import { AppButton } from '../../shared/components/AppButton';
+import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
+import { AppIcon } from '../../shared/components/AppIcon';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
+import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
+import { useSnackbar } from '../../shared/components/Snackbar';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { colors, radii, spacing, type } from '../../shared/theme/tokens';
 import type { ProfilePublic } from '../../shared/types/domain.types';
@@ -19,9 +22,11 @@ type SavedItem = { profile: ProfilePublic; photoUrl?: string };
 
 export function SavedScreen({ navigation }: Props) {
   const services = useAppServices();
+  const snackbar = useSnackbar();
   const [items, setItems] = useState<SavedItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [removingId, setRemovingId] = useState<string>();
   const [error, setError] = useState('');
@@ -36,15 +41,19 @@ export function SavedScreen({ navigation }: Props) {
     }));
   }, [services]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (isRefresh = false) => {
     if (!services) return;
-    setLoading(true);
+    if (isRefresh) setRefreshing(true); else setLoading(true);
     setError('');
     const result = await services.saved.list();
-    if (!result.ok) { setLoading(false); setError(result.error.message); return; }
+    if (!result.ok) {
+      if (isRefresh) setRefreshing(false); else setLoading(false);
+      setError(result.error.message);
+      return;
+    }
     setItems(await withPhotoUrls(result.data.items));
     setNextCursor(result.data.nextCursor);
-    setLoading(false);
+    if (isRefresh) setRefreshing(false); else setLoading(false);
   }, [services, withPhotoUrls]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
@@ -56,59 +65,73 @@ export function SavedScreen({ navigation }: Props) {
     setLoadingMore(false);
     if (!result.ok) { setError(result.error.message); return; }
     const nextItems = await withPhotoUrls(result.data.items);
-    setItems((current) => [...current, ...nextItems]);
+    setItems((current) => [...current, ...nextItems.filter((item) => !current.some((saved) => saved.profile.id === item.profile.id))]);
     setNextCursor(result.data.nextCursor);
   };
 
-  const remove = async (profileId: string) => {
+  const restore = async (removed: SavedItem) => {
     if (!services) return;
-    const previous = items;
+    setItems((current) => current.some((item) => item.profile.id === removed.profile.id) ? current : [removed, ...current]);
+    const result = await services.saved.setSaved(removed.profile.id, true);
+    if (!result.ok) {
+      setItems((current) => current.filter((item) => item.profile.id !== removed.profile.id));
+      snackbar.show({ message: result.error.message, tone: 'error' });
+    }
+  };
+
+  const remove = async (profileId: string) => {
+    if (!services || removingId) return;
+    const removed = items.find((item) => item.profile.id === profileId);
+    if (!removed) return;
     setRemovingId(profileId);
     setItems((current) => current.filter((item) => item.profile.id !== profileId));
     const result = await services.saved.setSaved(profileId, false);
     setRemovingId(undefined);
-    if (!result.ok) { setItems(previous); setError(result.error.message); }
+    if (!result.ok) {
+      setItems((current) => [removed, ...current]);
+      snackbar.show({ message: result.error.message, tone: 'error' });
+      return;
+    }
+    snackbar.show({ message: `Đã bỏ lưu ${removed.profile.displayName}`, tone: 'neutral', actionLabel: 'Hoàn tác', onAction: () => void restore(removed) });
   };
 
   if (!services) return <Screen><StatePanel title="Chưa thể tải hồ sơ đã lưu" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
   if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tải hồ sơ đã lưu" description="Chỉ bạn có thể xem danh sách này." /></Screen>;
-  if (error && items.length === 0) return <Screen><AsyncStatePanel state="error" title="Không thể tải hồ sơ đã lưu"
-    description={error} actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
+  if (error && items.length === 0) return <Screen><AsyncStatePanel state="error" title="Không thể tải hồ sơ đã lưu" description={error} actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
 
-  return <Screen>
-    <View style={styles.intro}>
-      <Text accessibilityRole="header" style={styles.title}>Hồ sơ đã lưu</Text>
-      <Text style={styles.body}>Danh sách riêng tư để bạn xem lại sau. Bỏ lưu không ảnh hưởng tới lượt thích hoặc kết nối.</Text>
-    </View>
-    {items.length === 0 ? <StatePanel title="Chưa có hồ sơ đã lưu" description="Bạn có thể lưu một hồ sơ từ Khám phá để xem lại sau." />
-      : items.map(({ profile, photoUrl }) => <View key={profile.id} style={styles.card}>
-        {photoUrl ? <Image accessibilityLabel={`Ảnh của ${profile.displayName}`} source={{ uri: photoUrl }} style={styles.avatar} />
-          : <View style={styles.avatarPlaceholder}><Text style={styles.avatarLetter}>{profile.displayName.slice(0, 1).toUpperCase()}</Text></View>}
-        <View style={styles.cardCopy}>
-          <Text style={styles.cardTitle}>{profile.displayName}, {profile.age}</Text>
-          <Text numberOfLines={2} style={styles.cardBody}>{profile.bio || profile.publicLocation || 'Chưa có phần giới thiệu.'}</Text>
-          <View style={styles.actions}>
-            <AppButton label="Xem hồ sơ" variant="secondary" style={styles.action}
-              onPress={() => navigation.navigate('OtherProfile', { profileId: profile.id })} />
-            <AppButton label={removingId === profile.id ? 'Đang bỏ…' : 'Bỏ lưu'} variant="quiet" style={styles.action}
-              disabled={removingId === profile.id} onPress={() => void remove(profile.id)} />
-          </View>
-        </View>
-      </View>)}
-    {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
-    {nextCursor ? <AppButton label={loadingMore ? 'Đang tải…' : 'Tải thêm'} variant="secondary" disabled={loadingMore}
-      onPress={() => void loadMore()} /> : null}
+  return <Screen scroll={false} contentStyle={styles.screen}>
+    <FlatList data={items} keyExtractor={(item) => item.profile.id} contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} colors={[colors.primary]} tintColor={colors.primary} />}
+      renderItem={({ item }) => <SavedCard item={item} removing={removingId === item.profile.id}
+        onOpen={() => navigation.navigate('OtherProfile', { profileId: item.profile.id })} onRemove={() => void remove(item.profile.id)} />}
+      ListHeaderComponent={<View style={styles.intro}><View style={styles.titleRow}><View style={styles.iconCircle}><AppIcon name="bookmarkFilled" color={colors.primaryPressed} size={22} /></View><View style={styles.introCopy}><Text accessibilityRole="header" style={styles.title}>Đã lưu</Text><Text style={styles.body}>Danh sách riêng tư để bạn xem lại sau.</Text></View></View></View>}
+      ListEmptyComponent={<StatePanel title="Chưa có hồ sơ đã lưu" description="Bạn có thể lưu một hồ sơ từ Khám phá để xem lại sau." />}
+      ListFooterComponent={nextCursor ? <View style={styles.footer}>{loadingMore ? <ActivityIndicator color={colors.primary} /> : <AnimatedPressable accessibilityRole="button" accessibilityLabel="Tải thêm hồ sơ đã lưu" onPress={() => void loadMore()} style={styles.loadMore}><AppIcon name="refresh" color={colors.primaryPressed} size={20} /><Text style={styles.loadMoreText}>Tải thêm</Text></AnimatedPressable>}{error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}</View> : undefined}
+      onEndReached={() => void loadMore()} onEndReachedThreshold={0.3} showsVerticalScrollIndicator={false} />
   </Screen>;
 }
 
+function SavedCard({ item, removing, onOpen, onRemove }: { item: SavedItem; removing: boolean; onOpen: () => void; onRemove: () => void }) {
+  const { profile, photoUrl } = item;
+  return <View style={styles.card}>
+    <AnimatedPressable accessibilityRole="button" accessibilityLabel={`Xem hồ sơ ${profile.displayName}`} accessibilityHint="Mở hồ sơ công khai" onPress={onOpen} style={styles.cardTap}>
+      {photoUrl ? <Image accessibilityLabel={`Ảnh của ${profile.displayName}`} source={{ uri: photoUrl }} style={styles.avatar} />
+        : <View style={styles.avatarPlaceholder}><Text style={styles.avatarLetter}>{profile.displayName.slice(0, 1).toUpperCase()}</Text></View>}
+      <View style={styles.cardCopy}>
+        <Text style={styles.cardTitle}>{profile.displayName}, {profile.age}</Text>
+        {profile.publicLocation ? <View style={styles.location}><AppIcon name="location" color={colors.inkMuted} size={16} /><Text numberOfLines={1} style={styles.locationText}>{profile.publicLocation}</Text></View> : null}
+        <Text numberOfLines={2} style={styles.cardBody}>{profile.bio || 'Chưa có phần giới thiệu.'}</Text>
+      </View>
+    </AnimatedPressable>
+    <IconButton icon="bookmarkFilled" label={`Bỏ lưu ${profile.displayName}`} tone="primary" disabled={removing} onPress={onRemove} />
+  </View>;
+}
+
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs }, title: { ...type.title, color: colors.ink }, body: { ...type.body, color: colors.inkMuted },
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg,
-    padding: spacing.md, flexDirection: 'row', gap: spacing.md },
-  avatar: { width: 92, height: 116, borderRadius: radii.md, backgroundColor: colors.surfaceMuted },
-  avatarPlaceholder: { width: 92, height: 116, borderRadius: radii.md, backgroundColor: colors.primarySoft,
-    alignItems: 'center', justifyContent: 'center' }, avatarLetter: { ...type.display, color: colors.primaryPressed },
-  cardCopy: { flex: 1, gap: spacing.xs }, cardTitle: { ...type.subtitle, color: colors.ink },
-  cardBody: { ...type.body, color: colors.inkMuted }, actions: { gap: spacing.xs, marginTop: 'auto' }, action: { minHeight: 48 },
-  error: { ...type.body, color: colors.danger },
+  screen: { padding: 0 }, content: { flexGrow: 1, backgroundColor: colors.background, padding: spacing.lg, gap: spacing.md },
+  intro: { marginBottom: spacing.xs }, titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, iconCircle: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }, introCopy: { flex: 1, gap: spacing.xxs }, title: { ...type.title, color: colors.ink }, body: { ...type.body, color: colors.inkMuted },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, flexDirection: 'row', alignItems: 'center', padding: spacing.sm, gap: spacing.xs }, cardTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md },
+  avatar: { width: 82, height: 106, borderRadius: radii.md, backgroundColor: colors.surfaceMuted }, avatarPlaceholder: { width: 82, height: 106, borderRadius: radii.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }, avatarLetter: { ...type.display, color: colors.primaryPressed },
+  cardCopy: { flex: 1, gap: spacing.xxs }, cardTitle: { ...type.subtitle, color: colors.ink }, cardBody: { ...type.caption, color: colors.inkMuted }, location: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs }, locationText: { ...type.caption, color: colors.inkMuted, flex: 1 },
+  footer: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm }, loadMore: { minHeight: 48, paddingHorizontal: spacing.md, borderRadius: radii.md, flexDirection: 'row', alignItems: 'center', gap: spacing.xs }, loadMoreText: { ...type.label, color: colors.primaryPressed }, error: { ...type.caption, color: colors.danger, textAlign: 'center' },
 });
