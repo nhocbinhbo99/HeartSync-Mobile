@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
@@ -29,6 +29,21 @@ export function ChatScreen({ route, navigation }: NativeStackScreenProps<RootSta
     setBusy(true); const result = await services.calls.startAudioCall(matchId); setBusy(false);
     if (result.ok) navigation.navigate('AudioCall', { matchId, callId: result.data.id }); else setError(result.error.message);
   };
+  const unmatch = async () => {
+    if (!services || !matchId || busy) return;
+    setBusy(true); setError('');
+    const result = await services.matches.unmatch(matchId);
+    setBusy(false);
+    if (result.ok) navigation.goBack(); else setError(result.error.message);
+  };
+  const confirmUnmatch = () => Alert.alert(
+    'Hủy kết nối?',
+    'Bạn sẽ không thể kết nối lại với người này theo chính sách hiện tại.',
+    [
+      { text: 'Quay lại', style: 'cancel' },
+      { text: 'Hủy kết nối', style: 'destructive', onPress: () => void unmatch() },
+    ],
+  );
   if (!matchId) return <Screen><StatePanel title="Chưa chọn kết nối" description="Hãy mở chat từ danh sách Kết nối." /><AppButton label="Quay lại" variant="quiet" onPress={() => navigation.goBack()} /></Screen>;
   if (!services) return <Screen><StatePanel title="Chưa thể mở trò chuyện" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
   if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tải cuộc trò chuyện" description="Chỉ participant của match mới đọc được lịch sử." /></Screen>;
@@ -39,7 +54,7 @@ export function ChatScreen({ route, navigation }: NativeStackScreenProps<RootSta
     <AppTextField label="Tin nhắn" value={text} onChangeText={setText} multiline maxLength={4000} placeholder="Viết một lời chào tử tế" />
     <AppButton label={busy ? 'Đang gửi…' : 'Gửi tin nhắn'} disabled={busy || !text.trim()} onPress={() => void send()} />
     <AppButton label="Gọi thoại" variant="secondary" disabled={busy} onPress={() => void startAudio()} />
-    <AppButton label="Hủy kết nối" variant="danger" disabled={busy} onPress={() => void services.matches.unmatch(matchId).then((result) => result.ok ? navigation.goBack() : setError(result.error.message))} />
+    <AppButton label="Hủy kết nối" variant="danger" disabled={busy} onPress={confirmUnmatch} />
   </Screen>;
 }
 const styles = StyleSheet.create({ title: { ...type.title, color: colors.ink }, error: { ...type.caption, color: colors.danger }, message: { padding: spacing.sm, gap: spacing.xs, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.md }, messageText: { ...type.body, color: colors.ink }, time: { ...type.caption, color: colors.inkMuted } });

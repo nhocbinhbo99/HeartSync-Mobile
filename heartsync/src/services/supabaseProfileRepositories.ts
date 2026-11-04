@@ -237,16 +237,15 @@ export class SupabasePreferencesRepository implements PreferencesRepository {
     const { data, error } = await this.client.from('user_preferences').select('*').eq('user_id', identity.data).maybeSingle();
     if (error) return { ok: false, error: mapServiceError(error) };
     if (!data) return { ok: true, data: DEFAULT_FILTERS };
-    return {
-      ok: true,
-      data: {
-        ageMin: data.age_min,
-        ageMax: data.age_max,
-        distanceKm: data.distance_km,
-        preferredGenders: data.preferred_genders ?? [],
-        preferredLanguages: data.preferred_languages ?? [],
-      },
+    const filters: DiscoveryFilters = {
+      ageMin: data.age_min,
+      ageMax: data.age_max,
+      distanceKm: data.distance_km,
+      preferredGenders: data.preferred_genders ?? [],
+      preferredLanguages: data.preferred_languages ?? [],
     };
+    const checked = validateDiscoveryFilters(filters);
+    return checked.ok ? checked : { ok: false, error: checked.error };
   }
 
   async save(filters: DiscoveryFilters): Promise<Result<DiscoveryFilters>> {

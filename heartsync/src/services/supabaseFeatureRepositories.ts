@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { dedupeMessages } from '../shared/domain/messages';
+import { validateDiscoveryFilters } from '../shared/domain/filters';
 import type { CallType, ChatMessage, DiscoveryFilters, IncomingCall, Page, ProfilePublic, Result } from '../shared/types/domain.types';
 import type { CallRepository, ChatRepository, DiscoveryRepository, MessageSubscription } from './contracts';
 import { mapServiceError } from './errors';
@@ -32,6 +33,8 @@ function unsubscribe(channel: RealtimeChannel, client: AppSupabaseClient): Messa
 export class SupabaseDiscoveryRepository implements DiscoveryRepository {
   constructor(private readonly client: AppSupabaseClient) {}
   async getCandidates(filters: DiscoveryFilters, cursor?: string): Promise<Result<Page<ProfilePublic>>> {
+    const checked = validateDiscoveryFilters(filters);
+    if (!checked.ok) return { ok: false, error: checked.error };
     const cursorCreatedAt = cursor ? new Date(cursor) : null;
     if (cursor && Number.isNaN(cursorCreatedAt?.getTime())) return invalid('Trang dữ liệu không hợp lệ.');
     const { data, error } = await this.client.rpc('get_discovery_candidates', {
@@ -44,10 +47,12 @@ export class SupabaseDiscoveryRepository implements DiscoveryRepository {
       p_cursor_created_at: cursorCreatedAt?.toISOString(),
     });
     if (error) return { ok: false, error: mapServiceError(error) };
-    const rows = Array.isArray(data) ? data : [];
-    const profiles = rows.map((row) => parseProfilePublic(recordValue(row)?.profile)).filter((profile): profile is ProfilePublic => profile !== null);
+    if (!Array.isArray(data)) return invalid();
+    const rows = data;
+    const profiles = rows.map((row) => parseProfilePublic(recordValue(row)?.profile));
+    if (profiles.some((profile) => profile === null)) return invalid();
     const lastCursor = recordValue(rows.at(-1))?.cursor_created_at;
-    return { ok: true, data: { items: profiles, nextCursor: typeof lastCursor === 'string' && rows.length === 20 ? lastCursor : null } };
+    return { ok: true, data: { items: profiles as ProfilePublic[], nextCursor: typeof lastCursor === 'string' && rows.length === 20 ? lastCursor : null } };
   }
 }
 

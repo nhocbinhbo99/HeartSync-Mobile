@@ -61,7 +61,6 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
 
   if (!services) return <Screen><StatePanel title="Chưa thể tải bộ lọc" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
   if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tải bộ lọc" description="Đang đọc lựa chọn riêng của bạn." /></Screen>;
-
   return <Screen>
     <View style={styles.intro}>
       <Text accessibilityRole="header" style={styles.title}>Bộ lọc khám phá</Text>
