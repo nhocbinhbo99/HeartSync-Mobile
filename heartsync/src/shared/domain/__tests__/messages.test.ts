@@ -1,19 +1,21 @@
-import { dedupeMessages } from '../messages';
-import type { ChatMessage } from '../../types/domain.types';
-
-const message = (id: string, clientMessageId: string): ChatMessage => ({
-  id,
-  clientMessageId,
-  matchId: 'match-1',
-  senderId: 'user-a',
-  content: 'Xin chào',
-  sentAt: '2026-10-30T00:00:00.000Z',
+import { dedupeMessages } from "../messages";
+import type { ChatMessage } from "../../types/domain.types";
+const message: ChatMessage = {
+  id: "local:1",
+  clientMessageId: "c1",
+  senderId: "a",
+  matchId: "m",
+  content: "Hello",
+  sentAt: "2026-11-04T00:00:00Z",
   readAt: null,
+};
+it("replaces optimistic data with ACK and merges read updates without duplicates", () => {
+  const ack = { ...message, id: "server:1" };
+  const read = { ...ack, readAt: "2026-11-04T00:01:00Z" };
+  expect(dedupeMessages([message, ack, read, ack])).toEqual([read]);
 });
-
-describe('message dedupe', () => {
-  it('deduplicates server IDs and optimistic client IDs while keeping order', () => {
-    const messages = [message('1', 'c1'), message('1', 'c2'), message('2', 'c1'), message('3', 'c3')];
-    expect(dedupeMessages(messages)).toEqual([messages[0], messages[3]]);
-  });
+it("does not merge distinct senders who chose the same client UUID", () => {
+  expect(
+    dedupeMessages([message, { ...message, id: "2", senderId: "b" }]),
+  ).toHaveLength(2);
 });
