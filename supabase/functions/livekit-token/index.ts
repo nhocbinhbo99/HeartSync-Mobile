@@ -8,13 +8,33 @@ const headers = { "Content-Type": "application/json" };
 const respond = (status: number, body: object) =>
   Response.json(body, { status, headers });
 
+const resolvePublishableKey = () => {
+  const keysJson = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  if (keysJson) {
+    try {
+      const keys = JSON.parse(keysJson) as Record<string, unknown>;
+      const defaultKey = keys.default;
+      if (typeof defaultKey === "string" && defaultKey.length > 0)
+        return defaultKey;
+      const firstKey = Object.values(keys).find(
+        (value): value is string =>
+          typeof value === "string" && value.length > 0,
+      );
+      if (firstKey) return firstKey;
+    } catch {
+      // Fall through to the legacy key injected by the Supabase runtime.
+    }
+  }
+  return Deno.env.get("SUPABASE_ANON_KEY");
+};
+
 Deno.serve(async (request: Request) => {
   if (request.method !== "POST")
     return respond(405, { error: "METHOD_NOT_ALLOWED" });
 
   const authHeader = request.headers.get("Authorization");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const publishableKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  const publishableKey = resolvePublishableKey();
   const liveKitUrl = Deno.env.get("LIVEKIT_URL");
   const liveKitApiKey = Deno.env.get("LIVEKIT_API_KEY");
   const liveKitApiSecret = Deno.env.get("LIVEKIT_API_SECRET");

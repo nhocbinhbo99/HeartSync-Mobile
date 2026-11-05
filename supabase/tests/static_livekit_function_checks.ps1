@@ -13,6 +13,8 @@ $required = [ordered]@{
   'camera restricted to video' = 'body\.callType === "video"[\s\S]*?TrackSource\.CAMERA'
   'five minute TTL' = 'ttlSeconds = 5 \* 60'
   'server secret read' = 'Deno\.env\.get\("LIVEKIT_API_SECRET"\)'
+  'runtime publishable keys read' = 'Deno\.env\.get\("SUPABASE_PUBLISHABLE_KEYS"\)'
+  'legacy runtime key fallback' = 'Deno\.env\.get\("SUPABASE_ANON_KEY"\)'
   'explicit not configured response' = "NOT_CONFIGURED"
 }
 
@@ -21,6 +23,9 @@ foreach ($entry in $required.GetEnumerator()) {
 }
 if ($source -match 'EXPO_PUBLIC_|callerIdentity|callerRoom') {
   throw 'Edge Function contains a forbidden client/public secret or caller-controlled room/identity marker.'
+}
+if ($source -match 'Deno\.env\.get\("SUPABASE_PUBLISHABLE_KEY"\)') {
+  throw 'Edge Function must use runtime-injected Supabase API keys, not a custom reserved-prefix secret.'
 }
 
 Write-Output "PASS: $($required.Count) LiveKit Edge Function security patterns found. This is static review, not deployment or media evidence."

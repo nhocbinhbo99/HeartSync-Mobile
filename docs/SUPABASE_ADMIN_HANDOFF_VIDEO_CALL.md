@@ -109,10 +109,9 @@ Trong Supabase Dashboard → Edge Functions → Secrets, kiểm tra có các key
 | `LIVEKIT_URL` | URL WebSocket/endpoint LiveKit |
 | `LIVEKIT_API_KEY` | Xác thực server LiveKit |
 | `LIVEKIT_API_SECRET` | Ký token LiveKit tại Edge Function |
-| `SUPABASE_PUBLISHABLE_KEY` | Xác thực JWT người dùng trong `livekit-token` |
 | `CALL_CLEANUP_SECRET` | Xác thực request từ scheduler đến `call-media-cleanup` |
 
-`SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` được Supabase Edge Runtime cấp cho function; không đưa chúng vào ứng dụng mobile. Nếu bất kỳ secret nào từng bị lộ ngoài Vault/Dashboard, hãy rotate secret đó rồi deploy lại function.
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`/`SUPABASE_ANON_KEY` và `SUPABASE_SERVICE_ROLE_KEY` được Supabase Edge Runtime cấp cho function; không tự tạo secret có prefix `SUPABASE_` và không đưa chúng vào ứng dụng mobile. Nếu bất kỳ secret nào từng bị lộ ngoài Vault/Dashboard, hãy rotate secret đó rồi deploy lại function.
 
 ### 5. Scheduler dọn media
 
