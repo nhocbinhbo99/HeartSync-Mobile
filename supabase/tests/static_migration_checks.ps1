@@ -5,6 +5,7 @@ $schema = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194
 $security = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194100_rls_and_rpcs.sql')
 $storage = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194200_profile_photo_storage.sql')
 $profileContracts = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261103120000_profile_preferences_contracts.sql')
+$reorderRepair = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261105080739_fix_reorder_profile_photos_constraint.sql')
 $rlsTests = Get-Content -Raw -LiteralPath (Join-Path $root 'tests\rls_security.sql')
 
 $tables = @(
@@ -54,6 +55,16 @@ foreach ($rpc in $profileRpcs) {
   if ($profileContracts -notmatch "grant execute on function public\.$rpc[\s\S]*to authenticated") {
     throw "Profile RPC execute not granted to authenticated: $rpc"
   }
+}
+
+if ($reorderRepair -notmatch 'create or replace function public\.reorder_profile_photos') {
+  throw 'Missing forward-only reorder_profile_photos repair.'
+}
+if ($reorderRepair -notmatch "set search_path = ''") {
+  throw 'Reorder repair must retain an empty SECURITY DEFINER search_path.'
+}
+if ($reorderRepair -match '(?mi)^\s*set\s+constraints\b') {
+  throw 'Reorder repair must rely on the DEFERRABLE INITIALLY DEFERRED unique constraint, not a search_path lookup.'
 }
 
 if ($storage -notmatch "'profile-photos'[\s\S]*false[\s\S]*5242880") { throw 'Private photo bucket limits missing.' }
