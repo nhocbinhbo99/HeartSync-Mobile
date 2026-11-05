@@ -1,7 +1,9 @@
 $ErrorActionPreference = 'Stop'
 
 $functionPath = Join-Path $PSScriptRoot '..\functions\livekit-token\index.ts'
+$configPath = Join-Path $PSScriptRoot '..\config.toml'
 $source = Get-Content -Raw -LiteralPath $functionPath
+$config = Get-Content -Raw -LiteralPath $configPath
 $required = [ordered]@{
   'validated user JWT' = 'auth\.getUser\(token\)'
   'accepted call lookup' = '\.eq\("status", "accepted"\)'
@@ -26,6 +28,9 @@ if ($source -match 'EXPO_PUBLIC_|callerIdentity|callerRoom') {
 }
 if ($source -match 'Deno\.env\.get\("SUPABASE_PUBLISHABLE_KEY"\)') {
   throw 'Edge Function must use runtime-injected Supabase API keys, not a custom reserved-prefix secret.'
+}
+if ($config -notmatch '(?ms)\[functions\.livekit-token\]\s*(?:#.*\s*)*verify_jwt\s*=\s*false') {
+  throw 'livekit-token must use in-function JWT validation for the project asymmetric Auth signing keys.'
 }
 
 Write-Output "PASS: $($required.Count) LiveKit Edge Function security patterns found. This is static review, not deployment or media evidence."

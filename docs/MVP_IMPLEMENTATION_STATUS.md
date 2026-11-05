@@ -16,7 +16,7 @@ Updated: 2026-10-30
 1. Review and apply `supabase/migrations/20261030150000_mvp_contracts.sql` to the dedicated `heartsync-dev` project only. This changes database constraints, RPCs and Realtime publication.
 2. Generate/review Supabase database types after that migration; handwritten UI/domain types remain the source of truth until then.
 3. Create synthetic users A/B/C and their complete profiles; no personal account, image or real credential belongs in source control.
-4. Configure LiveKit secrets only in Supabase Function Secrets, deploy `livekit-token` with JWT verification enabled, then create/install an EAS Android development build on two devices.
+4. Configure LiveKit secrets only in Supabase Function Secrets, deploy `livekit-token` with its in-function Bearer JWT validation, then create/install an EAS Android development build on two devices when the installed build does not already contain the LiveKit native modules.
 5. Run A/B/C RLS, chat, block/unmatch and two-device audio acceptance checks before claiming those features work.
 
 ## Ownership

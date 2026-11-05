@@ -1,5 +1,7 @@
 # Bàn giao Supabase cho Admin — HeartSync Video Call
 
+> Hướng dẫn thao tác từng bước mới nhất: [`VIDEO_CALL_CLOUD_SETUP_GUIDE.md`](VIDEO_CALL_CLOUD_SETUP_GUIDE.md). Tài liệu đó phản ánh project đang dùng Auth signing key ES256 và Supabase CLI được pin trong repository.
+
 **Mục đích:** tài liệu này liệt kê các cấu hình và triển khai còn thiếu trên Supabase Cloud để tính năng gọi video của HeartSync hoạt động an toàn. Đây là checklist cho admin/project owner, **không chứa mật khẩu, access token hay LiveKit secret**.
 
 **Phạm vi:** môi trường development mà ứng dụng mobile đang trỏ tới. Không áp dụng nhầm sang production hoặc project Supabase khác.
@@ -42,12 +44,13 @@ Không gửi những thông tin trên qua chat, Git hoặc file `.env` đã comm
 
 ### 1. Đăng nhập và link đúng project
 
-Từ thư mục gốc repository:
+Từ thư mục `heartsync/`, dùng CLI `2.122.0` đã pin trong `package.json`:
 
 ```powershell
-npx supabase@latest login
-npx supabase@latest link --project-ref <SUPABASE_PROJECT_REF>
-npx supabase@latest migration list --remote
+npx supabase --version
+npx supabase login
+npx supabase --workdir .. link --project-ref namdkpfvieminzcoiskw
+npx supabase --workdir .. migration list --linked
 ```
 
 - Dùng tài khoản Supabase có quyền vào project; đây **không phải** tài khoản Expo/EAS.
@@ -57,7 +60,7 @@ npx supabase@latest migration list --remote
 ### 2. Xem trước rồi mới áp dụng migration
 
 ```powershell
-npx supabase@latest db push --remote --dry-run
+npx supabase --workdir .. db push --linked --dry-run
 ```
 
 Kỳ vọng tối thiểu phải thấy:
@@ -76,7 +79,7 @@ Nếu dry-run còn liệt kê các migration sau, **dừng lại và đối soá
 Sau khi danh sách đã được review, áp dụng:
 
 ```powershell
-npx supabase@latest db push --remote
+npx supabase --workdir .. db push --linked
 ```
 
 Không dùng `db reset`, không sửa/xóa migration cũ đã có trong migration history, và không copy SQL vào production mà không review.
@@ -90,13 +93,14 @@ Source cần deploy:
 - Cấu hình JWT: `supabase/config.toml`
 
 ```powershell
-npx supabase@latest functions deploy livekit-token
-npx supabase@latest functions deploy call-media-cleanup
+npx supabase --workdir .. functions deploy livekit-token call-media-cleanup `
+  --project-ref namdkpfvieminzcoiskw `
+  --use-api
 ```
 
 Yêu cầu bảo mật bắt buộc:
 
-- Giữ `livekit-token` với `verify_jwt = true`; **không** dùng `--no-verify-jwt`.
+- Project dùng Auth signing key ES256 nên gateway verifier cũ được tắt trong `config.toml`; `livekit-token` tự xác thực Bearer JWT bằng `auth.getUser()` rồi kiểm tra active Match/call participant trước khi cấp token.
 - `call-media-cleanup` có xác thực riêng qua shared secret vì được scheduler gọi server-to-server.
 - Không ký LiveKit token trên mobile và không đưa LiveKit API secret/service-role key vào `EXPO_PUBLIC_*` hoặc app mobile.
 
@@ -111,7 +115,7 @@ Trong Supabase Dashboard → Edge Functions → Secrets, kiểm tra có các key
 | `LIVEKIT_API_SECRET` | Ký token LiveKit tại Edge Function |
 | `CALL_CLEANUP_SECRET` | Xác thực request từ scheduler đến `call-media-cleanup` |
 
-`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`/`SUPABASE_ANON_KEY` và `SUPABASE_SERVICE_ROLE_KEY` được Supabase Edge Runtime cấp cho function; không tự tạo secret có prefix `SUPABASE_` và không đưa chúng vào ứng dụng mobile. Nếu bất kỳ secret nào từng bị lộ ngoài Vault/Dashboard, hãy rotate secret đó rồi deploy lại function.
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`/`SUPABASE_ANON_KEY` và `SUPABASE_SECRET_KEYS`/`SUPABASE_SERVICE_ROLE_KEY` được Supabase Edge Runtime cấp cho function; không tự tạo secret có prefix `SUPABASE_` và không đưa chúng vào ứng dụng mobile. Nếu bất kỳ secret nào từng bị lộ ngoài Vault/Dashboard, hãy rotate secret đó rồi deploy lại function.
 
 ### 5. Scheduler dọn media
 
@@ -164,7 +168,7 @@ Chỉ nghiệm thu UC17 sau khi test trên hai Android Development Builds:
 | --- | --- | --- |
 | Bấm “Gọi video” thấy “Dữ liệu gửi lên không hợp lệ” | Migration video chưa ở đúng Cloud project | Migration history và `20261105120000_video_call.sql` |
 | Vào call rồi báo token/invalid request | `livekit-token` chưa deploy hoặc source cũ | Thời điểm deploy và Function Logs |
-| Function trả 401 | JWT người dùng không hợp lệ/hết hạn hoặc request không có session | Client session; vẫn giữ `verify_jwt = true` |
+| Function trả 401 | JWT người dùng không hợp lệ/hết hạn hoặc request không có session | Client session và kiểm tra xác thực trong `livekit-token` |
 | Function trả 503 | Thiếu LiveKit/Supabase secret | Edge Function Secrets |
 | Người nhận không thấy incoming call | Publication/Realtime hoặc subscription | Publication `calls`, Realtime logs và RLS |
 | Audio chạy nhưng video không có hình | Permission camera, token source grant, camera track/LiveKit config | Android permission rồi Function Logs; không tự hạ xuống audio |
