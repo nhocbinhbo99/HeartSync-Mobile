@@ -55,7 +55,7 @@ jobs:
         run: supabase db lint --local --fail-on error
       - name: Generate database types
         run: |
-          supabase gen types typescript --local --schema public --schema private > /tmp/database.types.ts
+          supabase gen types typescript --local --schema public --schema private | sed -E 's/[[:space:]]+$//' > /tmp/database.types.ts
           test -s /tmp/database.types.ts
           grep -q "export type Database" /tmp/database.types.ts
       - name: Verify generated database types are current
