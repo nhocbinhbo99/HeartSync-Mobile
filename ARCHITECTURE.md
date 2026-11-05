@@ -1,6 +1,6 @@
 # HeartSync Architecture and Contracts
 
-Status: Q04 contract baseline. The SQL in `supabase/migrations/` is **SQL_PREPARED_NOT_APPLIED**. Types in `heartsync/src/shared/types/domain.types.ts` are handwritten domain contracts, not generated Supabase database types.
+Status: Q04 contract baseline. Migrations through `20261103120000_profile_preferences_contracts.sql` are manually applied and read-only verified on the dedicated `heartsync-dev` cloud project; local pgTAP/lint remain pending. Generated transport types live in `heartsync/src/shared/types/database.types.ts`, while `domain.types.ts` remains the independent public domain/UI contract.
 
 ## Dependency direction
 

@@ -2,7 +2,7 @@
 -- This file is prepared but has not been executed in this workspace (Docker daemon/CLI unavailable).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(26);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data)
 values
@@ -12,9 +12,9 @@ values
 
 insert into public.profiles (id, display_name, gender, profile_completed_at)
 values
-  ('00000000-0000-0000-0000-000000000001', 'User A', 'other', now()),
-  ('00000000-0000-0000-0000-000000000002', 'User B', 'other', now()),
-  ('00000000-0000-0000-0000-000000000003', 'User C', 'other', now());
+  ('00000000-0000-0000-0000-000000000001', 'User A', 'man', now()),
+  ('00000000-0000-0000-0000-000000000002', 'User B', 'woman', now()),
+  ('00000000-0000-0000-0000-000000000003', 'User C', 'nonbinary', now());
 insert into public.profile_private (user_id, date_of_birth)
 values
   ('00000000-0000-0000-0000-000000000001', date '1990-01-01'),
@@ -28,6 +28,61 @@ select throws_ok(
   $$ select * from public.profiles $$,
   '42501', 'permission denied for table profiles',
   'anonymous users cannot read profiles'
+);
+select throws_ok(
+  $$ select public.save_my_profile('Anonymous', 'man', date '1990-01-01') $$,
+  '28000', 'authentication_required',
+  'anonymous users cannot save a profile'
+);
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+select lives_ok(
+  $$ select public.save_my_profile('User A', 'man', date '1990-01-01', 'Safe public bio', null, 'Đại học', 'TP. Hồ Chí Minh', '{}', array['vi', 'en']) $$,
+  'owner can atomically save public and private profile fields'
+);
+select ok(
+  not (public.get_public_profile('00000000-0000-0000-0000-000000000001') ?| array['dateOfBirth', 'latitude', 'longitude', 'email']),
+  'public profile projection excludes private fields'
+);
+select is(
+  public.save_my_preferences(18, 99, 50, array['woman'], array['vi'])->>'distanceKm',
+  null::text,
+  'distance is normalized to null without location consent and coordinates'
+);
+select lives_ok(
+  $$ insert into public.profile_photos(profile_id, storage_path, sort_order, is_primary)
+     select '00000000-0000-0000-0000-000000000001',
+       '00000000-0000-0000-0000-000000000001/photo-' || value || '.jpg', value, value = 0
+     from generate_series(0, 5) value $$,
+  'owner can create at most six ordered photo metadata rows'
+);
+select throws_like(
+  $$ insert into public.profile_photos(profile_id, storage_path, sort_order)
+     values ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001/photo-7.jpg', 6) $$,
+  '%profile_photos_sort_order_check%',
+  'a seventh photo order is rejected by the database'
+);
+select lives_ok(
+  $$ select public.reorder_profile_photos(array(
+       select id from public.profile_photos
+       where profile_id = '00000000-0000-0000-0000-000000000001'
+       order by sort_order desc
+     )) $$,
+  'owner can reorder all profile photos atomically'
+);
+select is(
+  (select count(*) from public.profile_photos where profile_id = '00000000-0000-0000-0000-000000000001' and is_primary),
+  1::bigint,
+  'photo reorder keeps exactly one primary image'
+);
+insert into public.saved_profiles(owner_id, target_id)
+values ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000003');
+select is(
+  (select count(*) from public.list_saved_profiles(20, null)),
+  1::bigint,
+  'saved profile RPC returns only the owner list'
 );
 reset role;
 

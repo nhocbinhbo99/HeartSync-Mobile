@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T19:34:21.2523154+07:00",
+  "generatedAt": "2026-11-04T15:05:57.1783181+07:00",
   "title": "Design System: HeartSync",
   "extensions": {
     "colorMeta": {
@@ -14,6 +14,8 @@
       "primary-pressed": { "role": "primary", "displayName": "Pressed Cyan", "canonical": "#006674", "tonalRamp": ["#002B31", "#003F48", "#00535E", "#006674", "#218C98", "#5FB5BE", "#A1D9DE", "#E6F5F6"] },
       "primary-soft": { "role": "primary", "displayName": "Signal Mist", "canonical": "#DDF8FB", "tonalRamp": ["#123033", "#285156", "#47777C", "#6DA0A5", "#95C7CB", "#B9E2E5", "#D4F0F2", "#F0FCFD"] },
       "on-primary": { "role": "text", "displayName": "On Signal", "canonical": "#FFFFFF", "tonalRamp": ["#1A1A1A", "#3A3A3A", "#626262", "#8C8C8C", "#B5B5B5", "#D8D8D8", "#EEEEEE", "#FFFFFF"] },
+      "success": { "role": "success", "displayName": "Confirmed Green", "canonical": "#168760", "tonalRamp": ["#063723", "#075138", "#0D694B", "#168760", "#3DA37E", "#78C4A5", "#B6E1CC", "#E8F7EF"] },
+      "warning": { "role": "warning", "displayName": "Recoverable Amber", "canonical": "#A96900", "tonalRamp": ["#382000", "#563300", "#784700", "#A96900", "#C88A26", "#E0B263", "#F1D6A3", "#FFF6E6"] },
       "danger": { "role": "danger", "displayName": "Safety Red", "canonical": "#C5364D", "tonalRamp": ["#3B0D16", "#641725", "#8C2435", "#B83248", "#D85B6D", "#E98E9A", "#F4C2C8", "#FCECEF"] },
       "disabled": { "role": "neutral", "displayName": "Disabled Mist", "canonical": "#E3EAEC", "tonalRamp": ["#1B2224", "#374144", "#5E6A6D", "#879396", "#AFBABC", "#CDD5D7", "#E3EAEC", "#F5F7F8"] }
     },
@@ -26,7 +28,12 @@
       "caption": { "displayName": "Caption", "purpose": "Secondary guidance and tab labels." }
     },
     "shadows": [],
-    "motion": [],
+    "motion": [
+      { "name": "press-feedback", "value": "90–120ms / scale 0.98", "purpose": "Android press and ripple response for direct actions." },
+      { "name": "selection", "value": "120–180ms", "purpose": "Chips, toggles, and checked selection state." },
+      { "name": "sheet", "value": "300–360ms spring", "purpose": "Bottom sheet entry and dismissal with separate backdrop fade." },
+      { "name": "reduce-motion", "value": "ReduceMotion.System", "purpose": "Preserve final state without nonessential motion." }
+    ],
     "breakpoints": []
   },
   "components": [
@@ -71,6 +78,14 @@
       "css": ".ds-field { display:grid; gap:8px; color:#102A33; font:600 14px/20px system-ui; } .ds-field input { min-height:52px; padding:0 16px; border:1px solid #CFE0E4; border-radius:14px; background:#F6FAFB; color:#102A33; font:400 16px/24px system-ui; } .ds-field input:focus-visible { border-color:#007E8C; outline:2px solid #A2E0E5; } .ds-field small { color:#C5364D; font:400 13px/18px system-ui; }"
     },
     {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "A named 48 dp action for familiar Material symbols; never a text stand-in for an icon.",
+      "html": "<button aria-label=\"Lưu hồ sơ\" class=\"ds-icon-btn\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 4a2 2 0 0 0-2 2v14l8-4 8 4V6a2 2 0 0 0-2-2H6z\"/></svg></button>",
+      "css": ".ds-icon-btn { width:48px; height:48px; display:grid; place-items:center; border:0; border-radius:999px; background:transparent; color:#587079; transition:transform .12s,background .12s; } .ds-icon-btn svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; } .ds-icon-btn:hover,.ds-icon-btn:active { background:#DDF8FB; transform:scale(.98); } .ds-icon-btn:focus-visible { outline:3px solid #A2E0E5; outline-offset:2px; }"
+    },
+    {
       "name": "State Panel",
       "kind": "card",
       "refersTo": "state-panel",
@@ -97,17 +112,19 @@
   ],
   "narrative": {
     "northStar": "The Verified Connection",
-    "overview": "HeartSync uses restrained cyan signals on cool, quiet surfaces. The interface names empty, unavailable, error, and development states instead of filling space with fake profiles or simulated success.\n\nThe Q01 implementation is code-verified only. Insets, keyboard behavior, large fonts, TalkBack, tablet/landscape layout, and perceived color remain pending Android-device review.",
+    "overview": "HeartSync uses restrained cyan signals on cool, quiet surfaces. The interface names empty, unavailable, error, and development states instead of filling space with fake profiles or simulated success.\n\nThe Material 3 refresh uses semantic platform-mapped icons, intentional haptic feedback, and short state transitions rather than textual affordances. Insets, keyboard behavior, large fonts, TalkBack, tablet/landscape layout, and perceived color remain pending Android-device review.",
     "keyCharacteristics": [
       "Cool white and mist surfaces with one disciplined cyan accent.",
       "Dark, readable text and explicit state copy.",
       "Flat bordered containers instead of decorative card grids.",
       "Native stack and four-destination bottom navigation.",
-      "Minimum 48 dp interactive targets."
+      "Minimum 48 dp interactive targets.",
+      "Motion reinforces a completed choice or a changed state; it never delays a task."
     ],
     "rules": [
       { "name": "The Confirmed Signal Rule", "body": "Cyan is reserved for a real action, selection, readiness, or confirmed state; it is not ambient decoration.", "section": "colors" },
       { "name": "The Semantic State Rule", "body": "Error states combine danger color with explanatory text, never color alone.", "section": "colors" },
+      { "name": "The Confirmed Feedback Rule", "body": "Success green and warning amber only explain a completed or recoverable state; cyan remains the primary action and selection signal.", "section": "colors" },
       { "name": "The Direct Hierarchy Rule", "body": "Use a direct title and supporting body copy; do not manufacture hierarchy with repeated uppercase kickers.", "section": "typography" },
       { "name": "The Native Orientation Rule", "body": "Navigation and Back behavior remain platform-native; branded surfaces must not replace orientation controls.", "section": "layout" },
       { "name": "The Flat-by-Default Rule", "body": "Do not add shadows unless a future interaction requires real elevation and a deliberate token is added.", "section": "elevation" }
@@ -116,13 +133,16 @@
       "Do keep actions and explanations together within thumb reach.",
       "Do preserve 48 dp minimum touch targets and native Back behavior.",
       "Do use explicit empty, unavailable, error, and development copy.",
-      "Do prefer borders and tonal layering before introducing shadows."
+      "Do prefer borders and tonal layering before introducing shadows.",
+      "Do provide a label for every icon-only action and respect system Reduce Motion.",
+      "Do pair an optimistic action with a visible recovery path when the server can reject it."
     ],
     "donts": [
       "Don't claim authentication, profiles, matches, realtime activity, or calls before server confirmation.",
       "Don't repeat uppercase kickers or use-case identifiers as the primary production hierarchy; the Q01 placeholder labels are temporary traceability aids.",
       "Don't use cyan as ambient decoration or display fabricated Sync Line progress.",
-      "Don't treat device behavior as approved until Android smoke and accessibility tests are recorded."
+      "Don't treat device behavior as approved until Android smoke and accessibility tests are recorded.",
+      "Don't replace Material affordances with text labels such as “Mở”, “Bỏ”, “Tăng”, or “Giảm” when a familiar icon is clearer."
     ]
   }
 }

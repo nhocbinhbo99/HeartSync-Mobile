@@ -12,6 +12,8 @@ colors:
   primary-pressed: "#006674"
   primary-soft: "#DDF8FB"
   on-primary: "#FFFFFF"
+  success: "#168760"
+  warning: "#A96900"
   danger: "#C5364D"
   disabled: "#E3EAEC"
 typography:
@@ -29,6 +31,9 @@ components:
   button-quiet: { backgroundColor: "transparent", textColor: "{colors.primary-pressed}", rounded: "{rounded.md}", padding: "12px 16px", height: "48px" }
   button-danger: { backgroundColor: "{colors.surface}", textColor: "{colors.danger}", rounded: "{rounded.md}", padding: "12px 16px", height: "48px" }
   text-input: { backgroundColor: "{colors.background}", textColor: "{colors.ink}", rounded: "{rounded.md}", padding: "0 16px", height: "52px" }
+  icon-button: { backgroundColor: "transparent", textColor: "{colors.ink-muted}", rounded: "{rounded.pill}", size: "48px" }
+  choice-field: { backgroundColor: "{colors.background}", textColor: "{colors.ink}", rounded: "{rounded.md}", padding: "0 16px", height: "52px" }
+  snackbar: { backgroundColor: "{colors.ink}", textColor: "{colors.on-primary}", rounded: "{rounded.md}", padding: "8px 16px", height: "56px" }
   state-panel: { backgroundColor: "{colors.surface}", textColor: "{colors.ink}", rounded: "{rounded.lg}", padding: "24px" }
   bottom-tabs: { backgroundColor: "{colors.surface}", textColor: "{colors.ink-muted}", height: "66px" }
   sync-line: { backgroundColor: "{colors.surface-muted}", rounded: "{rounded.pill}", height: "4px" }
@@ -40,7 +45,7 @@ components:
 
 **Creative North Star: “The Verified Connection.”** HeartSync uses restrained cyan signals on cool, quiet surfaces. The interface names empty, unavailable, error, and development states instead of filling space with fake profiles or simulated success.
 
-The Q01 implementation is code-verified only. Insets, keyboard behavior, large fonts, TalkBack, tablet/landscape layout, and perceived color remain pending Android-device review.
+The Material 3 refresh uses semantic platform-mapped icons, intentional haptic feedback, and short state transitions rather than textual affordances. Insets, keyboard behavior, large fonts, TalkBack, tablet/landscape layout, and perceived color remain pending Android-device review.
 
 **Key Characteristics:**
 
@@ -49,6 +54,7 @@ The Q01 implementation is code-verified only. Insets, keyboard behavior, large f
 - Flat bordered containers instead of decorative card grids.
 - Native stack and four-destination bottom navigation.
 - Minimum 48 dp interactive targets.
+- Motion reinforces a completed choice or a changed state; it never delays a task.
 
 ## Colors
 
@@ -58,6 +64,8 @@ The palette uses cyan sparingly while cool neutrals carry most screen area.
 
 **The Semantic State Rule.** Error states combine danger color with explanatory text, never color alone.
 
+**The Confirmed Feedback Rule.** Success green and warning amber only explain a completed or recoverable state; cyan remains the primary action and selection signal.
+
 ## Typography
 
 The system uses the React Native system typeface. Display is 32/39, title 22/29, subtitle 17/24, body 16/24, label 14/20, and caption 13/18.
@@ -66,29 +74,45 @@ The system uses the React Native system typeface. Display is 32/39, title 22/29,
 
 ## Layout
 
-Portrait phone screens use a single scrollable column with 24 dp outer padding and 16 dp default vertical gaps. Forms and state panels use 24 dp internal padding. Signed-in destinations use a four-item bottom navigation; details use native-stack navigation and system Back.
+Portrait phone screens use a single scrollable column with 24 dp outer padding and 16 dp default vertical gaps. Forms use flat sections divided by whitespace and 1 dp rules rather than nested cards. Signed-in destinations use a four-item bottom navigation; details use native-stack navigation and system Back. Saved uses a native `FlatList` with pull-to-refresh and pagination; persistent save actions sit in the thumb-safe lower edge.
 
 **The Native Orientation Rule.** Navigation and Back behavior remain platform-native; branded surfaces must not replace orientation controls.
 
 ## Elevation & Depth
 
-Depth comes from white surface contrast and 1 dp cool borders. No shadow token is defined.
+Depth comes from white surface contrast and 1 dp cool borders. No ambient shadow token is defined; a bottom sheet earns elevation only while it is modal.
 
 **The Flat-by-Default Rule.** Do not add shadows unless a future interaction requires real elevation and a deliberate token is added.
 
 ## Shapes
 
-Interactive controls use 14 dp corners; state panels use 22 dp. Pill geometry is reserved for continuous tracks such as progress or readiness.
+Interactive controls use 14 dp corners; state panels and image frames use 22 dp. Pill geometry is reserved for continuous tracks, image badges, and icon actions.
 
 ## Components
 
 ### Buttons and fields
 
-Buttons have a minimum 48 dp target. Primary is filled cyan; secondary and danger are outlined; quiet has no visible container. Disabled buttons use a pale neutral surface and dark label while the native disabled state removes interaction. Text fields are at least 52 dp high, label their input accessibly, and expose an error message through a live region. Focus and full disabled field treatments remain future work.
+Buttons have a minimum 48 dp target. Primary is filled cyan; secondary and danger are outlined; quiet has no visible container. `AppButton` supports a leading/trailing semantic icon and loading state without changing its existing API. Disabled buttons use a pale neutral surface and dark label while the native disabled state removes interaction. Text fields are at least 52 dp high, label their input accessibly, and expose an error message through a live region.
+
+Icon-only actions use `IconButton`: every icon has a spoken label, a 48 dp target, Android ripple, and no adjacent text that merely describes the symbol. Choice fields show the selected value and a chevron; date fields pair a calendar with a lock when the value is private. Chips remove a selection through a close icon, never a text “Bỏ” control.
+
+### Sheets, selection, and feedback
+
+`ChoiceBottomSheet` has a drag handle, a close icon, optional search and clear affordances, native radio/check semantics, and a sticky multi-select footer with selection count. Selected rows use the cyan signal plus a check icon, not color alone.
+
+`SnackbarProvider` reports successful saves, errors, and undoable removal near the bottom edge. A snackbar is transient feedback, not confirmation of an unverified server operation. Destructive or discard decisions use a Material-style dialog with warning icon and clear action hierarchy.
+
+### Motion and haptics
+
+Press feedback scales to 0.98 over 90–120 ms with Android ripple. Selection/chip/switch changes use 120–180 ms transitions; conditional fields use 180–240 ms; sheets use a 300–360 ms spring with an independent backdrop fade. Reanimated follows `ReduceMotion.System`; haptics occur only for a meaningful selection, toggle, successful save, error, or image drag/drop.
+
+### Images and saved profiles
+
+Profile photos use a two-column grid, a primary-star badge, per-image loading/error state, long-press drag ordering, and an overflow action menu. Saved cards foreground the person and have a bookmark action with optimistic removal, undo, rollback on server failure, pull-to-refresh, and paginated loading.
 
 ### State panels
 
-`AsyncStatePanel` is the shared loading/empty/error contract. `StatePanel` carries development or informational copy with a direct title, explanation, and optional safe action.
+`AsyncStatePanel` is the shared loading/empty/error contract. Loading uses reduced-motion-aware skeleton blocks; empty/error panels use an icon, direct title, explanation, and an optional safe recovery action. Public profile surfaces never render email, date of birth, or exact coordinates.
 
 ### Navigation
 
@@ -106,6 +130,8 @@ The 4 dp Sync Line is reserved for real loading, selection, or readiness state. 
 - **Do** preserve 48 dp minimum touch targets and native Back behavior.
 - **Do** use explicit empty, unavailable, error, and development copy.
 - **Do** prefer borders and tonal layering before introducing shadows.
+- **Do** provide a label for every icon-only action and respect system Reduce Motion.
+- **Do** pair an optimistic action with a visible recovery path when the server can reject it.
 
 ### Don't:
 
@@ -113,3 +139,4 @@ The 4 dp Sync Line is reserved for real loading, selection, or readiness state. 
 - **Don't** repeat uppercase kickers or use-case identifiers as the primary production hierarchy; the Q01 placeholder labels are temporary traceability aids.
 - **Don't** use cyan as ambient decoration or display fabricated Sync Line progress.
 - **Don't** treat device behavior as approved until Android smoke and accessibility tests are recorded.
+- **Don't** replace Material affordances with text labels such as “Mở”, “Bỏ”, “Tăng”, or “Giảm” when a familiar icon is clearer.

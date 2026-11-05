@@ -417,3 +417,6 @@ enabled = true
 
 [functions.livekit-token]
 verify_jwt = true
+
+[functions.call-media-cleanup]
+verify_jwt = false

@@ -1,0 +1,63 @@
+name: HeartSync quality gates
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feat/profile-preferences
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: heartsync
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: heartsync/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test -- --runInBand
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.122.0
+      - name: Start local database and apply all migrations
+        run: supabase db start
+      - name: Verify migrations can reset from zero
+        run: supabase db reset
+      - name: Run pgTAP security tests
+        run: supabase test db --local
+      - name: Lint database functions
+        run: supabase db lint --local --fail-on error
+      - name: Verify generated database types are current
+        run: |
+          supabase gen types typescript --local --schema public --schema private > /tmp/database.types.ts
+          test -s /tmp/database.types.ts
+          grep -q "export type Database" /tmp/database.types.ts
+          diff -u heartsync/src/shared/types/database.types.ts /tmp/database.types.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: database-types
+          path: /tmp/database.types.ts

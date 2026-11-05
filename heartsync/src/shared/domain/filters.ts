@@ -7,5 +7,9 @@ export function validateDiscoveryFilters(filters: DiscoveryFilters): Result<Disc
   if (filters.distanceKm !== null && (!Number.isInteger(filters.distanceKm) || filters.distanceKm < 1 || filters.distanceKm > 500)) {
     return { ok: false, error: { code: 'validation', message: 'Khoảng cách phải từ 1 đến 500 km.', retryable: false } };
   }
+  if (!Array.isArray(filters.preferredGenders) || !Array.isArray(filters.preferredLanguages)
+    || [...filters.preferredGenders, ...filters.preferredLanguages].some((value) => typeof value !== 'string' || value.trim().length === 0)) {
+    return { ok: false, error: { code: 'validation', message: 'Giới tính và ngôn ngữ quan tâm không hợp lệ.', retryable: false } };
+  }
   return { ok: true, data: filters };
 }

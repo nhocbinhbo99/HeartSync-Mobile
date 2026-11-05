@@ -1,17 +1,18 @@
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme/tokens';
 
-type ScreenProps = PropsWithChildren<{ scroll?: boolean; keyboardAware?: boolean; safeTop?: boolean; contentStyle?: ViewStyle }>;
-export function Screen({ children, scroll = true, keyboardAware = false, safeTop = false, contentStyle }: ScreenProps) {
+type ScreenProps = PropsWithChildren<{ scroll?: boolean; keyboardAware?: boolean; safeTop?: boolean; contentStyle?: ViewStyle; footer?: ReactNode }>;
+export function Screen({ children, scroll = true, keyboardAware = false, safeTop = false, contentStyle, footer }: ScreenProps) {
   const content = scroll
     ? <ScrollView contentContainerStyle={[styles.content, contentStyle]} keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>{children}</ScrollView>
     : <View style={[styles.content, styles.fill, contentStyle]}>{children}</View>;
+  const framedContent = <View style={styles.fill}>{content}{footer}</View>;
   const keyboardContent = keyboardAware
-    ? <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>{content}</KeyboardAvoidingView>
-    : content;
+    ? <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>{framedContent}</KeyboardAvoidingView>
+    : framedContent;
   return <SafeAreaView style={styles.fill} edges={safeTop ? ['top', 'left', 'right', 'bottom'] : ['left', 'right', 'bottom']}>
     {keyboardContent}
   </SafeAreaView>;

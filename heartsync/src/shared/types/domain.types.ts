@@ -3,12 +3,20 @@
  * Mirrors the reviewable Q03 migrations so UI/service work can type-check before a local schema exists.
  * Replace database-row shapes with Supabase CLI output only after `supabase db reset` succeeds.
  */
-export type SwipeAction = 'like' | 'pass';
-export type MatchStatus = 'active' | 'unmatched';
-export type CallType = 'audio' | 'video';
-export type PersistedCallStatus = 'ringing' | 'accepted' | 'rejected' | 'missed' | 'connecting' | 'connected' | 'ended' | 'failed';
+export type SwipeAction = "like" | "pass";
+export type MatchStatus = "active" | "unmatched";
+export type CallType = "audio" | "video";
+export type PersistedCallStatus =
+  | "ringing"
+  | "accepted"
+  | "rejected"
+  | "missed"
+  | "connecting"
+  | "connected"
+  | "ended"
+  | "failed";
 /** UI/media state; `idle` is local and is not persisted in the SQL call_status enum. */
-export type CallStatus = 'idle' | PersistedCallStatus;
+export type CallStatus = "idle" | PersistedCallStatus;
 
 export type ProfilePhoto = {
   id: string;
@@ -41,6 +49,27 @@ export type ProfilePrivate = {
   locationConsent: boolean;
 };
 
+export type InterestOption = {
+  id: string;
+  slug: string;
+  label: string;
+};
+
+export type ProfileSaveInput = {
+  displayName: string;
+  gender: string;
+  dateOfBirth: string;
+  bio: string | null;
+  occupation: string | null;
+  education: string | null;
+  publicLocation: string | null;
+  interests: string[];
+  languages: string[];
+  locationConsent: boolean;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 export type DiscoveryFilters = {
   ageMin: number;
   ageMax: number;
@@ -51,9 +80,9 @@ export type DiscoveryFilters = {
 };
 
 export type SwipeResult =
-  | { outcome: 'liked'; matchId: null }
-  | { outcome: 'passed'; matchId: null }
-  | { outcome: 'matched'; matchId: string };
+  | { outcome: "liked"; matchId: null }
+  | { outcome: "passed"; matchId: null }
+  | { outcome: "matched"; matchId: string };
 
 export type MatchSummary = {
   id: string;
@@ -62,6 +91,8 @@ export type MatchSummary = {
   createdAt: string;
   unmatchedAt: string | null;
   lastMessagePreview: string | null;
+  lastMessageAt?: string;
+  unreadCount?: number;
 };
 
 export type ChatMessage = {
@@ -96,14 +127,18 @@ export type IncomingCall = {
 };
 
 export type ApiErrorCode =
-  | 'unauthorized'
-  | 'forbidden'
-  | 'network'
-  | 'validation'
-  | 'not_found'
-  | 'conflict'
-  | 'rate_limited';
+  | "unauthorized"
+  | "forbidden"
+  | "network"
+  | "validation"
+  | "not_found"
+  | "conflict"
+  | "rate_limited";
 
-export type ApiError = { code: ApiErrorCode; message: string; retryable: boolean };
+export type ApiError = {
+  code: ApiErrorCode;
+  message: string;
+  retryable: boolean;
+};
 export type Result<T> = { ok: true; data: T } | { ok: false; error: ApiError };
 export type Page<T> = { items: T[]; nextCursor: string | null };

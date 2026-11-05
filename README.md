@@ -43,3 +43,5 @@ The Q03 schema is documented in [`DATA_MODEL.md`](DATA_MODEL.md). Its status is 
 - Hảo — matches, realtime chat, message dedupe and audio/video call flow.
 
 Start with [`docs/TEAM_HANDOFF.md`](docs/TEAM_HANDOFF.md), then follow [`docs/SETUP_MANUAL.md`](docs/SETUP_MANUAL.md). Architecture/data contracts are indexed by [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md); product and UI direction are in [`PRODUCT.md`](PRODUCT.md) and [`DESIGN.md`](DESIGN.md).
+
+Windows/Android team setup and the shared native-build fix: [Android team setup](docs/ANDROID_TEAM_SETUP.md). After pulling, run `npm ci` then `npm run android:build` from `heartsync/`.

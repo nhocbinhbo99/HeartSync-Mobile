@@ -7,9 +7,9 @@ $seed = Get-Content -Raw $seedPath
 $config = Get-Content -Raw $configPath
 
 $expectedAddresses = @(
-  'test1@gmail.com',
-  'test2@gmail.com',
-  'test3@gmail.com'
+  'ex1@gmail.com',
+  'ex2@gmail.com',
+  'ex3@gmail.com'
 )
 
 foreach ($address in $expectedAddresses) {

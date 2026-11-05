@@ -25,6 +25,8 @@ describe('discovery filter invariants', () => {
     { ...valid, distanceKm: 0 },
     { ...valid, distanceKm: 501 },
     { ...valid, distanceKm: 2.5 },
+    { ...valid, preferredGenders: [''] },
+    { ...valid, preferredLanguages: ['  '] },
   ])('rejects unsafe ranges: %p', (filters) => {
     expect(validateDiscoveryFilters(filters).ok).toBe(false);
   });
