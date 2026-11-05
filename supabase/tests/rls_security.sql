@@ -31,7 +31,7 @@ select throws_ok(
 );
 select throws_ok(
   $$ select public.save_my_profile('Anonymous', 'man', date '1990-01-01') $$,
-  '28000', 'authentication_required',
+  '42501', 'permission denied for function save_my_profile',
   'anonymous users cannot save a profile'
 );
 reset role;
@@ -47,7 +47,7 @@ select ok(
   'public profile projection excludes private fields'
 );
 select is(
-  public.save_my_preferences(18, 99, 50, array['woman'], array['vi'])->>'distanceKm',
+  public.save_my_preferences(18::smallint, 99::smallint, 50::smallint, array['woman'], array['vi'])->>'distanceKm',
   null::text,
   'distance is normalized to null without location consent and coordinates'
 );
