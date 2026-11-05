@@ -14,7 +14,27 @@ export type Database = {
   }
   private: {
     Tables: {
-      [_ in never]: never
+      call_media_cleanup: {
+        Row: {
+          call_id: string
+          callee_id: string
+          caller_id: string
+          queued_at: string
+        }
+        Insert: {
+          call_id: string
+          callee_id: string
+          caller_id: string
+          queued_at?: string
+        }
+        Update: {
+          call_id?: string
+          callee_id?: string
+          caller_id?: string
+          queued_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -568,7 +588,17 @@ export type Database = {
     }
     Functions: {
       accept_call: { Args: { p_call_id: string }; Returns: string }
+      ack_call_cleanup: { Args: { p_call_id: string }; Returns: undefined }
       block_user: { Args: { p_target_id: string }; Returns: undefined }
+      chat_summaries: {
+        Args: never
+        Returns: {
+          last_message_at: string
+          last_read_at: string
+          match_id: string
+          unread_count: number
+        }[]
+      }
       end_call: { Args: { p_call_id: string }; Returns: string }
       get_discovery_candidates: {
         Args: {
@@ -596,6 +626,18 @@ export type Database = {
           other_profile: Json
         }[]
       }
+      list_chat_matches: {
+        Args: { p_cursor?: string }
+        Returns: {
+          created_at: string
+          cursor_created_at: string
+          id: string
+          last_message_at: string
+          last_message_preview: string
+          other_profile: Json
+          unread_count: number
+        }[]
+      }
       list_saved_profiles: {
         Args: { p_cursor_created_at?: string; p_limit?: number }
         Returns: {
@@ -603,6 +645,21 @@ export type Database = {
           saved_at: string
         }[]
       }
+      mark_messages_read: {
+        Args: { p_ids: string[]; p_match_id: string }
+        Returns: undefined
+      }
+      pending_call_cleanup: {
+        Args: never
+        Returns: Database["private"]["Tables"]["call_media_cleanup"]["Row"][]
+        SetofOptions: {
+          from: "*"
+          to: "call_media_cleanup"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      reconcile_calls: { Args: never; Returns: undefined }
       record_swipe: {
         Args: {
           p_action: Database["public"]["Enums"]["swipe_action"]
@@ -649,6 +706,28 @@ export type Database = {
           p_public_location?: string
         }
         Returns: Json
+      }
+      send_chat_message: {
+        Args: {
+          p_client_message_id: string
+          p_content: string
+          p_match_id: string
+        }
+        Returns: {
+          client_message_id: string
+          content: string
+          id: string
+          match_id: string
+          read_at: string | null
+          sender_id: string
+          sent_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_primary_profile_photo: {
         Args: { p_photo_id: string }

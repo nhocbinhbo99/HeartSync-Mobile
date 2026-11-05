@@ -290,10 +290,7 @@ export class SupabaseCallRepository implements CallRepository {
     return call ? { ok: true, data: call } : invalid();
   }
   async listActive(): Promise<Result<IncomingCall[]>> {
-    const { error: reconcileError } = await this.client.rpc(
-      "reconcile_calls",
-      {},
-    );
+    const { error: reconcileError } = await this.client.rpc("reconcile_calls");
     if (reconcileError)
       return { ok: false, error: mapServiceError(reconcileError) };
     const { data, error } = await this.client
