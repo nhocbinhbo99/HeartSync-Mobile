@@ -2,7 +2,7 @@
 -- This file is prepared but has not been executed in this workspace (Docker daemon/CLI unavailable).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(14);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data)
 values
@@ -41,4 +41,7 @@ select lives_ok($$select public.start_call('10000000-0000-0000-0000-000000000001
 select throws_ok($$select public.start_call('10000000-0000-0000-0000-000000000001','audio')$$,'23505','participant_busy','second call cannot start');
 select lives_ok($$select public.end_call(id) from public.calls$$,'caller cancels');
 select lives_ok($$select public.end_call(id) from public.calls$$,'end is idempotent');
+select lives_ok($$select public.start_call('10000000-0000-0000-0000-000000000001','video')$$,'participant starts video after audio ends');
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+select throws_ok($$select public.start_call('10000000-0000-0000-0000-000000000001','video')$$,'42501','active_match_required','nonparticipant cannot start video');
 select * from finish();rollback;

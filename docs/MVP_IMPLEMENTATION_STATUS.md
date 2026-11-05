@@ -7,9 +7,9 @@ Updated: 2026-10-30
 - Auth distinguishes an unconfirmed email from invalid credentials.
 - Profile edit, private DOB/location consent, private photo upload UI (maximum six), preferences and saved profiles now use repository boundaries.
 - Discovery, server-confirmed swipe/match, match list, realtime chat shell, incoming audio-call state and an audio-only call UI replace the original placeholders.
-- VideoCall is explicitly excluded from this MVP. It must not be represented as working.
+- UC17 video call has a repository implementation on `feature/video-call`: Chat entry, incoming routing, two video surfaces, camera/microphone controls and a proposed forward migration. Cloud deployment and two-device media acceptance are pending; it must not be represented as verified.
 - `20261030150000_mvp_contracts.sql` is a forward-only migration containing the six-photo limit, public discovery/profile/match contracts, call accept/reject/end RPCs and Realtime publication for only `messages` and `calls`.
-- `livekit-token` now accepts a call id and only signs an audio room grant for an accepted call belonging to the signed-in participant.
+- The proposed `livekit-token` update issues a microphone-only grant for audio and camera plus microphone grant for video, only for an accepted call of the same type belonging to an active Match participant.
 
 ## Not yet applied or verified on cloud
 
@@ -25,7 +25,7 @@ Updated: 2026-10-30
 |---|---|
 | Công | Cloud migration review/apply, A/B/C setup, profile/privacy checks, LiveKit/EAS secrets |
 | Minh | Discovery filter/card/swipe/match device evidence after migration apply |
-| Hảo | Chat Realtime and audio-call integration evidence after migration/LiveKit deployment |
+| Hảo | Chat Realtime and audio/video-call integration evidence after migration/LiveKit deployment |
 
 ## Local evidence
 

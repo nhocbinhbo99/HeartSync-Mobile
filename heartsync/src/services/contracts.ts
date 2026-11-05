@@ -118,6 +118,7 @@ export type CallMediaEvent =
   | { type: "connecting" }
   | { type: "connected" }
   | { type: "disconnected" }
+  | { type: "videoTracksChanged"; local: boolean; remote: boolean }
   | { type: "failed"; reason: string };
 
 export interface CallGateway {
@@ -131,6 +132,9 @@ export interface CallGateway {
     onMediaEvent: (event: CallMediaEvent) => void,
   ): Promise<Result<void>>;
   setMuted(muted: boolean): Promise<Result<void>>;
+  setCameraEnabled(enabled: boolean): Promise<Result<void>>;
+  switchCamera(): Promise<Result<void>>;
+  getVideoTracks(): { local: unknown | null; remote: unknown | null; mirrorLocal: boolean };
   disconnect(): Promise<Result<void>>;
   getSession(): CallSession | null;
 }
@@ -139,6 +143,7 @@ export interface CallRepository {
   loadCall(callId: string): Promise<Result<IncomingCall>>;
   listActive(): Promise<Result<IncomingCall[]>>;
   startAudioCall(matchId: string): Promise<Result<IncomingCall>>;
+  startVideoCall(matchId: string): Promise<Result<IncomingCall>>;
   acceptCall(callId: string): Promise<Result<IncomingCall>>;
   rejectCall(callId: string): Promise<Result<void>>;
   endCall(callId: string): Promise<Result<void>>;

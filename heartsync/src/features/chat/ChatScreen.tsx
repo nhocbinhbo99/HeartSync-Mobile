@@ -63,7 +63,9 @@ function Conversation({
   const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState<string | null>(null);
   const loadingOlder = useRef(false);
-  const [enabled, setEnabled] = useState(true);
+  const [enabled, setEnabled] = useState(false);
+  const [startingCall, setStartingCall] = useState(false);
+  const callStarting = useRef(false);
   const visible = useRef<string[]>([]);
   const merge = useCallback((items: ChatMessage[]) => {
     if (!alive.current) return;
@@ -208,6 +210,26 @@ function Conversation({
     setText("");
     void send(message);
   };
+  const startCall = async (type: "audio" | "video") => {
+    if (!services || !matchId || !enabled || callStarting.current) return;
+    callStarting.current = true;
+    setStartingCall(true);
+    try {
+      const result = type === "video"
+        ? await services.calls.startVideoCall(matchId)
+        : await services.calls.startAudioCall(matchId);
+      if (!alive.current) return;
+      if (result.ok) navigation.navigate(type === "video" ? "VideoCall" : "AudioCall", {
+        matchId, callId: result.data.id,
+      });
+      else setError(result.error.message);
+    } catch {
+      if (alive.current) setError("Không thể bắt đầu cuộc gọi. Hãy thử lại.");
+    } finally {
+      callStarting.current = false;
+      if (alive.current) setStartingCall(false);
+    }
+  };
   const older = async () => {
     if (!services || !matchId || !cursor || loadingOlder.current) return;
     loadingOlder.current = true;
@@ -243,19 +265,14 @@ function Conversation({
       <AppButton
         label="Gọi thoại"
         variant="secondary"
-        disabled={!enabled}
-        onPress={() => {
-          void services.calls
-            .startAudioCall(matchId)
-            .then((r) =>
-              r.ok
-                ? navigation.navigate("AudioCall", {
-                    matchId,
-                    callId: r.data.id,
-                  })
-                : setError(r.error.message),
-            );
-        }}
+        disabled={!enabled || startingCall}
+        onPress={() => void startCall("audio")}
+      />
+      <AppButton
+        label="Gọi video"
+        variant="secondary"
+        disabled={!enabled || startingCall}
+        onPress={() => void startCall("video")}
       />
       {error ? (
         <Text accessibilityLiveRegion="polite" style={styles.error}>

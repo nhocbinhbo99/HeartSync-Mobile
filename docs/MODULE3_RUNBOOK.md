@@ -63,3 +63,11 @@ Edge Function: npx deno check supabase/functions/livekit-token/index.ts supabase
 ## Giới hạn bằng chứng hiện tại
 
 Chưa triển khai cloud, chưa chạy pgTAP trên Supabase thật và chưa test hai thiết bị/audio. Mã có polling 5 giây để khôi phục sự kiện bị lỡ và phát hiện quyền thay đổi; chưa nghiệm thu hiệu năng pin/mạng hoặc giao diện trên thiết bị. Không đánh dấu Module 3 nghiệm thu hoàn tất trước khi các bước trên qua.
+
+## UC17 — video call (nhánh `feature/video-call`)
+
+- **Code:** Chat có nút gọi video; incoming overlay và route phân biệt audio/video. Gateway cấp trạng thái camera local/remote, mute, tắt/bật/đổi camera và giải phóng media khi rời màn. Màn video có remote view và local preview. Đây là bằng chứng mã nguồn, chưa phải bằng chứng chạy hai máy.
+- **Database:** review và chạy migration forward `20261105120000_video_call.sql` trên local trước; chạy `module3_security.sql` (14 assertion), rồi mới áp dụng trên đúng dự án development. Migration cũ giữ nguyên. Công review SQL/RLS/Edge Function trước khi merge.
+- **Edge:** deploy lại `livekit-token` sau migration; token audio chỉ có microphone, video có microphone/camera; cả hai cần call accepted, type khớp và Match active. Giữ `verify_jwt = true` và secrets ở backend. Worker cleanup/cron và token revocation vẫn bắt buộc.
+- **Android:** dùng Development Build có plugin WebRTC và quyền CAMERA/RECORD_AUDIO. Kiểm thử A/B trên hai máy: nhận lời mời ngoài Chat, accept/decline, video hai chiều, local preview, đổi/tắt/bật camera, mute micro, end, timeout, mất mạng, unmatch/block, từ chối quyền. Kiểm tra camera/micro tắt sau khi thoát. C không được gọi hoặc lấy token.
+- **Trạng thái:** chưa triển khai cloud, chưa có bằng chứng hai máy; không đánh dấu UC17 hoàn tất cho tới khi các bước trên qua. CLI Supabase trong `heartsync/package.json` đã pin; xem `supabase migration --help` trước thao tác cloud, tránh dùng CLI global v3 với quy trình v2.

@@ -16,6 +16,10 @@ describe('LiveKit join grant parser', () => {
     expect(parseCallJoinGrant(validGrant, now)).toEqual({ ok: true, data: validGrant });
   });
 
+  it('accepts a video grant with the same server-issued shape', () => {
+    expect(parseCallJoinGrant({ ...validGrant, callType: 'video' }, now)).toMatchObject({ ok: true, data: { callType: 'video' } });
+  });
+
   it.each([
     { ...validGrant, serverUrl: 'http://insecure.test' },
     { ...validGrant, accessToken: 'short' },

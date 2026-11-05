@@ -36,7 +36,7 @@ Deno.serve(async (request: Request) => {
   } catch {
     return respond(400, { error: "INVALID_REQUEST" });
   }
-  if (typeof body.callId !== "string" || body.callType !== "audio") {
+  if (typeof body.callId !== "string" || (body.callType !== "audio" && body.callType !== "video")) {
     return respond(400, { error: "INVALID_REQUEST" });
   }
 
@@ -66,8 +66,9 @@ Deno.serve(async (request: Request) => {
   if (
     callError ||
     !call ||
-    call.type !== "audio" ||
+    call.type !== body.callType ||
     match?.status !== "active" ||
+    ![match?.user_low_id, match?.user_high_id].includes(authData.user.id) ||
     (call.caller_id !== authData.user.id && call.callee_id !== authData.user.id)
   )
     return respond(403, { error: "ACTIVE_MATCH_REQUIRED" });
@@ -84,7 +85,9 @@ Deno.serve(async (request: Request) => {
     canPublish: true,
     canSubscribe: true,
     canPublishData: false,
-    canPublishSources: [TrackSource.MICROPHONE],
+    canPublishSources: body.callType === "video"
+      ? [TrackSource.MICROPHONE, TrackSource.CAMERA]
+      : [TrackSource.MICROPHONE],
   });
   const accessToken = await grant.toJwt();
   return respond(200, {
