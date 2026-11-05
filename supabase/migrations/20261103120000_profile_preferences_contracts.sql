@@ -292,7 +292,7 @@ begin
     raise exception using errcode = '42501', message = 'photo_access_denied';
   end if;
 
-  set constraints profile_photos_profile_order_unique deferred;
+  set constraints all deferred;
   update public.profile_photos set is_primary = false where profile_id = v_user_id;
   update public.profile_photos photo
   set sort_order = ordering.position - 1
