@@ -29,19 +29,19 @@ function initialFor(name: string) {
 
 function connectedAt(createdAt: string) {
   const timestamp = new Date(createdAt).getTime();
-  if (Number.isNaN(timestamp)) return '-…+˙ kﬂ¶+t nﬂ+Êi';
+  if (Number.isNaN(timestamp)) return 'ƒê√£ k·∫øt n·ªëi';
   const elapsedHours = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60));
-  if (elapsedHours < 1) return 'Vﬂ+Ωa kﬂ¶+t nﬂ+Êi';
-  if (elapsedHours < 24) return `Kﬂ¶+t nﬂ+Êi ${elapsedHours} giﬂ+• tr¶¶ﬂ+¢c`;
+  if (elapsedHours < 1) return 'V·ª´a k·∫øt n·ªëi';
+  if (elapsedHours < 24) return `K·∫øt n·ªëi ${elapsedHours} gi·ªù tr∆∞·ªõc`;
   const elapsedDays = Math.floor(elapsedHours / 24);
-  if (elapsedDays === 1) return 'Kﬂ¶+t nﬂ+Êi h+¶m qua';
-  return `Kﬂ¶+t nﬂ+Êi ${elapsedDays} ng+·y tr¶¶ﬂ+¢c`;
+  if (elapsedDays === 1) return 'K·∫øt n·ªëi h√¥m qua';
+  return `K·∫øt n·ªëi ${elapsedDays} ng√†y tr∆∞·ªõc`;
 }
 
 function MatchAvatar({ profile, photoUrl, size = 64 }: { profile: ProfilePublic; photoUrl?: string; size?: number }) {
   return <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
     {photoUrl
-      ? <Image source={{ uri: photoUrl }} accessibilityLabel={`ﬂ¶Ûnh hﬂ+Ù s¶Ì cﬂ+∫a ${profile.displayName}`} style={styles.avatarImage} />
+      ? <Image source={{ uri: photoUrl }} accessibilityLabel={`·∫¢nh h·ªì s∆° c·ªßa ${profile.displayName}`} style={styles.avatarImage} />
       : <Text style={[styles.avatarInitial, { fontSize: Math.max(18, size * 0.36) }]}>{initialFor(profile.displayName)}</Text>}
   </View>;
 }
@@ -93,21 +93,21 @@ export function MatchesScreen({ navigation }: Props) {
     return () => subscription.unsubscribe();
   }, [services, user]);
 
-  if (!services) return <Screen><StatePanel title="Ch¶¶a thﬂ+‚ tﬂ¶˙i kﬂ¶+t nﬂ+Êi" description="Cﬂ¶—u h+ºnh dﬂ+Ôch vﬂ+— -Êang thiﬂ¶+u." /></Screen>;
-  if (loading) return <Screen><AsyncStatePanel state="loading" title="-…ang tﬂ¶˙i kﬂ¶+t nﬂ+Êi" description="Chﬂ+Î mutual like do m+Ìy chﬂ+∫ x+Ìc nhﬂ¶°n mﬂ+¢i c+¶ ﬂ+É -Ê+Ûy." /></Screen>;
-  if (error) return <Screen><AsyncStatePanel state="error" title="Kh+¶ng thﬂ+‚ tﬂ¶˙i kﬂ¶+t nﬂ+Êi" description={error} actionLabel="Thﬂ+° lﬂ¶Ìi" onAction={() => void load()} /></Screen>;
-  if (matches.length === 0) return <Screen><StatePanel title="Ch¶¶a c+¶ kﬂ¶+t nﬂ+Êi" description="Khi cﬂ¶˙ hai c+¶ng th+°ch, ng¶¶ﬂ+•i -Ê+¶ sﬂ¶+ xuﬂ¶—t hiﬂ+Án ﬂ+É -Ê+Ûy." /></Screen>;
+  if (!services) return <Screen><StatePanel title="Ch∆∞a th·ªÉ t·∫£i k·∫øt n·ªëi" description="C·∫•u h√¨nh d·ªãch v·ª• ƒëang thi·∫øu." /></Screen>;
+  if (loading) return <Screen><AsyncStatePanel state="loading" title="ƒêang t·∫£i k·∫øt n·ªëi" description="Ch·ªâ mutual like do m√°y ch·ªß x√°c nh·∫≠n m·ªõi c√≥ ·ªü ƒë√¢y." /></Screen>;
+  if (error) return <Screen><AsyncStatePanel state="error" title="Kh√¥ng th·ªÉ t·∫£i k·∫øt n·ªëi" description={error} actionLabel="Th·ª≠ l·∫°i" onAction={() => void load()} /></Screen>;
+  if (matches.length === 0) return <Screen><StatePanel title="Ch∆∞a c√≥ k·∫øt n·ªëi" description="Khi c·∫£ hai c√πng th√≠ch, ng∆∞·ªùi ƒë√≥ s·∫Ω xu·∫•t hi·ªán ·ªü ƒë√¢y." /></Screen>;
 
   const newMatches = matches.filter((match) => match.lastMessagePreview === null);
   const conversations = matches.filter((match) => match.lastMessagePreview !== null);
   const openChat = (matchId: string) => navigation.navigate('Chat', { matchId });
 
   return <Screen contentStyle={styles.screen}>
-    {incoming ? <StatePanel title="Cuﬂ+÷c gﬂ+Ïi thoﬂ¶Ìi -Êﬂ¶+n" description="Ng¶¶ﬂ+•i bﬂ¶Ìn kﬂ¶+t nﬂ+Êi -Êang gﬂ+Ïi. Mic chﬂ+Î -Ê¶¶ﬂ+˙c bﬂ¶°t sau khi bﬂ¶Ìn chﬂ¶—p nhﬂ¶°n." actionLabel="Mﬂ+É cuﬂ+÷c gﬂ+Ïi" onAction={() => navigation.navigate('AudioCall', { matchId: incoming.matchId, callId: incoming.id, incoming: true })} /> : null}
+    {incoming ? <StatePanel title="Cu·ªôc g·ªçi tho·∫°i ƒë·∫øn" description="Ng∆∞·ªùi b·∫°n k·∫øt n·ªëi ƒëang g·ªçi. Mic ch·ªâ ƒë∆∞·ª£c b·∫≠t sau khi b·∫°n ch·∫•p nh·∫≠n." actionLabel="M·ªü cu·ªôc g·ªçi" onAction={() => navigation.navigate('AudioCall', { matchId: incoming.matchId, callId: incoming.id, incoming: true })} /> : null}
     {newMatches.length ? <View style={styles.section}>
-      <View style={styles.sectionHeading}><View><Text accessibilityRole="header" style={styles.sectionTitle}>Kﬂ¶+t nﬂ+Êi mﬂ+¢i</Text><Text style={styles.sectionBody}>Cﬂ¶˙ hai -Ê+˙ c+¶ng b+·y tﬂ+≈ sﬂ+¶ quan t+Ûm.</Text></View><View style={styles.matchCount}><AppIcon name={icons.heart} color={colors.primaryPressed} size={15} /><Text style={styles.matchCountText}>{newMatches.length}</Text></View></View>
+      <View style={styles.sectionHeading}><View><Text accessibilityRole="header" style={styles.sectionTitle}>K·∫øt n·ªëi m·ªõi</Text><Text style={styles.sectionBody}>C·∫£ hai ƒë√£ c√πng b√†y t·ªè s·ª± quan t√¢m.</Text></View><View style={styles.matchCount}><AppIcon name={icons.heart} color={colors.primaryPressed} size={15} /><Text style={styles.matchCountText}>{newMatches.length}</Text></View></View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newMatches}>
-        {newMatches.map((match) => <Pressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mﬂ+É tr+¶ chuyﬂ+Án vﬂ+¢i ${match.otherProfile.displayName}`}
+        {newMatches.map((match) => <Pressable key={match.id} accessibilityRole="button" accessibilityLabel={`M·ªü tr√≤ chuy·ªán v·ªõi ${match.otherProfile.displayName}`}
           onPress={() => openChat(match.id)} style={({ pressed }) => [styles.matchTile, pressed && styles.pressed]}>
           <View><MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={74} /><View style={styles.matchBadge}><AppIcon name={icons.heart} color={colors.onPrimary} size={13} /></View></View>
           <Text numberOfLines={1} style={styles.matchName}>{match.otherProfile.displayName}</Text>
@@ -117,9 +117,9 @@ export function MatchesScreen({ navigation }: Props) {
     </View> : null}
 
     {conversations.length ? <View style={styles.section}>
-      <Text accessibilityRole="header" style={styles.sectionTitle}>Tr+¶ chuyﬂ+Án</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>Tr√≤ chuy·ªán</Text>
       <View style={styles.conversationList}>
-        {conversations.map((match) => <Pressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mﬂ+É tr+¶ chuyﬂ+Án vﬂ+¢i ${match.otherProfile.displayName}`}
+        {conversations.map((match) => <Pressable key={match.id} accessibilityRole="button" accessibilityLabel={`M·ªü tr√≤ chuy·ªán v·ªõi ${match.otherProfile.displayName}`}
           onPress={() => openChat(match.id)} style={({ pressed }) => [styles.conversationRow, pressed && styles.pressed]}>
           <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} />
           <View style={styles.conversationContent}><View style={styles.conversationTopLine}><Text numberOfLines={1} style={styles.conversationName}>{match.otherProfile.displayName}</Text><Text style={styles.conversationTime}>{connectedAt(match.createdAt)}</Text></View><Text numberOfLines={2} style={styles.preview}>{match.lastMessagePreview}</Text></View>
@@ -128,10 +128,10 @@ export function MatchesScreen({ navigation }: Props) {
       </View>
     </View> : null}
 
-    {newMatches.length && conversations.length === 0 ? <Pressable accessibilityRole="button" accessibilityLabel={`Bﬂ¶ªt -Êﬂ¶∫u tr+¶ chuyﬂ+Án vﬂ+¢i ${newMatches[0].otherProfile.displayName}`}
+    {newMatches.length && conversations.length === 0 ? <Pressable accessibilityRole="button" accessibilityLabel={`B·∫Øt ƒë·∫ßu tr√≤ chuy·ªán v·ªõi ${newMatches[0].otherProfile.displayName}`}
       onPress={() => openChat(newMatches[0].id)} style={({ pressed }) => [styles.firstMessageCard, pressed && styles.pressed]}>
       <View style={styles.firstMessageIcon}><AppIcon name={icons.chat} color={colors.primaryPressed} size={22} /></View>
-      <View style={styles.firstMessageContent}><Text style={styles.firstMessageTitle}>Mﬂ+É lﬂ+•i c+¶ng {newMatches[0].otherProfile.displayName}</Text><Text style={styles.firstMessageBody}>Mﬂ+÷t lﬂ+•i ch+·o ngﬂ¶ªn l+· -Êﬂ+∫ -Êﬂ+‚ bﬂ¶ªt -Êﬂ¶∫u.</Text></View>
+      <View style={styles.firstMessageContent}><Text style={styles.firstMessageTitle}>M·ªü l·ªùi c√πng {newMatches[0].otherProfile.displayName}</Text><Text style={styles.firstMessageBody}>M·ªôt l·ªùi ch√†o ng·∫Øn l√† ƒë·ªß ƒë·ªÉ b·∫Øt ƒë·∫ßu.</Text></View>
       <AppIcon name={icons.chat} color={colors.primaryPressed} size={20} />
     </Pressable> : null}
   </Screen>;
