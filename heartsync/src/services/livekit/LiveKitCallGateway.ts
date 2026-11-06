@@ -1,6 +1,6 @@
 import { AudioSession } from "@livekit/react-native";
 import { AppState } from "react-native";
-import { Room, RoomEvent, Track } from "livekit-client";
+import { createLocalVideoTrack, Room, RoomEvent, Track } from "livekit-client";
 import type { CallGateway, CallJoinGrant, CallMediaEvent } from "../contracts";
 import { mapServiceError } from "../errors";
 import type { AppSupabaseClient } from "../supabase";
@@ -18,8 +18,24 @@ export class LiveKitCallGateway implements CallGateway {
   private onMediaEvent: ((event: CallMediaEvent) => void) | null = null;
   private connected = false;
   private callType: CallType | null = null;
+  private previewTrack: Awaited<ReturnType<typeof createLocalVideoTrack>> | null = null;
 
   constructor(private readonly client: AppSupabaseClient) {}
+
+  async startCameraPreview(): Promise<Result<unknown>> {
+    if (this.previewTrack) return { ok: true, data: this.previewTrack };
+    try {
+      this.previewTrack = await createLocalVideoTrack({ facingMode: this.cameraFacing });
+      return { ok: true, data: this.previewTrack };
+    } catch (error) {
+      return { ok: false, error: mapServiceError(error) };
+    }
+  }
+
+  async stopCameraPreview(): Promise<void> {
+    this.previewTrack?.stop();
+    this.previewTrack = null;
+  }
 
   async requestJoinGrant(
     callId: string,
@@ -104,6 +120,7 @@ export class LiveKitCallGateway implements CallGateway {
     onMediaEvent({ type: "connecting" });
 
     try {
+      await this.stopCameraPreview();
       await AudioSession.startAudioSession();
       await room.connect(grant.serverUrl, grant.accessToken);
       if (this.room !== room) {
@@ -212,6 +229,7 @@ export class LiveKitCallGateway implements CallGateway {
     this.connected = false;
     this.callType = null;
     this.cameraFacing = "user";
+    await this.stopCameraPreview();
     await room?.disconnect();
     room?.removeAllListeners();
     await AudioSession.stopAudioSession();

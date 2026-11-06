@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Image, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { useAppServices } from "../../services/AppServicesProvider";
 import type { ProfilePublic } from "../types/domain.types";
 import { colors } from "../theme/tokens";
-export function ConversationProfile({ profileId }: { profileId: string }) {
+export function ConversationProfile({ profileId, presentation = "inline" }: { profileId: string; presentation?: "inline" | "hero" | "callHero" | "callTile" | "avatar" }) {
   const services = useAppServices();
   const [profile, setProfile] = useState<ProfilePublic>();
   const [url, setUrl] = useState("");
@@ -22,26 +22,46 @@ export function ConversationProfile({ profileId }: { profileId: string }) {
       live = false;
     };
   }, [services, profileId]);
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+  const avatarOnly = presentation === "avatar" || presentation === "callTile";
+  const hero = presentation === "hero" || presentation === "callHero";
+  const avatarSize = hero ? 112 : presentation === "callTile" ? 64 : avatarOnly ? 72 : 48;
+  const content = (
+    <View style={{ flexDirection: hero ? "column" : "row", alignItems: "center", gap: hero ? 16 : 12 }}>
       {url ? (
         <Image
           source={{ uri: url }}
-          style={{ width: 48, height: 48, borderRadius: 24 }}
+          style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }}
         />
       ) : (
         <View
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
+            width: avatarSize,
+            height: avatarSize,
+            borderRadius: avatarSize / 2,
             backgroundColor: colors.primarySoft,
           }}
         />
       )}
-      <Text style={{ fontSize: 20, color: colors.ink }}>
+      {!avatarOnly ? <Text style={{ fontSize: hero ? 24 : 20, fontWeight: hero ? "700" : "400", color: colors.ink }}>
         {profile?.displayName ?? "Người bạn kết nối"}
-      </Text>
+      </Text> : null}
     </View>
   );
+  if (presentation === "callHero" || presentation === "callTile")
+    return (
+      <View style={styles.callHero}>
+        {url ? <Image source={{ uri: url }} blurRadius={28} resizeMode="cover" style={styles.callHeroBackdrop} /> : <View style={styles.callHeroFallback} />}
+        <View style={styles.callHeroScrim} />
+        <View style={styles.callHeroContent}>{content}</View>
+      </View>
+    );
+  return content;
 }
+
+const styles = StyleSheet.create({
+  callHero: { flex: 1, alignSelf: "stretch", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  callHeroBackdrop: { ...StyleSheet.absoluteFill, opacity: 0.66, transform: [{ scale: 1.12 }] },
+  callHeroFallback: { ...StyleSheet.absoluteFill, backgroundColor: colors.primarySoft },
+  callHeroScrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(16,42,51,0.48)" },
+  callHeroContent: { alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+});

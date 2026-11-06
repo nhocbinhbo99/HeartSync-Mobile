@@ -122,6 +122,9 @@ export type CallMediaEvent =
   | { type: "failed"; reason: string };
 
 export interface CallGateway {
+  /** Opens a local-only camera preview. It is never published until a call is accepted. */
+  startCameraPreview(): Promise<Result<unknown>>;
+  stopCameraPreview(): Promise<void>;
   /** Requests a short-lived token from a trusted server/Edge Function; never signs locally. */
   requestJoinGrant(
     callId: string,
