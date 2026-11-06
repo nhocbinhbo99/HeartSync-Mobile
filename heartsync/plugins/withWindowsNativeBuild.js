@@ -4,8 +4,9 @@ const start = '// @generated begin heartsync-windows-native';
 const end = '// @generated end heartsync-windows-native';
 const gradle = `
 ${start}
-// Windows: hash long C++ object paths and retain C++ driver mode even when
-// CMake invokes clang++.exe through a Windows 8.3 alias such as CLANG_~1.EXE.
+// Windows: retain C++ driver mode even when CMake invokes clang++.exe through
+// an 8.3 alias, and place app CMake artifacts beside the checkout rather than
+// under android/app. This keeps ARM64 object paths under Windows' 260 limit.
 if (System.getProperty('os.name').toLowerCase().contains('windows')) {
     subprojects { nativeProject ->
         ['com.android.application', 'com.android.library'].each { pluginId ->
@@ -14,6 +15,10 @@ if (System.getProperty('os.name').toLowerCase().contains('windows')) {
                     def cmake = androidDsl.defaultConfig.externalNativeBuild.cmake
                     cmake.arguments.removeAll { it.startsWith('-DCMAKE_OBJECT_PATH_MAX=') || it.startsWith('-DCMAKE_CXX_FLAGS=') }
                     cmake.arguments.addAll(['-DCMAKE_OBJECT_PATH_MAX=240', '-DCMAKE_CXX_FLAGS=--driver-mode=g++'])
+                    if (pluginId == 'com.android.application') {
+                        def workspaceParent = nativeProject.rootProject.projectDir.parentFile.parentFile.parentFile
+                        androidDsl.externalNativeBuild.cmake.buildStagingDirectory = new File(workspaceParent, ".hs/\${nativeProject.rootProject.name}/\${nativeProject.name}")
+                    }
                     nativeProject.logger.lifecycle('[HeartSync] Windows C++ configuration: ' + nativeProject.path)
                 }
             }

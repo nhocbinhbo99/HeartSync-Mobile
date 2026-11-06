@@ -28,6 +28,7 @@ Nếu nhóm chia sẻ APK: build/cài APK mới từ cùng commit trước khi m
 heartsync/plugins/withWindowsNativeBuild.js được đăng ký trong app.json và sinh cấu hình Gradle khi prebuild:
 - CMAKE_OBJECT_PATH_MAX=240 để CMake hash những đường dẫn object C++ quá dài.
 - --driver-mode=g++ để compiler giữ chế độ C++ khi Windows gọi clang++.exe qua tên 8.3.
+- Với module app, output CMake được đặt trong thư mục ngắn `.hs/` cạnh checkout; nhờ vậy đường dẫn object cho ARM64 không vượt giới hạn Windows. Thư mục này là cache sinh ra khi build, không cần commit.
 - Đăng ký qua finalizeDsl trước khi Expo root plugin đánh giá subprojects.
 - Chỉ áp dụng trên Windows. Linux/EAS/macOS không nhận các cờ này.
 
@@ -49,4 +50,4 @@ Nếu máy báo INSTALL_FAILED_UPDATE_INCOMPATIBLE, APK hiện tại được k�
 
 ## Bằng chứng trên máy hiện tại
 
-Build x86_64 đã thành công với SDK gốc ở đường dẫn có khoảng trắng, không đặt ndk.dir và không dùng Gradle init script riêng. TypeScript/ESLint qua; Jest 20 suites / 77 tests qua. Chưa xác nhận build arm64/điện thoại thật hay EAS trong lần sửa này. Không suy rộng kết quả một máy thành mọi cấu hình Android.
+Build debug đã thành công cho cả `x86_64` (giả lập) và `arm64-v8a` (điện thoại Android), với SDK gốc ở đường dẫn có khoảng trắng, không đặt `ndk.dir` và không dùng Gradle init script riêng. `expo-doctor` 20/20, TypeScript, ESLint, static migration checks và Jest 24 suites / 90 tests đều qua. Audio hai chiều trên hai điện thoại vẫn cần backend Supabase/LiveKit development được deploy và nghiệm thu theo Module 3 Runbook.
