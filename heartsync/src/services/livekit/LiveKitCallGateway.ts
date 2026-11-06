@@ -1,9 +1,10 @@
 import { AudioSession } from "@livekit/react-native";
-import { Room, RoomEvent } from "livekit-client";
+import { Room, RoomEvent, Track } from "livekit-client";
 import type { CallGateway, CallJoinGrant, CallMediaEvent } from "../contracts";
 import { mapServiceError } from "../errors";
 import type { AppSupabaseClient } from "../supabase";
 import { parseCallJoinGrant } from "./grant";
+import { mapLiveKitFunctionError } from "./functionError";
 import type {
   CallSession,
   CallType,
@@ -13,6 +14,8 @@ import type {
 export class LiveKitCallGateway implements CallGateway {
   private room: Room | null = null;
   private session: CallSession | null = null;
+  private audioSessionStarted = false;
+  private disconnecting: Promise<Result<void>> | null = null;
 
   constructor(private readonly client: AppSupabaseClient) {}
 
@@ -26,7 +29,8 @@ export class LiveKitCallGateway implements CallGateway {
         body: { callId, callType },
       },
     );
-    if (error) return { ok: false, error: mapServiceError(error) };
+    if (error)
+      return { ok: false, error: await mapLiveKitFunctionError(error) };
     const grant = parseCallJoinGrant(data);
     if (grant.ok) {
       const { data: call } = await this.client
@@ -67,23 +71,43 @@ export class LiveKitCallGateway implements CallGateway {
     }
 
     const room = new Room({ adaptiveStream: true, dynacast: true });
+    let hasRemoteAudio = false;
     this.room = room;
-    room.on(RoomEvent.TrackSubscribed, () => {
+    room.on(RoomEvent.TrackSubscribed, (track) => {
       if (this.room !== room) return;
+      if (track.kind !== Track.Kind.Audio) return;
+      hasRemoteAudio = true;
       if (this.session) this.session.status = "connected";
       onMediaEvent({ type: "connected" });
     });
-    room.on(RoomEvent.Disconnected, () =>
-      onMediaEvent({ type: "disconnected" }),
-    );
+    room.on(RoomEvent.TrackUnsubscribed, (track) => {
+      if (this.room !== room) return;
+      if (track.kind !== Track.Kind.Audio) return;
+      hasRemoteAudio = false;
+      onMediaEvent({ type: "connecting" });
+    });
+    room.on(RoomEvent.Reconnecting, () => {
+      if (this.room === room) onMediaEvent({ type: "connecting" });
+    });
+    room.on(RoomEvent.Reconnected, () => {
+      if (this.room === room && hasRemoteAudio)
+        onMediaEvent({ type: "connected" });
+    });
+    room.on(RoomEvent.Disconnected, () => {
+      if (this.room !== room) return;
+      this.room = null;
+      void this.stopAudioSession();
+      onMediaEvent({ type: "disconnected" });
+    });
     onMediaEvent({ type: "connecting" });
 
     try {
       await AudioSession.startAudioSession();
+      this.audioSessionStarted = true;
       await room.connect(grant.serverUrl, grant.accessToken);
       if (this.room !== room) {
         await room.disconnect();
-        await AudioSession.stopAudioSession();
+        await this.stopAudioSession();
         return {
           ok: false,
           error: {
@@ -96,15 +120,15 @@ export class LiveKitCallGateway implements CallGateway {
       await room.localParticipant.setMicrophoneEnabled(true);
       if (this.room !== room) {
         await room.disconnect();
-        await AudioSession.stopAudioSession();
+        await this.stopAudioSession();
       }
       if (grant.callType === "video")
         await room.localParticipant.setCameraEnabled(true);
       return { ok: true, data: undefined };
     } catch (error) {
-      room.disconnect();
-      this.room = null;
-      await AudioSession.stopAudioSession();
+      if (this.room === room) this.room = null;
+      await room.disconnect();
+      await this.stopAudioSession();
       onMediaEvent({ type: "failed", reason: "media_connection_failed" });
       return { ok: false, error: mapServiceError(error) };
     }
@@ -128,19 +152,41 @@ export class LiveKitCallGateway implements CallGateway {
     }
   }
   async disconnect(): Promise<Result<void>> {
+    if (this.disconnecting) return this.disconnecting;
     if (this.session)
       this.session = {
         ...this.session,
         status: "ended",
         endedAt: new Date().toISOString(),
       };
-    await this.room?.disconnect();
+    const room = this.room;
     this.room = null;
-    await AudioSession.stopAudioSession();
-    return { ok: true, data: undefined };
+    this.disconnecting = (async () => {
+      try {
+        await room?.disconnect();
+      } finally {
+        await this.stopAudioSession();
+      }
+      return { ok: true, data: undefined } as const;
+    })();
+    try {
+      return await this.disconnecting;
+    } finally {
+      this.disconnecting = null;
+    }
   }
 
   getSession(): CallSession | null {
     return this.session;
+  }
+
+  private async stopAudioSession() {
+    if (!this.audioSessionStarted) return;
+    this.audioSessionStarted = false;
+    try {
+      await AudioSession.stopAudioSession();
+    } catch {
+      // Native audio cleanup is best-effort and must remain idempotent.
+    }
   }
 }

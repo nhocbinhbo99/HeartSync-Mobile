@@ -14,7 +14,10 @@ Deno.serve(async (request: Request) => {
 
   const authHeader = request.headers.get("Authorization");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const publishableKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  // Supabase injects this runtime key for every Edge Function. It is the
+  // server-side equivalent of the mobile publishable key, without duplicating
+  // configuration in another secret.
+  const publishableKey = Deno.env.get("SUPABASE_ANON_KEY");
   const liveKitUrl = Deno.env.get("LIVEKIT_URL");
   const liveKitApiKey = Deno.env.get("LIVEKIT_API_KEY");
   const liveKitApiSecret = Deno.env.get("LIVEKIT_API_SECRET");

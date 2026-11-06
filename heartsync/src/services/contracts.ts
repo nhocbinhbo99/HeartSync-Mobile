@@ -140,6 +140,7 @@ export interface CallRepository {
   listActive(): Promise<Result<IncomingCall[]>>;
   startAudioCall(matchId: string): Promise<Result<IncomingCall>>;
   acceptCall(callId: string): Promise<Result<IncomingCall>>;
+  heartbeatCall(callId: string): Promise<Result<void>>;
   rejectCall(callId: string): Promise<Result<void>>;
   endCall(callId: string): Promise<Result<void>>;
   subscribeIncoming(

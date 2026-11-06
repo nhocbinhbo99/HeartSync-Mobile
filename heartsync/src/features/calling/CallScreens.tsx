@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PermissionsAndroid, Platform, StyleSheet, Text } from "react-native";
+import {
+  AppState,
+  PermissionsAndroid,
+  Platform,
+  StyleSheet,
+  Text,
+} from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { useAuth } from "../auth/AuthProvider";
@@ -44,30 +50,28 @@ function AudioCallSession({
   const [muted, setMuted] = useState(false);
   const cancelled = useRef(false);
   const connecting = useRef(false);
+  const terminalFailure = useRef(false);
   const [seconds, setSeconds] = useState(0);
   const gateway = useRef<CallGateway | null>(null);
   const connect = useCallback(async () => {
     if (!services || gateway.current || connecting.current || cancelled.current)
       return;
     connecting.current = true;
-    if (Platform.OS === "android") {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-      );
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-        connecting.current = false;
-        cancelled.current = true;
-        setError("Cần quyền micro để thực hiện cuộc gọi thoại.");
-        setStatus("failed");
-        void services.calls.endCall(callId);
-        return;
-      }
-    }
-    if (cancelled.current) {
-      connecting.current = false;
-      return;
-    }
     try {
+      if (Platform.OS === "android") {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          terminalFailure.current = true;
+          cancelled.current = true;
+          setError("Cần quyền micro để thực hiện cuộc gọi thoại.");
+          setStatus("failed");
+          void services.calls.endCall(callId);
+          return;
+        }
+      }
+      if (cancelled.current) return;
       const instance = services.createCallGateway();
       gateway.current = instance;
       const grant = await instance.requestJoinGrant(callId, "audio");
@@ -76,6 +80,7 @@ function AudioCallSession({
         return;
       }
       if (!grant.ok) {
+        terminalFailure.current = true;
         setError(grant.error.message);
         cancelled.current = true;
         setStatus("failed");
@@ -90,6 +95,7 @@ function AudioCallSession({
         if (event.type === "connected") setStatus("connected");
         if (cancelled.current) return;
         if (event.type === "disconnected") {
+          if (terminalFailure.current) return;
           cancelled.current = true;
           setStatus("ended");
           void services.calls.endCall(callId);
@@ -97,11 +103,13 @@ function AudioCallSession({
         }
         if (cancelled.current) return;
         if (event.type === "failed") {
+          terminalFailure.current = true;
           setStatus("failed");
           setError("Kết nối audio không thành công.");
         }
       });
       if (!result.ok) {
+        terminalFailure.current = true;
         cancelled.current = true;
         void services.calls.endCall(callId);
         setError(result.error.message);
@@ -109,6 +117,7 @@ function AudioCallSession({
         gateway.current = null;
       }
     } catch {
+      terminalFailure.current = true;
       cancelled.current = true;
       void services.calls.endCall(callId);
       setError(
@@ -126,6 +135,11 @@ function AudioCallSession({
     const subscription = services.calls.subscribeIncoming(
       (call) => {
         if (call.id !== callId) return;
+        if (
+          terminalFailure.current &&
+          ["ended", "rejected", "failed", "missed"].includes(call.status)
+        )
+          return;
         if (call.status !== "accepted") setStatus(call.status);
         if (call.status === "accepted") void connect();
         if (["ended", "rejected", "failed", "missed"].includes(call.status)) {
@@ -144,7 +158,11 @@ function AudioCallSession({
             ? result.data.calleeId
             : result.data.callerId,
         );
-        if (result.data.status !== "accepted") setStatus(result.data.status);
+        if (
+          !terminalFailure.current &&
+          result.data.status !== "accepted"
+        )
+          setStatus(result.data.status);
         if (result.data.status === "accepted") void connect();
         if (
           ["ended", "rejected", "failed", "missed"].includes(result.data.status)
@@ -169,6 +187,31 @@ function AudioCallSession({
       void services.calls.endCall(callId);
     };
   }, [callId, connect, services, user?.id]);
+  useEffect(() => {
+    if (
+      !services ||
+      terminalFailure.current ||
+      !["accepted", "connecting", "connected"].includes(status)
+    )
+      return;
+    let live = true;
+    const heartbeat = async () => {
+      if (!live || AppState.currentState !== "active") return;
+      const result = await services.calls.heartbeatCall(callId);
+      if (!live || result.ok || result.error.code === "network") return;
+      setError(result.error.message);
+    };
+    void heartbeat();
+    const timer = setInterval(() => void heartbeat(), 15_000);
+    const appState = AppState.addEventListener("change", (next) => {
+      if (next === "active") void heartbeat();
+    });
+    return () => {
+      live = false;
+      clearInterval(timer);
+      appState.remove();
+    };
+  }, [callId, services, status]);
   useEffect(() => {
     if (status !== "connected") return;
     const timer = setInterval(() => setSeconds((n) => n + 1), 1000);

@@ -1,4 +1,4 @@
-import { SupabaseChatRepository } from '../supabaseFeatureRepositories';
+import { SupabaseCallRepository, SupabaseChatRepository } from '../supabaseFeatureRepositories';
 import type { AppSupabaseClient } from '../supabase';
 const row={id:'server',match_id:'match',sender_id:'user',client_message_id:'client',content:'hello',sent_at:'2026-11-04T00:00:00Z',read_at:null};
 it('sends through the idempotent RPC with the unchanged client UUID',async()=>{
@@ -15,4 +15,10 @@ it('rejects an unsafe pagination cursor without issuing a query',async()=>{
  const chain={select:jest.fn().mockReturnThis(),eq:jest.fn().mockReturnThis(),order:jest.fn().mockReturnThis(),limit:jest.fn().mockReturnThis(),or:jest.fn()};
  const repo=new SupabaseChatRepository({from:()=>chain} as unknown as AppSupabaseClient);
  expect((await repo.listMessages('match','malformed|filter,injection')).ok).toBe(false);expect(chain.or).not.toHaveBeenCalled();
+});
+it('keeps the current participant call lease alive through the protected RPC',async()=>{
+ const rpc=jest.fn().mockResolvedValue({data:'call',error:null});
+ const repo=new SupabaseCallRepository({rpc} as unknown as AppSupabaseClient);
+ expect((await repo.heartbeatCall('call')).ok).toBe(true);
+ expect(rpc).toHaveBeenCalledWith('call_heartbeat',{p_call_id:'call'});
 });

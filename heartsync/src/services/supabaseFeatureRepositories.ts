@@ -323,6 +323,14 @@ export class SupabaseCallRepository implements CallRepository {
       return { ok: false, error: mapServiceError(error ?? { code: "P0001" }) };
     return this.loadCall(data);
   }
+  async heartbeatCall(callId: string): Promise<Result<void>> {
+    const { error } = await this.client.rpc("call_heartbeat", {
+      p_call_id: callId,
+    });
+    return error
+      ? { ok: false, error: mapServiceError(error) }
+      : { ok: true, data: undefined };
+  }
   async rejectCall(callId: string): Promise<Result<void>> {
     const { error } = await this.client.rpc("reject_call", {
       p_call_id: callId,
