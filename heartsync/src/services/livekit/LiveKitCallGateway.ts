@@ -1,9 +1,11 @@
 import { AudioSession } from "@livekit/react-native";
-import { Room, RoomEvent } from "livekit-client";
+import { AppState } from "react-native";
+import { createLocalVideoTrack, Room, RoomEvent, Track } from "livekit-client";
 import type { CallGateway, CallJoinGrant, CallMediaEvent } from "../contracts";
 import { mapServiceError } from "../errors";
 import type { AppSupabaseClient } from "../supabase";
 import { parseCallJoinGrant } from "./grant";
+import { mapLiveKitFunctionError } from "./functionError";
 import type {
   CallSession,
   CallType,
@@ -13,8 +15,30 @@ import type {
 export class LiveKitCallGateway implements CallGateway {
   private room: Room | null = null;
   private session: CallSession | null = null;
+  private audioSessionStarted = false;
+  private disconnecting: Promise<Result<void>> | null = null;
+  private cameraFacing: "user" | "environment" = "user";
+  private onMediaEvent: ((event: CallMediaEvent) => void) | null = null;
+  private connected = false;
+  private callType: CallType | null = null;
+  private previewTrack: Awaited<ReturnType<typeof createLocalVideoTrack>> | null = null;
 
   constructor(private readonly client: AppSupabaseClient) {}
+
+  async startCameraPreview(): Promise<Result<unknown>> {
+    if (this.previewTrack) return { ok: true, data: this.previewTrack };
+    try {
+      this.previewTrack = await createLocalVideoTrack({ facingMode: this.cameraFacing });
+      return { ok: true, data: this.previewTrack };
+    } catch (error) {
+      return { ok: false, error: mapServiceError(error) };
+    }
+  }
+
+  async stopCameraPreview(): Promise<void> {
+    this.previewTrack?.stop();
+    this.previewTrack = null;
+  }
 
   async requestJoinGrant(
     callId: string,
@@ -26,9 +50,13 @@ export class LiveKitCallGateway implements CallGateway {
         body: { callId, callType },
       },
     );
-    if (error) return { ok: false, error: mapServiceError(error) };
+    if (error)
+      return { ok: false, error: await mapLiveKitFunctionError(error) };
     const grant = parseCallJoinGrant(data);
     if (grant.ok) {
+      if (grant.data.callType !== callType || grant.data.roomName !== `call:${callId}`) {
+        return { ok: false, error: { code: "forbidden", message: "Quyền tham gia cuộc gọi không khớp.", retryable: false } };
+      }
       const { data: call } = await this.client
         .from("calls")
         .select("*")
@@ -67,23 +95,51 @@ export class LiveKitCallGateway implements CallGateway {
     }
 
     const room = new Room({ adaptiveStream: true, dynacast: true });
-    this.room = room;
+        this.room = room;
+    this.callType = grant.callType;
+    this.onMediaEvent = onMediaEvent;
+    this.connected = false;
+    const tracksChanged = () => {
+      if (this.room !== room) return;
+      const tracks = this.getVideoTracks();
+      onMediaEvent({ type: "videoTracksChanged", local: !!tracks.local, remote: !!tracks.remote });
+    };
     room.on(RoomEvent.TrackSubscribed, () => {
       if (this.room !== room) return;
-      if (this.session) this.session.status = "connected";
-      onMediaEvent({ type: "connected" });
+      if (!this.connected) {
+        this.connected = true;
+        if (this.session) this.session.status = "connected";
+        onMediaEvent({ type: "connected" });
+      }
+      tracksChanged();
     });
-    room.on(RoomEvent.Disconnected, () =>
-      onMediaEvent({ type: "disconnected" }),
-    );
+    room.on(RoomEvent.TrackUnsubscribed, tracksChanged);
+    room.on(RoomEvent.TrackMuted, tracksChanged);
+    room.on(RoomEvent.TrackUnmuted, tracksChanged);
+    room.on(RoomEvent.LocalTrackPublished, tracksChanged);
+    room.on(RoomEvent.LocalTrackUnpublished, tracksChanged);
+    room.on(RoomEvent.Reconnecting, () => {
+      if (this.room === room) onMediaEvent({ type: "connecting" });
+    });
+    room.on(RoomEvent.Reconnected, () => {
+      if (this.room === room) onMediaEvent({ type: "connected" });
+    });
+    room.on(RoomEvent.Disconnected, () => {
+      if (this.room !== room) return;
+      this.room = null;
+      void this.stopAudioSession();
+      onMediaEvent({ type: "disconnected" });
+    });
     onMediaEvent({ type: "connecting" });
 
     try {
+      await this.stopCameraPreview();
       await AudioSession.startAudioSession();
+      this.audioSessionStarted = true;
       await room.connect(grant.serverUrl, grant.accessToken);
       if (this.room !== room) {
         await room.disconnect();
-        await AudioSession.stopAudioSession();
+        await this.stopAudioSession();
         return {
           ok: false,
           error: {
@@ -96,15 +152,26 @@ export class LiveKitCallGateway implements CallGateway {
       await room.localParticipant.setMicrophoneEnabled(true);
       if (this.room !== room) {
         await room.disconnect();
-        await AudioSession.stopAudioSession();
+        await this.stopAudioSession();
+        return { ok: false, error: { code: "conflict", message: "Cuộc gọi đã kết thúc.", retryable: false } };
       }
-      if (grant.callType === "video")
+      if (grant.callType === "video") {
+        if (AppState.currentState !== "active") throw new Error("App is not active for camera capture");
         await room.localParticipant.setCameraEnabled(true);
+        if (AppState.currentState !== "active") await room.localParticipant.setCameraEnabled(false);
+        if (this.room !== room) {
+          await room.disconnect();
+          await AudioSession.stopAudioSession();
+          return { ok: false, error: { code: "conflict", message: "Cuộc gọi đã kết thúc.", retryable: false } };
+        }
+        tracksChanged();
+      }
       return { ok: true, data: undefined };
     } catch (error) {
-      room.disconnect();
       this.room = null;
-      await AudioSession.stopAudioSession();
+      this.callType = null;
+      await room.disconnect();
+      await this.stopAudioSession();
       onMediaEvent({ type: "failed", reason: "media_connection_failed" });
       return { ok: false, error: mapServiceError(error) };
     }
@@ -127,20 +194,84 @@ export class LiveKitCallGateway implements CallGateway {
       return { ok: false, error: mapServiceError(error) };
     }
   }
+  getVideoTracks(): { local: unknown | null; remote: unknown | null; mirrorLocal: boolean } {
+    if (!this.room) return { local: null, remote: null, mirrorLocal: true };
+    const localPublication = this.room.localParticipant.getTrackPublication(Track.Source.Camera);
+    const local = localPublication?.videoTrack && !localPublication.isMuted
+      ? { participant: this.room.localParticipant, publication: localPublication, source: Track.Source.Camera }
+      : null;
+    const remoteParticipant = [...this.room.remoteParticipants.values()][0];
+    const remotePublication = remoteParticipant?.getTrackPublication(Track.Source.Camera);
+    const remote = remotePublication?.videoTrack && !remotePublication.isMuted
+      ? { participant: remoteParticipant, publication: remotePublication, source: Track.Source.Camera }
+      : null;
+    return { local, remote, mirrorLocal: this.cameraFacing === "user" };
+  }
+  async setCameraEnabled(enabled: boolean): Promise<Result<void>> {
+    if (!this.room || this.callType !== "video")
+      return { ok: false, error: { code: "conflict", message: "Chưa kết nối cuộc gọi video.", retryable: false } };
+    try {
+      await this.room.localParticipant.setCameraEnabled(enabled);
+      const tracks = this.getVideoTracks();
+      this.onMediaEvent?.({ type: "videoTracksChanged", local: !!tracks.local, remote: !!tracks.remote });
+      return { ok: true, data: undefined };
+    } catch (error) { return { ok: false, error: mapServiceError(error) }; }
+  }
+  async switchCamera(): Promise<Result<void>> {
+    const track = this.room?.localParticipant.getTrackPublication(Track.Source.Camera)?.videoTrack;
+    if (!track || this.callType !== "video")
+      return { ok: false, error: { code: "conflict", message: "Hãy bật camera trước.", retryable: false } };
+    try {
+      const next = this.cameraFacing === "user" ? "environment" : "user";
+      await track.restartTrack({ facingMode: next });
+      this.cameraFacing = next;
+      const tracks = this.getVideoTracks();
+      this.onMediaEvent?.({ type: "videoTracksChanged", local: !!tracks.local, remote: !!tracks.remote });
+      return { ok: true, data: undefined };
+    } catch (error) { return { ok: false, error: mapServiceError(error) }; }
+  }
   async disconnect(): Promise<Result<void>> {
+    if (this.disconnecting) return this.disconnecting;
     if (this.session)
       this.session = {
         ...this.session,
         status: "ended",
         endedAt: new Date().toISOString(),
       };
-    await this.room?.disconnect();
+    const room = this.room;
     this.room = null;
-    await AudioSession.stopAudioSession();
-    return { ok: true, data: undefined };
+    this.disconnecting = (async () => {
+      this.onMediaEvent = null;
+      this.connected = false;
+      this.callType = null;
+      this.cameraFacing = "user";
+      try {
+        await this.stopCameraPreview();
+        await room?.disconnect();
+        room?.removeAllListeners();
+      } finally {
+        await this.stopAudioSession();
+      }
+      return { ok: true, data: undefined } as const;
+    })();
+    try {
+      return await this.disconnecting;
+    } finally {
+      this.disconnecting = null;
+    }
   }
 
   getSession(): CallSession | null {
     return this.session;
+  }
+
+  private async stopAudioSession() {
+    if (!this.audioSessionStarted) return;
+    this.audioSessionStarted = false;
+    try {
+      await AudioSession.stopAudioSession();
+    } catch {
+      // Native audio cleanup is best-effort and must remain idempotent.
+    }
   }
 }

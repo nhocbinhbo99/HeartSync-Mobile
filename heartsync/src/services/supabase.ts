@@ -32,6 +32,7 @@ type Module3Database = Omit<Database, "public"> & {
         Args: { p_match_id: string; p_ids: string[] };
         Returns: undefined;
       };
+      call_heartbeat: { Args: { p_call_id: string }; Returns: string };
       reconcile_calls: { Args: Record<string, never>; Returns: undefined };
       chat_summaries: {
         Args: Record<string, never>;

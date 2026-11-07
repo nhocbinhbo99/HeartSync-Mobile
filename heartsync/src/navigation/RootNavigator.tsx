@@ -209,9 +209,10 @@ export function RootNavigator() {
         <IncomingCallOverlay
           onOpen={(call) => {
             if (navigationRef.isReady())
-              navigationRef.navigate("AudioCall", {
+              navigationRef.navigate(call.type === "video" ? "VideoCall" : "AudioCall", {
                 matchId: call.matchId,
                 callId: call.id,
+                incoming: true,
               });
           }}
         />

@@ -6,6 +6,8 @@ $security = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\202610291
 $storage = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194200_profile_photo_storage.sql')
 $profileContracts = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261103120000_profile_preferences_contracts.sql')
 $reorderRepair = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261105080739_fix_reorder_profile_photos_constraint.sql')
+$callLiveness = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261105120000_call_liveness.sql')
+$videoCall = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261107065833_enable_video_calls_with_liveness.sql')
 $rlsTests = Get-Content -Raw -LiteralPath (Join-Path $root 'tests\rls_security.sql')
 
 $tables = @(
@@ -25,7 +27,7 @@ foreach ($table in $tables) {
 if ($security -match 'using\s*\(\s*true\s*\)') { throw 'Unconditional USING (true) policy found.' }
 
 $functionBlocks = [regex]::Matches(
-  "$security`n$profileContracts",
+  "$security`n$profileContracts`n$callLiveness",
   'create or replace function[\s\S]*?\$\$;',
   [Text.RegularExpressions.RegexOptions]::IgnoreCase
 )
@@ -42,6 +44,31 @@ foreach ($rpc in @('record_swipe', 'unmatch', 'block_user', 'start_call')) {
   if ($security -notmatch "grant execute on function public\.$rpc[\s\S]*to authenticated") {
     throw "RPC execute not granted to authenticated: $rpc"
   }
+}
+
+if ($callLiveness -notmatch 'create or replace function public\.call_heartbeat') {
+  throw 'Missing participant call heartbeat RPC.'
+}
+if ($callLiveness -notmatch 'caller_heartbeat_at[\s\S]*callee_heartbeat_at') {
+  throw 'Missing independent caller/callee call leases.'
+}
+if ($callLiveness -notmatch "interval '90 seconds'") {
+  throw 'Missing abandoned accepted-call lease timeout.'
+}
+if ($callLiveness -notmatch "revoke all on function public\.call_heartbeat\(uuid\) from public, anon") {
+  throw 'call_heartbeat must be revoked from public/anon.'
+}
+if ($callLiveness -notmatch "grant execute on function public\.call_heartbeat\(uuid\) to authenticated") {
+  throw 'call_heartbeat must be granted only to authenticated clients.'
+}
+if ($videoCall -notmatch "'audio'::public\.call_type[\s\S]*'video'::public\.call_type") {
+  throw 'Final start_call contract must accept audio and video call types.'
+}
+if ($videoCall -notmatch 'caller_heartbeat_at[\s\S]*interval ''90 seconds''') {
+  throw 'Video call migration must preserve participant heartbeat leases.'
+}
+if ($videoCall -notmatch "revoke execute on function public\.start_call\(uuid, public\.call_type\)[\s\S]*from public, anon") {
+  throw 'Final start_call contract must remain revoked from public/anon.'
 }
 
 $profileRpcs = @(

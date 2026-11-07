@@ -9,6 +9,8 @@ const symbols = {
   bookmark: { ios: 'bookmark', android: 'bookmark_border', web: 'bookmark_border' },
   bookmarkFilled: { ios: 'bookmark.fill', android: 'bookmark', web: 'bookmark' },
   calendar: { ios: 'calendar', android: 'calendar_month', web: 'calendar_month' },
+  callEnd: { ios: 'phone.down.fill', android: 'call_end', web: 'call_end' },
+  cameraFlip: { ios: 'camera.rotate.fill', android: 'flip_camera_android', web: 'flip_camera_android' },
   check: { ios: 'checkmark', android: 'check', web: 'check' },
   checkCircle: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   chevronDown: { ios: 'chevron.down', android: 'expand_more', web: 'expand_more' },
@@ -24,6 +26,8 @@ const symbols = {
   locationOff: { ios: 'location.slash', android: 'location_off', web: 'location_off' },
   lock: { ios: 'lock.fill', android: 'lock', web: 'lock' },
   logout: { ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' },
+  microphone: { ios: 'mic.fill', android: 'mic', web: 'mic' },
+  microphoneOff: { ios: 'mic.slash.fill', android: 'mic_off', web: 'mic_off' },
   more: { ios: 'ellipsis', android: 'more_vert', web: 'more_vert' },
   minus: { ios: 'minus', android: 'remove', web: 'remove' },
   photoAdd: { ios: 'photo.badge.plus', android: 'add_a_photo', web: 'add_a_photo' },
@@ -31,6 +35,8 @@ const symbols = {
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
   shield: { ios: 'checkmark.shield.fill', android: 'shield', web: 'shield' },
   star: { ios: 'star.fill', android: 'star', web: 'star' },
+  video: { ios: 'video.fill', android: 'videocam', web: 'videocam' },
+  videoOff: { ios: 'video.slash.fill', android: 'videocam_off', web: 'videocam_off' },
   warning: { ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' },
 } as const;
 

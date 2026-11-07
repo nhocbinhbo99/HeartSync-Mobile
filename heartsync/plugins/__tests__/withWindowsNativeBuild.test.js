@@ -12,6 +12,8 @@ it('registers Windows DSL hooks before Expo evaluates native subprojects', () =>
   expect(result.indexOf('finalizeDsl')).toBeLessThan(result.indexOf('apply plugin: "expo-root-project"'));
   expect(result).toContain('CMAKE_CXX_FLAGS=--driver-mode=g++');
   expect(result).toContain('CMAKE_OBJECT_PATH_MAX=240');
+  expect(result).toContain('externalNativeBuild.cmake.buildStagingDirectory');
+  expect(result).toContain('.hs/${nativeProject.rootProject.name}/${nativeProject.name}');
 });
 it('can prebuild repeatedly without duplicating the workaround', () => {
   expect(apply(apply())).toBe(apply());
