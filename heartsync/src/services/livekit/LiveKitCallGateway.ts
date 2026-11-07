@@ -95,8 +95,7 @@ export class LiveKitCallGateway implements CallGateway {
     }
 
     const room = new Room({ adaptiveStream: true, dynacast: true });
-    let hasRemoteAudio = false;
-    this.room = room;
+        this.room = room;
     this.callType = grant.callType;
     this.onMediaEvent = onMediaEvent;
     this.connected = false;

@@ -31,4 +31,3 @@ it('starts a video call through the protected RPC with video type', async () => 
  expect(await repo.startVideoCall('match')).toMatchObject({ ok: true, data: { id: 'call', type: 'video' } });
  expect(rpc).toHaveBeenCalledWith('start_call', { p_match_id: 'match', p_type: 'video' });
 });
-});
