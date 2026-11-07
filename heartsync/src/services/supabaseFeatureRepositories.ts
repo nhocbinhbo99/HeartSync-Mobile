@@ -60,7 +60,7 @@ function parseCall(value: unknown): IncomingCall | null {
     typeof row.match_id !== "string" ||
     typeof row.caller_id !== "string" ||
     typeof row.callee_id !== "string" ||
-    row.type !== "audio" ||
+    (row.type !== "audio" && row.type !== "video") ||
     typeof row.status !== "string" ||
     typeof row.started_at !== "string"
   )
@@ -307,9 +307,15 @@ export class SupabaseCallRepository implements CallRepository {
         };
   }
   async startAudioCall(matchId: string): Promise<Result<IncomingCall>> {
+    return this.startCall(matchId, "audio");
+  }
+  async startVideoCall(matchId: string): Promise<Result<IncomingCall>> {
+    return this.startCall(matchId, "video");
+  }
+  private async startCall(matchId: string, type: CallType): Promise<Result<IncomingCall>> {
     const { data, error } = await this.client.rpc("start_call", {
       p_match_id: matchId,
-      p_type: "audio",
+      p_type: type,
     });
     if (error || typeof data !== "string")
       return { ok: false, error: mapServiceError(error ?? { code: "P0001" }) };

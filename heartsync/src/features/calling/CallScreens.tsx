@@ -1,29 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  AppState,
-  PermissionsAndroid,
-  Platform,
-  StyleSheet,
-  Text,
-} from "react-native";
+import { AppState, PermissionsAndroid, Platform, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { useAuth } from "../auth/AuthProvider";
 import { ConversationProfile } from "../../shared/components/ConversationProfile";
+import { CallVideoView } from "../../shared/components/CallVideoView";
 import { useAppServices } from "../../services/AppServicesProvider";
 import type { CallGateway } from "../../services/contracts";
 import { AppButton } from "../../shared/components/AppButton";
+import { IconButton } from "../../shared/components/IconButton";
 import { Screen } from "../../shared/components/Screen";
 import { StatePanel } from "../../shared/components/StatePanel";
 import { colors, type } from "../../shared/theme/tokens";
-import type { CallStatus } from "../../shared/types/domain.types";
+import type { CallStatus, CallType } from "../../shared/types/domain.types";
 import type { RootStackParamList } from "../../navigation/types";
 
 const labels: Record<CallStatus, string> = {
   idle: "Đang chuẩn bị",
   ringing: "Đang đổ chuông",
   accepted: "Đã chấp nhận",
-  connecting: "Đang kết nối audio",
+  connecting: "Đang kết nối",
   connected: "Đã kết nối",
   rejected: "Đã từ chối",
   missed: "Cuộc gọi nhỡ",
@@ -32,49 +28,63 @@ const labels: Record<CallStatus, string> = {
 };
 
 export function AudioCallScreen(props: NativeStackScreenProps<RootStackParamList, "AudioCall">) {
-  return <AudioCallSession key={props.route.params.callId} {...props} />;
+  return <CallSession key={props.route.params.callId} {...props.route.params} navigation={props.navigation} callType="audio" />;
 }
-function AudioCallSession({
-  route,
+export function VideoCallScreen(props: NativeStackScreenProps<RootStackParamList, "VideoCall">) {
+  return <CallSession key={props.route.params.callId} {...props.route.params} navigation={props.navigation} callType="video" />;
+}
+function CallSession({
+  matchId, callId, incoming = false, callType,
   navigation,
-}: NativeStackScreenProps<RootStackParamList, "AudioCall">) {
+}: RootStackParamList["AudioCall"] & { callType: CallType; navigation: NativeStackScreenProps<RootStackParamList, "AudioCall">["navigation"] | NativeStackScreenProps<RootStackParamList, "VideoCall">["navigation"] }) {
   const { user } = useAuth();
   const [participant, setParticipant] = useState("");
   const services = useAppServices();
-  const { matchId, callId, incoming = false } = route.params;
-  const [status, setStatus] = useState<CallStatus>(
-    incoming ? "ringing" : "ringing",
-  );
+  const [status, setStatus] = useState<CallStatus>("ringing");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [muted, setMuted] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(true);
+  const [previewTrack, setPreviewTrack] = useState<unknown | null>(null);
+  const [tracks, setTracks] = useState<{ local: unknown | null; remote: unknown | null; mirrorLocal: boolean }>({ local: null, remote: null, mirrorLocal: true });
   const cancelled = useRef(false);
   const connecting = useRef(false);
   const terminalFailure = useRef(false);
+  const mediaJoinStarted = useRef(false);
   const [seconds, setSeconds] = useState(0);
   const gateway = useRef<CallGateway | null>(null);
   const connect = useCallback(async () => {
-    if (!services || gateway.current || connecting.current || cancelled.current)
+    if (!services || connecting.current || mediaJoinStarted.current || cancelled.current)
       return;
     connecting.current = true;
-    try {
-      if (Platform.OS === "android") {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          terminalFailure.current = true;
-          cancelled.current = true;
-          setError("Cần quyền micro để thực hiện cuộc gọi thoại.");
-          setStatus("failed");
-          void services.calls.endCall(callId);
-          return;
-        }
+    // Both Realtime and the polling fallback can observe `accepted`.
+    // A room must be joined only once for a call, even while DB status stays accepted.
+    mediaJoinStarted.current = true;
+    if (Platform.OS === "android") {
+      const permissions = callType === "video"
+        ? [PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, PermissionsAndroid.PERMISSIONS.CAMERA]
+        : [PermissionsAndroid.PERMISSIONS.RECORD_AUDIO];
+      const granted = await PermissionsAndroid.requestMultiple(permissions);
+      if (permissions.some((permission) => granted[permission] !== PermissionsAndroid.RESULTS.GRANTED)) {
+        terminalFailure.current = true;
+        connecting.current = false;
+        cancelled.current = true;
+        setError(callType === "video" ? "Cần quyền camera và micro để gọi video." : "Cần quyền micro để thực hiện cuộc gọi thoại.");
+        setStatus("failed");
+        void services.calls.endCall(callId);
+        return;
       }
-      if (cancelled.current) return;
-      const instance = services.createCallGateway();
+    }
+    if (cancelled.current) {
+      connecting.current = false;
+      return;
+    }
+    try {
+      // The caller may already own a gateway for its local camera preview.
+      // Reuse it so accepting the call actually joins the LiveKit room.
+      const instance = gateway.current ?? services.createCallGateway();
       gateway.current = instance;
-      const grant = await instance.requestJoinGrant(callId, "audio");
+      const grant = await instance.requestJoinGrant(callId, callType);
       if (cancelled.current) {
         await instance.disconnect();
         return;
@@ -93,6 +103,7 @@ function AudioCallSession({
         if (event.type === "connecting") setStatus("connecting");
         if (cancelled.current) return;
         if (event.type === "connected") setStatus("connected");
+        if (event.type === "videoTracksChanged") setTracks(instance.getVideoTracks());
         if (cancelled.current) return;
         if (event.type === "disconnected") {
           if (terminalFailure.current) return;
@@ -105,7 +116,7 @@ function AudioCallSession({
         if (event.type === "failed") {
           terminalFailure.current = true;
           setStatus("failed");
-          setError("Kết nối audio không thành công.");
+          setError(callType === "video" ? "Kết nối video không thành công." : "Kết nối audio không thành công.");
         }
       });
       if (!result.ok) {
@@ -121,17 +132,18 @@ function AudioCallSession({
       cancelled.current = true;
       void services.calls.endCall(callId);
       setError(
-        "Cuộc gọi thoại cần Android development build đã tích hợp native WebRTC.",
+        `Cuộc gọi ${callType === "video" ? "video" : "thoại"} cần Android development build đã tích hợp native WebRTC.`,
       );
       setStatus("failed");
       gateway.current = null;
     } finally {
       connecting.current = false;
     }
-  }, [callId, services]);
+  }, [callId, callType, services]);
   useEffect(() => {
     if (!services) return;
     cancelled.current = false;
+    mediaJoinStarted.current = false;
     const subscription = services.calls.subscribeIncoming(
       (call) => {
         if (call.id !== callId) return;
@@ -176,9 +188,11 @@ function AudioCallSession({
       }
     };
     void refresh();
+    // Realtime delivers the usual fast path; this direct read is the reliable
+    // fallback for the caller after the callee accepts on another device.
     const timer = setInterval(() => {
-      void services.calls.listActive().then(refresh);
-    }, 5000);
+      void refresh();
+    }, 1000);
     return () => {
       cancelled.current = true;
       clearInterval(timer);
@@ -217,6 +231,44 @@ function AudioCallSession({
     const timer = setInterval(() => setSeconds((n) => n + 1), 1000);
     return () => clearInterval(timer);
   }, [status]);
+  useEffect(() => {
+    if (callType !== "video") return;
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" || cancelled.current || !gateway.current) return;
+      void gateway.current.setCameraEnabled(false).then((result) => {
+        if (result.ok && !cancelled.current) setCameraEnabled(false);
+      });
+    });
+    return () => subscription.remove();
+  }, [callType]);
+  useEffect(() => {
+    if (!services || incoming || callType !== "video" || status !== "ringing") return;
+    let active = true;
+    const startPreview = async () => {
+      if (Platform.OS === "android") {
+        const camera = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
+        if (camera !== PermissionsAndroid.RESULTS.GRANTED) {
+          if (active) setError("Cần quyền camera để xem trước hình ảnh của bạn.");
+          return;
+        }
+      }
+      const instance = gateway.current ?? services.createCallGateway();
+      gateway.current = instance;
+      const result = await instance.startCameraPreview();
+      if (!active) {
+        await instance.stopCameraPreview();
+        return;
+      }
+      if (result.ok) setPreviewTrack(result.data);
+      else setError(result.error.message);
+    };
+    void startPreview();
+    return () => {
+      active = false;
+      setPreviewTrack(null);
+      void gateway.current?.stopCameraPreview();
+    };
+  }, [callType, incoming, services, status]);
   const accept = async () => {
     if (!services) return;
     setBusy(true);
@@ -249,6 +301,14 @@ function AudioCallSession({
       navigation.goBack();
     } else setError(result.error.message);
   };
+  const waitingForParticipant = ["ringing", "accepted", "connecting"].includes(status);
+  const waitingLabel = incoming
+    ? "Cuộc gọi đến"
+    : callType === "video" ? "Đang gọi video" : "Đang gọi thoại";
+  const waitingDescription = status === "ringing"
+    ? incoming ? "Chấp nhận để bắt đầu cuộc gọi" : "Đang đổ chuông…"
+    : "Đang kết nối an toàn…";
+  const fullScreenVideo = callType === "video" && status === "connected";
   if (!services)
     return (
       <Screen>
@@ -258,24 +318,98 @@ function AudioCallSession({
         />
       </Screen>
     );
+  if (fullScreenVideo)
+    return (
+      <Screen scroll={false} contentStyle={styles.fullScreenContent}>
+        <View style={styles.fullScreenVideo}>
+          {tracks.remote ? <CallVideoView track={tracks.remote} style={styles.remoteVideo} zOrder={0} />
+            : participant ? <ConversationProfile profileId={participant} presentation="callHero" /> : <View style={styles.remoteCameraFallback} />}
+          {!tracks.remote ? <View pointerEvents="none" style={styles.remoteCameraOffMessage}>
+            <Text style={styles.remoteCameraOffTitle}>Camera đã tắt</Text>
+            <Text style={styles.remoteCameraOffDescription}>Bạn vẫn đang kết nối âm thanh với người kia</Text>
+          </View> : null}
+          {tracks.local ? <CallVideoView track={tracks.local} style={styles.fullScreenLocalVideo} mirror={tracks.mirrorLocal} zOrder={1} />
+            : user ? <View style={styles.fullScreenLocalAvatar}><ConversationProfile profileId={user.id} presentation="callTile" /></View>
+              : <Text style={styles.fullScreenLocalPlaceholder}>{cameraEnabled ? "Đang mở camera…" : "Camera đã tắt"}</Text>}
+          <View style={styles.callTopBar} pointerEvents="none">
+            <Text style={styles.callTopTitle}>Cuộc gọi video</Text>
+            <Text style={styles.callTopTime}>{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</Text>
+          </View>
+          <View style={styles.callControls}>
+            <IconButton icon={muted ? "microphoneOff" : "microphone"} label={muted ? "Bật micro" : "Tắt micro"} tone="onPrimary" style={muted ? styles.callControlMuted : styles.callControl} onPress={() => {
+              void gateway.current?.setMuted(!muted).then((result) => {
+                if (result?.ok) setMuted(!muted);
+                else if (result) setError(result.error.message);
+              });
+            }} />
+            <IconButton icon={cameraEnabled ? "video" : "videoOff"} label={cameraEnabled ? "Tắt camera" : "Bật camera"} tone="onPrimary" style={!cameraEnabled ? styles.callControlMuted : styles.callControl} onPress={() => {
+              void gateway.current?.setCameraEnabled(!cameraEnabled).then((result) => {
+                if (result?.ok) setCameraEnabled(!cameraEnabled);
+                else if (result) setError(result.error.message);
+              });
+            }} />
+            <IconButton icon="cameraFlip" label="Đổi camera" tone="onPrimary" style={styles.callControl} onPress={() => {
+              void gateway.current?.switchCamera().then((result) => {
+                if (result && !result.ok) setError(result.error.message);
+              });
+            }} />
+            <IconButton icon="callEnd" label="Kết thúc cuộc gọi" tone="onPrimary" style={styles.endCallControl} onPress={() => void end()} />
+          </View>
+          {error ? <Text accessibilityLiveRegion="polite" style={styles.fullScreenError}>{error}</Text> : null}
+        </View>
+      </Screen>
+    );
   return (
-    <Screen>
-      {participant ? <ConversationProfile profileId={participant} /> : null}
-      <Text accessibilityRole="header" style={styles.title}>
-        Cuộc gọi thoại
-      </Text>
-      <StatePanel
+    <Screen scroll={callType !== "video"} contentStyle={callType === "video" ? styles.videoContent : undefined}>
+      {waitingForParticipant ? (
+        <View style={styles.waitingSurface}>
+          {participant ? <ConversationProfile profileId={participant} presentation="callHero" /> : <View style={styles.waitingFallback} />}
+          {previewTrack ? <CallVideoView track={previewTrack} preview mirror style={styles.waitingLocalVideo} zOrder={1} /> : null}
+          <View pointerEvents="none" style={styles.waitingMeta}>
+            <Text accessibilityRole="header" style={styles.waitingTitle}>{waitingLabel}</Text>
+            <Text accessibilityLiveRegion="polite" style={styles.waitingDescription}>{waitingDescription}</Text>
+          </View>
+        </View>
+      ) : null}
+      {!waitingForParticipant && participant ? <ConversationProfile profileId={participant} /> : null}
+      {!waitingForParticipant ? <Text accessibilityRole="header" style={styles.title}>
+        {callType === "video" ? "Cuộc gọi video" : "Cuộc gọi thoại"}
+      </Text> : null}
+      {callType === "video" && !waitingForParticipant ? (
+        <View style={styles.videoArea}>
+          {tracks.remote ? <CallVideoView track={tracks.remote} style={styles.remoteVideo} zOrder={0} />
+            : <Text style={styles.videoPlaceholder}>{status === "ringing" ? "Đang chờ đối phương chấp nhận" : "Video đối phương chưa bật"}</Text>}
+          {tracks.local ? <CallVideoView track={tracks.local} style={styles.localVideo} mirror={tracks.mirrorLocal} zOrder={1} />
+            : <Text style={styles.localPlaceholder}>{status === "ringing" ? "Camera chưa bật" : cameraEnabled ? "Đang mở camera…" : "Camera đã tắt"}</Text>}
+        </View>
+      ) : null}
+      {!waitingForParticipant && (callType === "audio" || !["connecting", "connected"].includes(status)) ? <StatePanel
         title={labels[status]}
         description={
           incoming && status === "ringing"
-            ? "Người bạn kết nối đang gọi cho bạn. Micro chỉ bật nếu bạn chấp nhận."
+            ? `Người bạn kết nối đang gọi ${callType === "video" ? "video" : "thoại"} cho bạn. ${callType === "video" ? "Camera và micro" : "Micro"} chỉ bật nếu bạn chấp nhận.`
             : "Cuộc gọi chỉ dành cho participant của một match đang hoạt động."
         }
-      />
+      /> : null}
       {status === "connected" ? (
         <Text>
           {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
         </Text>
+      ) : null}
+      {callType === "video" && ["connecting", "connected"].includes(status) ? (
+        <>
+          <AppButton label={cameraEnabled ? "Tắt camera" : "Bật camera"} disabled={cameraEnabled && !tracks.local} onPress={() => {
+            void gateway.current?.setCameraEnabled(!cameraEnabled).then((result) => {
+              if (result.ok) setCameraEnabled(!cameraEnabled);
+              else setError(result.error.message);
+            });
+          }} />
+          <AppButton label="Đổi camera" disabled={!cameraEnabled || !tracks.local} variant="secondary" onPress={() => {
+            void gateway.current?.switchCamera().then((result) => {
+              if (!result.ok) setError(result.error.message);
+            });
+          }} />
+        </>
       ) : null}
       {error ? (
         <Text accessibilityLiveRegion="polite" style={styles.error}>
@@ -335,25 +469,36 @@ function AudioCallSession({
   );
 }
 
-export function VideoCallScreen({
-  navigation,
-}: NativeStackScreenProps<RootStackParamList, "VideoCall">) {
-  return (
-    <Screen>
-      <StatePanel
-        title="Video call chưa nằm trong MVP"
-        description="Bản demo hiện kiểm thử cuộc gọi thoại hai chiều trên Android development build. Camera không được bật trong luồng này."
-      />
-      <AppButton
-        label="Quay lại"
-        variant="quiet"
-        onPress={() => navigation.goBack()}
-      />
-    </Screen>
-  );
-}
-
 const styles = StyleSheet.create({
   title: { ...type.title, color: colors.ink },
   error: { ...type.caption, color: colors.danger },
+  waitingSurface: { flex: 1, minHeight: 480, backgroundColor: colors.ink, borderRadius: 22, overflow: "hidden" },
+  waitingFallback: { flex: 1, backgroundColor: colors.primarySoft },
+  waitingLocalVideo: { position: "absolute", top: 20, right: 16, width: 116, height: 164, borderRadius: 16, borderWidth: 1, borderColor: colors.onPrimary, backgroundColor: colors.ink },
+  waitingMeta: { position: "absolute", left: 24, right: 24, bottom: 36, alignItems: "center", gap: 4 },
+  waitingTitle: { ...type.title, color: colors.onPrimary },
+  waitingDescription: { ...type.body, color: colors.onPrimary, textAlign: "center" },
+  videoContent: { padding: 12, gap: 8 },
+  fullScreenContent: { padding: 0, gap: 0, backgroundColor: colors.ink },
+  fullScreenVideo: { flex: 1, backgroundColor: colors.ink, justifyContent: "center", overflow: "hidden" },
+  remoteCameraFallback: { flex: 1, backgroundColor: colors.ink },
+  remoteCameraOffMessage: { position: "absolute", left: 28, right: 28, bottom: 128, alignItems: "center", gap: 4 },
+  remoteCameraOffTitle: { ...type.title, color: colors.onPrimary },
+  remoteCameraOffDescription: { ...type.body, color: colors.onPrimary, textAlign: "center" },
+  fullScreenLocalVideo: { position: "absolute", top: 18, right: 16, width: 108, height: 152, borderRadius: 14, borderWidth: 1, borderColor: colors.border },
+  fullScreenLocalAvatar: { position: "absolute", top: 18, right: 16, width: 108, height: 152, borderRadius: 14, borderWidth: 1, borderColor: colors.border, overflow: "hidden" },
+  fullScreenLocalPlaceholder: { position: "absolute", top: 18, right: 16, width: 108, height: 152, padding: 12, borderRadius: 14, backgroundColor: colors.inkMuted, color: colors.onPrimary, textAlign: "center", textAlignVertical: "center" },
+  callTopBar: { position: "absolute", top: 20, left: 20, right: 140, gap: 2 },
+  callTopTitle: { ...type.subtitle, color: colors.onPrimary },
+  callTopTime: { ...type.caption, color: colors.onPrimary },
+  callControls: { position: "absolute", left: 0, right: 0, bottom: 30, flexDirection: "row", justifyContent: "center", gap: 12 },
+  callControl: { backgroundColor: "rgba(16,42,51,0.72)", width: 56, height: 56 },
+  callControlMuted: { backgroundColor: colors.inkMuted, width: 56, height: 56 },
+  endCallControl: { backgroundColor: colors.danger, width: 56, height: 56 },
+  fullScreenError: { position: "absolute", left: 24, right: 24, bottom: 100, ...type.caption, color: colors.onPrimary, textAlign: "center" },
+  videoArea: { flex: 1, minHeight: 180, backgroundColor: colors.ink, borderRadius: 22, overflow: "hidden", justifyContent: "center" },
+  remoteVideo: { width: "100%", height: "100%" },
+  videoPlaceholder: { color: colors.onPrimary, textAlign: "center" },
+  localVideo: { position: "absolute", bottom: 12, right: 12, width: 100, height: 140, borderRadius: 12 },
+  localPlaceholder: { position: "absolute", bottom: 12, right: 12, width: 100, height: 140, color: colors.onPrimary, textAlign: "center" },
 });

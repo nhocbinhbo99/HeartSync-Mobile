@@ -64,7 +64,7 @@ Do not paste credentials or secrets into chat, Git, screenshots, or these logs.
 
 - [ ] Create a user-owned LiveKit Cloud development project; configure `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` only as Supabase Edge Function secrets.
 - [ ] After Q03 migrations/RLS pass, serve and test `livekit-token` locally with signed-in users A/B/C: active participant allowed; non-member, unmatched, blocked, missing JWT, and missing config denied.
-- [ ] Review the exact development Supabase target, then deploy the function with JWT verification enabled. Do not use `--no-verify-jwt`.
+- [ ] Review the exact development Supabase target, then deploy the function using the committed `config.toml`; the ES256 project relies on the function's `auth.getUser()` Bearer-JWT validation instead of the legacy gateway verifier.
 - [ ] Confirm Android application ID and EAS project, then run `npx eas-cli build --profile development --platform android`; install the APK on two physical devices.
 - [ ] On both devices, verify deny/grant behavior for microphone and camera; video turns camera on only after the video call action and permission.
 - [ ] Complete bidirectional audio and video with remote tracks visible/audible, background/foreground, hang-up, network loss, unmatch, and block. Only then may Audio/Video Call be marked working.

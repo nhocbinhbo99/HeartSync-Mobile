@@ -22,3 +22,13 @@ it('keeps the current participant call lease alive through the protected RPC',as
  expect((await repo.heartbeatCall('call')).ok).toBe(true);
  expect(rpc).toHaveBeenCalledWith('call_heartbeat',{p_call_id:'call'});
 });
+
+it('starts a video call through the protected RPC with video type', async () => {
+ const call = { id: 'call', match_id: 'match', caller_id: 'alice', callee_id: 'bob', type: 'video', status: 'ringing', started_at: '2026-11-05T00:00:00Z', ended_at: null };
+ const rpc = jest.fn().mockResolvedValue({ data: 'call', error: null });
+ const chain = { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: call, error: null }) };
+ const repo = new SupabaseCallRepository({ rpc, from: () => chain } as unknown as AppSupabaseClient);
+ expect(await repo.startVideoCall('match')).toMatchObject({ ok: true, data: { id: 'call', type: 'video' } });
+ expect(rpc).toHaveBeenCalledWith('start_call', { p_match_id: 'match', p_type: 'video' });
+});
+});

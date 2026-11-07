@@ -416,7 +416,10 @@ enabled = true
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
 
 [functions.livekit-token]
-verify_jwt = true
+# The project uses asymmetric Auth signing keys. The legacy gateway verifier does
+# not support publishable-key/asymmetric-JWT projects reliably, so the function
+# verifies the Bearer token itself with auth.getUser() before any database read.
+verify_jwt = false
 
 [functions.call-media-cleanup]
 verify_jwt = false

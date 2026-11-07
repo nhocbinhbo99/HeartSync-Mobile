@@ -89,7 +89,7 @@ export function IncomingCallOverlay({
         >
           <ConversationProfile profileId={call.callerId} />
           <Text>{name || "Cuộc gọi đến"}</Text>
-          <Text>Đang gọi thoại cho bạn</Text>
+          <Text>{call.type === "video" ? "Đang gọi video cho bạn" : "Đang gọi thoại cho bạn"}</Text>
           {error ? <Text>{error}</Text> : null}
           <AppButton
             label="Chấp nhận"

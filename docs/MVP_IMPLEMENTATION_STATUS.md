@@ -7,16 +7,16 @@ Updated: 2026-10-30
 - Auth distinguishes an unconfirmed email from invalid credentials.
 - Profile edit, private DOB/location consent, private photo upload UI (maximum six), preferences and saved profiles now use repository boundaries.
 - Discovery, server-confirmed swipe/match, match list, realtime chat shell, incoming audio-call state and an audio-only call UI replace the original placeholders.
-- VideoCall is explicitly excluded from this MVP. It must not be represented as working.
+- UC17 video call has a repository implementation on `feature/video-call`: Chat entry, incoming routing, two video surfaces, camera/microphone controls and a proposed forward migration. Cloud deployment and two-device media acceptance are pending; it must not be represented as verified.
 - `20261030150000_mvp_contracts.sql` is a forward-only migration containing the six-photo limit, public discovery/profile/match contracts, call accept/reject/end RPCs and Realtime publication for only `messages` and `calls`.
-- `livekit-token` now accepts a call id and only signs an audio room grant for an accepted call belonging to the signed-in participant.
+- The proposed `livekit-token` update issues a microphone-only grant for audio and camera plus microphone grant for video, only for an accepted call of the same type belonging to an active Match participant.
 
 ## Not yet applied or verified on cloud
 
 1. Review and apply `supabase/migrations/20261030150000_mvp_contracts.sql` to the dedicated `heartsync-dev` project only. This changes database constraints, RPCs and Realtime publication.
 2. Generate/review Supabase database types after that migration; handwritten UI/domain types remain the source of truth until then.
 3. Create synthetic users A/B/C and their complete profiles; no personal account, image or real credential belongs in source control.
-4. Configure LiveKit secrets only in Supabase Function Secrets, deploy `livekit-token` with JWT verification enabled, then create/install an EAS Android development build on two devices.
+4. Configure LiveKit secrets only in Supabase Function Secrets, deploy `livekit-token` with its in-function Bearer JWT validation, then create/install an EAS Android development build on two devices when the installed build does not already contain the LiveKit native modules.
 5. Run A/B/C RLS, chat, block/unmatch and two-device audio acceptance checks before claiming those features work.
 
 ## Ownership
@@ -25,7 +25,7 @@ Updated: 2026-10-30
 |---|---|
 | Công | Cloud migration review/apply, A/B/C setup, profile/privacy checks, LiveKit/EAS secrets |
 | Minh | Discovery filter/card/swipe/match device evidence after migration apply |
-| Hảo | Chat Realtime and audio-call integration evidence after migration/LiveKit deployment |
+| Hảo | Chat Realtime and audio/video-call integration evidence after migration/LiveKit deployment |
 
 ## Local evidence
 
