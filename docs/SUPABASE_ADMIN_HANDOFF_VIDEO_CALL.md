@@ -12,7 +12,7 @@
 
 Nguyên nhân xác nhận được là RPC đang chạy trên Cloud vẫn chỉ chấp nhận `audio` và trả `audio_only_in_mvp`. Migration mở hỗ trợ `video` đã có trong source nhưng **chưa được áp dụng lên Cloud**:
 
-- `supabase/migrations/20261105120000_video_call.sql`
+- `supabase/migrations/20261107065833_enable_video_calls_with_liveness.sql`
 
 Vì RPC thất bại ngay từ đầu nên đây **chưa phải** lỗi camera, Android permission hay LiveKit.
 
@@ -30,7 +30,7 @@ Không gửi những thông tin trên qua chat, Git hoặc file `.env` đã comm
 
 | Ưu tiên | Thành phần | Hành động admin | Lý do |
 | --- | --- | --- | --- |
-| P0 | Database migration video | Áp dụng `20261105120000_video_call.sql` | Cho RPC `start_call` nhận `audio` hoặc `video`, vẫn giữ kiểm tra Match active, người bận và timeout 45 giây. Đây là lỗi đang chặn UI. |
+| P0 | Database migration video | Áp dụng `20261107065833_enable_video_calls_with_liveness.sql` | Cho RPC `start_call` nhận `audio` hoặc `video`, vẫn giữ kiểm tra Match active, người bận, timeout và heartbeat lease. Đây là lỗi đang chặn UI. |
 | P0 | `livekit-token` Edge Function | Deploy source mới sau migration | Token video chỉ được cấp cho hai người thuộc Match active, call đã accepted và đúng loại call. |
 | P0 | Function Secrets | Kiểm tra/đặt các secrets LiveKit ở Supabase | Function không thể phát token nếu thiếu cấu hình. |
 | P1 | `call-media-cleanup` Edge Function + Cron | Deploy function, đặt secret, tạo lịch chạy | Dọn participant/room media khi client offline hoặc cuộc gọi kết thúc bất thường. |
@@ -66,7 +66,7 @@ npx supabase --workdir .. db push --linked --dry-run
 Kỳ vọng tối thiểu phải thấy:
 
 ```text
-20261105120000_video_call.sql
+20261107065833_enable_video_calls_with_liveness.sql
 ```
 
 Nếu dry-run còn liệt kê các migration sau, **dừng lại và đối soát migration history với nhóm trước khi push**; chúng có thể chưa được triển khai hoặc Cloud đã được chỉnh tay:
@@ -74,7 +74,7 @@ Nếu dry-run còn liệt kê các migration sau, **dừng lại và đối soá
 - `20261103120000_profile_preferences_contracts.sql`
 - `20261104120000_messaging_calling.sql`
 - `20261105080739_fix_reorder_profile_photos_constraint.sql`
-- `20261105120000_video_call.sql`
+- `20261107065833_enable_video_calls_with_liveness.sql`
 
 Sau khi danh sách đã được review, áp dụng:
 
@@ -166,7 +166,7 @@ Chỉ nghiệm thu UC17 sau khi test trên hai Android Development Builds:
 
 | Triệu chứng | Khả năng cao | Việc cần kiểm tra |
 | --- | --- | --- |
-| Bấm “Gọi video” thấy “Dữ liệu gửi lên không hợp lệ” | Migration video chưa ở đúng Cloud project | Migration history và `20261105120000_video_call.sql` |
+| Bấm “Gọi video” thấy “Dữ liệu gửi lên không hợp lệ” | Migration video chưa ở đúng Cloud project | Migration history và `20261107065833_enable_video_calls_with_liveness.sql` |
 | Vào call rồi báo token/invalid request | `livekit-token` chưa deploy hoặc source cũ | Thời điểm deploy và Function Logs |
 | Function trả 401 | JWT người dùng không hợp lệ/hết hạn hoặc request không có session | Client session và kiểm tra xác thực trong `livekit-token` |
 | Function trả 503 | Thiếu LiveKit/Supabase secret | Edge Function Secrets |
@@ -187,7 +187,7 @@ Admin vui lòng trả về ticket/nhóm các bằng chứng không nhạy cảm 
 
 - `docs/MODULE3_RUNBOOK.md` — runbook Calling, cleanup và nghiệm thu hai thiết bị.
 - `docs/MVP_IMPLEMENTATION_STATUS.md` — trạng thái code so với Cloud/runtime verification.
-- `supabase/migrations/20261105120000_video_call.sql` — migration bắt buộc cho lỗi hiện tại.
+- `supabase/migrations/20261107065833_enable_video_calls_with_liveness.sql` — migration bắt buộc cho lỗi hiện tại.
 - `supabase/functions/livekit-token/index.ts` — cấp token LiveKit theo Match/call type.
 - `supabase/functions/call-media-cleanup/index.ts` — dọn media server-side.
 

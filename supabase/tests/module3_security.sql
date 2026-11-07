@@ -1,5 +1,5 @@
 -- Run after `supabase db reset` with `supabase test db`.
--- This file is prepared but has not been executed in this workspace (Docker daemon/CLI unavailable).
+-- Exercises chat, audio/video calls, authorization, idempotency, and call leases.
 begin;
 create extension if not exists pgtap with schema extensions;
 select plan(22);
@@ -41,22 +41,22 @@ select lives_ok($$select public.start_call('10000000-0000-0000-0000-000000000001
 select throws_ok($$select public.start_call('10000000-0000-0000-0000-000000000001','audio')$$,'23505','participant_busy','second call cannot start');
 select lives_ok($$select public.end_call(id) from public.calls$$,'caller cancels');
 select lives_ok($$select public.end_call(id) from public.calls$$,'end is idempotent');
-select lives_ok($select public.start_call('10000000-0000-0000-0000-000000000001','video')$,'participant starts video after audio ends');
+select lives_ok($$select public.start_call('10000000-0000-0000-0000-000000000001','video')$$,'participant starts video after audio ends');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
-select throws_ok($select public.start_call('10000000-0000-0000-0000-000000000001','video')$,'42501','active_match_required','nonparticipant cannot start video');
+select throws_ok($$select public.start_call('10000000-0000-0000-0000-000000000001','video')$$,'42501','active_match_required','nonparticipant cannot start video');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000002',true);
-select lives_ok($select public.end_call(id) from public.calls$,'end video call');
-select lives_ok($select public.start_call('10000000-0000-0000-0000-000000000001','audio')$,'caller can start again after terminal call');
+select lives_ok($$select public.end_call(id) from public.calls$$,'end video call');
+select lives_ok($$select public.start_call('10000000-0000-0000-0000-000000000001','audio')$$,'caller can start again after terminal call');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',true);
-select lives_ok($select public.accept_call((select id from public.calls where status='ringing' order by started_at desc limit 1))$,'callee accepts active ringing call');
-select lives_ok($select public.call_heartbeat((select id from public.calls where status='accepted' order by started_at desc limit 1))$,'participant refreshes own call lease');
+select lives_ok($$select public.accept_call((select id from public.calls where status='ringing' order by started_at desc limit 1))$$,'callee accepts active ringing call');
+select lives_ok($$select public.call_heartbeat((select id from public.calls where status='accepted' order by started_at desc limit 1))$$,'participant refreshes own call lease');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
-select throws_ok($select public.call_heartbeat((select id from public.calls where status='accepted' order by started_at desc limit 1))$,'42501','call_inactive','nonparticipant cannot refresh call lease');
+select throws_ok($$select public.call_heartbeat((select id from public.calls where status='accepted' order by started_at desc limit 1))$$,'42501','call_inactive','nonparticipant cannot refresh call lease');
 reset role;
 update public.calls set caller_heartbeat_at=now()-interval '91 seconds' where status='accepted';
 set local role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',true);
-select lives_ok($select public.reconcile_calls()$,'participant reconciles an abandoned call');
+select lives_ok($$select public.reconcile_calls()$$,'participant reconciles an abandoned call');
 select is((select status::text from public.calls order by started_at desc limit 1),'ended','stale participant heartbeat ends the call');
-select lives_ok($select public.start_call('10000000-0000-0000-0000-000000000001','audio')$,'participant can call again after stale lease cleanup');
+select lives_ok($$select public.start_call('10000000-0000-0000-0000-000000000001','audio')$$,'participant can call again after stale lease cleanup');
 select * from finish();rollback;

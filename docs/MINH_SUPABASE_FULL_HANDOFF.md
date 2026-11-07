@@ -102,10 +102,10 @@ Các migration liên quan trực tiếp tới Chat/Calling/VideoCall là:
 ```text
 20261104120000_messaging_calling.sql
 20261105080739_fix_reorder_profile_photos_constraint.sql
-20261105120000_video_call.sql
+20261107065833_enable_video_calls_with_liveness.sql
 ```
 
-Migration `20261105120000_video_call.sql` phải có trên Cloud để RPC `start_call` nhận `video`. Migration `20261104120000_messaging_calling.sql` cung cấp messaging/calling lifecycle, cleanup queue và Realtime dependencies.
+Migration `20261107065833_enable_video_calls_with_liveness.sql` phải có trên Cloud để RPC `start_call` nhận `video` mà vẫn giữ heartbeat lease. Migration `20261104120000_messaging_calling.sql` cung cấp messaging/calling lifecycle, cleanup queue và Realtime dependencies.
 
 ### Khi được phép tiếp tục
 

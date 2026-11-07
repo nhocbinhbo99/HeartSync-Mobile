@@ -80,14 +80,14 @@ isOneToOne: false
                   ]
                 },"calls": {
                   Row: {
-                    "callee_id": string,"caller_id": string,"ended_at": string | null,"id": string,"match_id": string,"started_at": string,"status": Database["public"]['Enums']["call_status"],"type": Database["public"]['Enums']["call_type"]
+                    "callee_heartbeat_at": string | null,"callee_id": string,"caller_heartbeat_at": string | null,"caller_id": string,"ended_at": string | null,"id": string,"match_id": string,"started_at": string,"status": Database["public"]['Enums']["call_status"],"type": Database["public"]['Enums']["call_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "callee_id": string,"caller_id": string,"ended_at"?: string | null,"id"?: string,"match_id": string,"started_at"?: string,"status"?: Database["public"]['Enums']["call_status"],"type": Database["public"]['Enums']["call_type"]
+                    "callee_heartbeat_at"?: string | null,"callee_id": string,"caller_heartbeat_at"?: string | null,"caller_id": string,"ended_at"?: string | null,"id"?: string,"match_id": string,"started_at"?: string,"status"?: Database["public"]['Enums']["call_status"],"type": Database["public"]['Enums']["call_type"]
                   }
                   Update: {
-                    "callee_id"?: string,"caller_id"?: string,"ended_at"?: string | null,"id"?: string,"match_id"?: string,"started_at"?: string,"status"?: Database["public"]['Enums']["call_status"],"type"?: Database["public"]['Enums']["call_type"]
+                    "callee_heartbeat_at"?: string | null,"callee_id"?: string,"caller_heartbeat_at"?: string | null,"caller_id"?: string,"ended_at"?: string | null,"id"?: string,"match_id"?: string,"started_at"?: string,"status"?: Database["public"]['Enums']["call_status"],"type"?: Database["public"]['Enums']["call_type"]
                   }
                   Relationships: [
                     {
@@ -394,6 +394,9 @@ isOneToOne: true
                            },
 "block_user":
 { Args: { "p_target_id": string }; Returns: undefined
+                           },
+"call_heartbeat":
+{ Args: { "p_call_id": string }; Returns: string
                            },
 "chat_summaries":
 { Args: Record<PropertyKey, never>; Returns: {

@@ -131,10 +131,10 @@ Backend gọi hoàn chỉnh phụ thuộc tối thiểu vào:
 
 ```text
 20261104120000_messaging_calling.sql
-20261105120000_video_call.sql
+20261107065833_enable_video_calls_with_liveness.sql
 ```
 
-Migration `20261104120000_messaging_calling.sql` cung cấp call states, cleanup queue/RPC và Realtime lifecycle. Migration `20261105120000_video_call.sql` cho `start_call` chấp nhận loại `video`.
+Migration `20261104120000_messaging_calling.sql` cung cấp call states, cleanup queue/RPC và Realtime lifecycle. Migration `20261107065833_enable_video_calls_with_liveness.sql` cho `start_call` chấp nhận loại `video` mà vẫn giữ heartbeat lease.
 
 ### Khi nào phải dừng?
 
