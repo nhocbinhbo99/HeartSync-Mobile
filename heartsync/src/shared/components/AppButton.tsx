@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, type ViewStyle } from 'react-native';
-import { colors, radii, spacing, type } from '../theme/tokens';
+import { colors, componentSize, radii, spacing, type } from '../theme/tokens';
 import { AnimatedPressable } from './AnimatedPressable';
 import { AppIcon, type AppIconName } from './AppIcon';
 
@@ -16,19 +16,21 @@ const variants = {
 
 export function AppButton({ label, onPress, variant = 'primary', disabled = false, icon, leadingIcon, trailingIcon, loading = false, style, accessibilityHint }: AppButtonProps) {
   const palette = variants[variant];
+  const isDisabled = disabled || loading;
+  const contentColor = isDisabled ? colors.ink : palette.text;
   return (
     <AnimatedPressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: disabled || loading, busy: loading }} disabled={disabled || loading} onPress={onPress}
+      accessibilityState={{ disabled: isDisabled, busy: loading }} disabled={isDisabled} disabledOpacity={1} onPress={onPress}
       rippleColor={variant === 'primary' ? 'rgba(255,255,255,0.18)' : 'rgba(0,102,116,0.12)'} style={[styles.base,
-        { backgroundColor: palette.background, borderColor: palette.border }, disabled || loading ? styles.disabled : undefined, style]}>
-      {loading ? <ActivityIndicator color={variant === 'primary' ? colors.onPrimary : palette.text} /> : leadingIcon ? <AppIcon name={leadingIcon} color={palette.text} size={20} /> : icon}
-      <Text style={[styles.label, { color: disabled || loading ? colors.ink : palette.text }]}>{label}</Text>
-      {trailingIcon && !loading ? <AppIcon name={trailingIcon} color={palette.text} size={20} /> : null}
+        { backgroundColor: palette.background, borderColor: palette.border }, isDisabled ? styles.disabled : undefined, style]}>
+      {loading ? <ActivityIndicator color={contentColor} /> : leadingIcon ? <AppIcon name={leadingIcon} color={contentColor} size={20} /> : icon}
+      <Text style={[styles.label, { color: contentColor }]}>{label}</Text>
+      {trailingIcon && !loading ? <AppIcon name={trailingIcon} color={contentColor} size={20} /> : null}
     </AnimatedPressable>
   );
 }
 const styles = StyleSheet.create({
-  base: { minHeight: 48, borderRadius: radii.md, borderWidth: 1, paddingHorizontal: spacing.md,
+  base: { minHeight: componentSize.buttonHeight, borderRadius: radii.md, borderWidth: 1, paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: spacing.xs },
   label: type.label, disabled: { backgroundColor: colors.disabled, borderColor: colors.border },
 });

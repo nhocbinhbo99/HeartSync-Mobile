@@ -12,7 +12,8 @@ type Props = {
   onAction?: () => void;
 };
 export function AsyncStatePanel({ state, title, description, actionLabel, onAction }: Props) {
-  if (state === 'loading') return <View accessibilityLabel={title} style={styles.loading}>
+  if (state === 'loading') return <View accessibilityRole="progressbar" accessibilityLabel={title}
+    accessibilityValue={{ min: 0, max: 100 }} style={styles.loading}>
     <View style={styles.skeletons}><SkeletonBlock height={22} width="62%" /><SkeletonBlock height={16} width="100%" /><SkeletonBlock height={16} width="78%" /></View>
     <ActivityIndicator color={colors.primary} size="small" />
   </View>;

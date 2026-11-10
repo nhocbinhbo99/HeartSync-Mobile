@@ -19,7 +19,10 @@ jest.mock('react-native-reanimated', () => {
 });
 
 import { AppButton } from '../AppButton';
+import { AppText } from '../AppText';
+import { Avatar } from '../Avatar';
 import { IconButton } from '../IconButton';
+import { SectionHeader } from '../SectionHeader';
 
 it('keeps standard and icon-only actions named, interactive, and guarded while loading', async () => {
   const onIconPress = jest.fn();
@@ -34,4 +37,17 @@ it('keeps standard and icon-only actions named, interactive, and guarded while l
 
   expect(onIconPress).toHaveBeenCalledTimes(1);
   expect(onSave).not.toHaveBeenCalled();
+});
+
+it('provides semantic shared typography, headings, and non-photographic avatar fallbacks', async () => {
+  const screen = await render(<>
+    <SectionHeader title="Thông tin cơ bản" description="Chỉ bạn có thể chỉnh sửa các dữ liệu riêng tư." />
+    <Avatar label="Minh Anh" />
+    <AppText variant="caption" tone="danger">Không thể lưu thay đổi.</AppText>
+  </>);
+
+  expect(screen.getByRole('header', { name: 'Thông tin cơ bản' })).toBeTruthy();
+  expect(screen.getByLabelText('Minh Anh')).toBeTruthy();
+  expect(screen.getByText('MA')).toBeTruthy();
+  expect(screen.getByText('Không thể lưu thay đổi.')).toBeTruthy();
 });

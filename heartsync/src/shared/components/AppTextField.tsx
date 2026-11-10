@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { colors, radii, spacing, type } from '../theme/tokens';
+import { colors, componentSize, radii, spacing, type } from '../theme/tokens';
 
 type Props = TextInputProps & { label: string; error?: string; rightAccessory?: ReactNode };
 export function AppTextField({ label, error, style, rightAccessory, ...inputProps }: Props) {
@@ -16,8 +16,8 @@ export function AppTextField({ label, error, style, rightAccessory, ...inputProp
 }
 const styles = StyleSheet.create({
   group: { gap: spacing.xs }, label: { ...type.label, color: colors.ink },
-  frame: { minHeight: 52, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md,
+  frame: { minHeight: componentSize.fieldHeight, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md,
     backgroundColor: colors.background, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center' },
-  input: { minHeight: 50, flex: 1, color: colors.ink, fontSize: 16, paddingVertical: spacing.sm },
+  input: { minHeight: componentSize.fieldHeight - 2, flex: 1, color: colors.ink, fontSize: 16, paddingVertical: spacing.sm },
   inputError: { borderColor: colors.danger }, error: { ...type.caption, color: colors.danger },
 });
