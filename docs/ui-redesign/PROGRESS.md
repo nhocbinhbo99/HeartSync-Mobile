@@ -13,18 +13,18 @@ replace any real backend state with fixtures.
 
 | Area | Status | Visual QA | Validation | Commit | Notes |
 | --- | --- | --- | --- | --- | --- |
-| HeartSync v3 tokens and shared primitives | DONE | Static review; Android device review pending | `typecheck`, `lint`, and Jest passed | This commit | Semantic colors, type roles, 48 dp targets, state panels, avatar, and section headers. |
+| HeartSync v3 tokens and shared primitives | DONE | Static review; Android device review pending | `typecheck`, `lint`, and Jest passed | `2dbae7c` | Semantic colors, type roles, 48 dp targets, state panels, avatar, and section headers. |
 
 ## Screen mapping
 
 | Screen / flow | Route or source | Reference image | Status | Visual QA | Commit | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Session loading | `AuthLoading` | Missing | TODO | Pending | — | Preserve current session gate. |
-| Setup required | `SetupRequired` | Missing | TODO | Pending | — | Never use fake Supabase settings. |
-| Sign in | `SignIn` | Missing | TODO | Pending | — | PKCE behavior remains unchanged. |
-| Sign up | `SignUp` | Missing | TODO | Pending | — | 18+ validation stays server-backed. |
-| Forgot password | `ForgotPassword` | Missing | TODO | Pending | — | Preserve recovery deep link flow. |
-| Update password | `UpdatePassword` | Missing | TODO | Pending | — | Preserve authenticated recovery state. |
+| Session loading | `AuthLoading` | Missing | DONE | Static review; Android device review pending | This commit | Preserve current session gate. |
+| Setup required | `SetupRequired` | Missing | DONE | Static review; Android device review pending | This commit | Never use fake Supabase settings. |
+| Sign in | `SignIn` | Missing | DONE | Static review; interaction test added; Android device review pending | This commit | PKCE behavior remains unchanged. |
+| Sign up | `SignUp` | Missing | DONE | Static review; Android device review pending | This commit | 18+ validation stays server-backed. |
+| Forgot password | `ForgotPassword` | Missing | DONE | Static review; Android device review pending | This commit | Preserve recovery deep link flow. |
+| Update password | `UpdatePassword` | Missing | DONE | Static review; Android device review pending | This commit | Preserve authenticated recovery state. |
 | Profile setup | `ProfileSetup` | Missing | TODO | Pending | — | Reuses private profile editor. |
 | Discover | `Discover` | Missing | TODO | Pending | — | Candidate DTO stays public-only. |
 | Filters | `Filters` | Missing | TODO | Pending | — | Keep explicit location consent. |
