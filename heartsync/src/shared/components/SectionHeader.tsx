@@ -15,7 +15,7 @@ export function SectionHeader({ title, description, action }: Props) {
   return <View style={styles.row}>
     <View style={styles.copy}>
       <AppText accessibilityRole="header" variant="subtitle">{title}</AppText>
-      {description ? <AppText tone="muted">{description}</AppText> : null}
+      {description ? <AppText variant="caption" tone="muted">{description}</AppText> : null}
     </View>
     {action ? <View style={styles.action}>{action}</View> : null}
   </View>;

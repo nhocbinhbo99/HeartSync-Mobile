@@ -19,13 +19,13 @@ replace any real backend state with fixtures.
 
 | Screen / flow | Route or source | Reference image | Status | Visual QA | Commit | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Session loading | `AuthLoading` | Missing | DONE | Static review; Android device review pending | This commit | Preserve current session gate. |
-| Setup required | `SetupRequired` | Missing | DONE | Static review; Android device review pending | This commit | Never use fake Supabase settings. |
-| Sign in | `SignIn` | Missing | DONE | Static review; interaction test added; Android device review pending | This commit | PKCE behavior remains unchanged. |
-| Sign up | `SignUp` | Missing | DONE | Static review; Android device review pending | This commit | 18+ validation stays server-backed. |
-| Forgot password | `ForgotPassword` | Missing | DONE | Static review; Android device review pending | This commit | Preserve recovery deep link flow. |
-| Update password | `UpdatePassword` | Missing | DONE | Static review; Android device review pending | This commit | Preserve authenticated recovery state. |
-| Profile setup | `ProfileSetup` | Missing | TODO | Pending | — | Reuses private profile editor. |
+| Session loading | `AuthLoading` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Preserve current session gate. |
+| Setup required | `SetupRequired` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Never use fake Supabase settings. |
+| Sign in | `SignIn` | Missing | DONE | Static review; interaction test added; Android device review pending | `fccb6f1` | PKCE behavior remains unchanged. |
+| Sign up | `SignUp` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | 18+ validation stays server-backed. |
+| Forgot password | `ForgotPassword` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Preserve recovery deep link flow. |
+| Update password | `UpdatePassword` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Preserve authenticated recovery state. |
+| Profile setup | `ProfileSetup` | Missing | DONE | Static review; Android device review pending | This commit | Reuses private profile editor. |
 | Discover | `Discover` | Missing | TODO | Pending | — | Candidate DTO stays public-only. |
 | Filters | `Filters` | Missing | TODO | Pending | — | Keep explicit location consent. |
 | Other profile | `OtherProfile` | Missing | TODO | Pending | — | No DOB or exact coordinates. |

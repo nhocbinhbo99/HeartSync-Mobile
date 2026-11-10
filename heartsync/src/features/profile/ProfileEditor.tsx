@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, StyleSheet, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import type { User } from '@supabase/supabase-js';
@@ -7,6 +7,7 @@ import { useNavigation, type NavigationAction, type NavigationProp } from '@reac
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppButton } from '../../shared/components/AppButton';
+import { AppText } from '../../shared/components/AppText';
 import { AnimatedSection } from '../../shared/components/AnimatedSection';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { BottomActionBar } from '../../shared/components/BottomActionBar';
@@ -16,6 +17,7 @@ import { LocationConsentField } from '../../shared/components/LocationConsentFie
 import { MultiChoiceField, SingleChoiceField } from '../../shared/components/ChoiceFields';
 import { PhotoGrid, type PhotoGridItem } from '../../shared/components/PhotoGrid';
 import { Screen } from '../../shared/components/Screen';
+import { SectionHeader } from '../../shared/components/SectionHeader';
 import { useSnackbar } from '../../shared/components/Snackbar';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { UnsavedChangesDialog } from '../../shared/components/UnsavedChangesDialog';
@@ -28,7 +30,7 @@ import {
   type ChoiceOption,
 } from '../../shared/domain/profileOptions';
 import { hasProfileErrors, validateProfile, type ProfileFieldErrors } from '../../shared/domain/profileValidation';
-import { colors, spacing, type } from '../../shared/theme/tokens';
+import { colors, spacing } from '../../shared/theme/tokens';
 import type { InterestOption, ProfilePhoto, ProfilePrivate, ProfilePublic, ProfileSaveInput } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAuth } from '../auth/AuthProvider';
@@ -336,8 +338,9 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
 
   return <Screen keyboardAware footer={actions}>
     <View style={styles.intro}>
-      <Text accessibilityRole="header" style={styles.title}>{mode === 'setup' ? 'Hoàn thiện hồ sơ' : 'Chỉnh sửa hồ sơ'}</Text>
-      <Text style={styles.body}>Ngày sinh và tọa độ chỉ dùng để xác minh tuổi và lọc phù hợp. Người khác chỉ thấy thông tin công khai.</Text>
+      <AppText accessibilityRole="header" variant="title">{mode === 'setup' ? 'Hoàn thiện hồ sơ' : 'Chỉnh sửa hồ sơ'}</AppText>
+      <AppText tone="muted">Ngày sinh và tọa độ chỉ dùng để xác minh tuổi và lọc phù hợp. Người khác chỉ thấy thông tin công khai.</AppText>
+      {mode === 'setup' ? <AppText variant="caption" tone="muted">Bạn có thể thêm hoặc thay đổi ảnh sau khi hoàn tất hồ sơ.</AppText> : null}
     </View>
 
     {mode === 'edit' ? <Section title="Ảnh hồ sơ" description="Ảnh chính xuất hiện đầu tiên. Bạn có thể dùng tối đa 6 ảnh.">
@@ -387,7 +390,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
         onPress={() => void requestLocation()} /> : null}
     </Section>
 
-    {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
+    {error ? <AppText accessibilityLiveRegion="polite" variant="caption" tone="danger" style={styles.error}>{error}</AppText> : null}
     <UnsavedChangesDialog visible={pendingNavigation !== undefined} onKeepEditing={() => setPendingNavigation(undefined)}
       onDiscard={() => {
         const action = pendingNavigation;
@@ -402,14 +405,13 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
 
 function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return <AnimatedSection><View style={styles.section}>
-    <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionBody}>{description}</Text></View>
+    <SectionHeader title={title} description={description} />
     {children}
   </View></AnimatedSection>;
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs }, title: { ...type.title, color: colors.ink }, body: { ...type.body, color: colors.inkMuted },
+  intro: { gap: spacing.xs },
   section: { borderTopColor: colors.border, borderTopWidth: 1, paddingTop: spacing.lg, gap: spacing.md },
-  sectionHeading: { gap: spacing.xs }, sectionTitle: { ...type.subtitle, color: colors.ink }, sectionBody: { ...type.caption, color: colors.inkMuted },
-  multiline: { minHeight: 132, paddingTop: spacing.md }, error: { ...type.body, color: colors.danger },
+  multiline: { minHeight: 132, paddingTop: spacing.md }, error: { paddingTop: spacing.xs },
 });
