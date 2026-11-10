@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Image, ScrollView, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -7,9 +7,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
+import { AppText } from '../../shared/components/AppText';
+import { Avatar } from '../../shared/components/Avatar';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { Screen } from '../../shared/components/Screen';
+import { SectionHeader } from '../../shared/components/SectionHeader';
 import { SelectedChip } from '../../shared/components/SelectedChip';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { useSnackbar } from '../../shared/components/Snackbar';
@@ -18,7 +21,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useAppServices } from '../../services/AppServicesProvider';
 import type { AsyncViewState } from '../../shared/types/ui';
 import type { ProfilePublic } from '../../shared/types/domain.types';
-import { colors, radii, spacing, type } from '../../shared/theme/tokens';
+import { colors, radii, spacing } from '../../shared/theme/tokens';
 
 type Props = CompositeScreenProps<BottomTabScreenProps<MainTabParamList, 'Profile'>, NativeStackScreenProps<RootStackParamList>>;
 
@@ -71,15 +74,20 @@ export function ProfileScreen({ navigation }: Props) {
           {photoUrls.map((uri, index) => <Image key={uri} accessibilityLabel={`Ảnh hồ sơ ${index + 1} của bạn`} source={{ uri }} style={[styles.photo, { width: photoWidth }]} />)}
         </ScrollView>
         {photoUrls.length > 1 ? <View accessible accessibilityLabel={`Ảnh ${activePhoto + 1} trên ${photoUrls.length}`} style={styles.dots}>{photoUrls.map((_, index) => <View key={index} style={[styles.dot, index === activePhoto && styles.dotActive]} />)}</View> : null}
-      </View> : <View style={styles.photoPlaceholder}><AppIcon name="photoAdd" color={colors.primaryPressed} size={36} /><Text style={styles.photoPlaceholderText}>Thêm ảnh để hồ sơ dễ được nhận ra hơn.</Text></View>}
+      </View> : <View style={styles.photoPlaceholder}>
+        <Avatar label={profile.displayName} size={64} />
+        <AppText variant="subtitle">Chưa có ảnh hồ sơ</AppText>
+        <AppText variant="caption" tone="muted" style={styles.photoPlaceholderText}>Thêm ảnh để hồ sơ dễ được nhận ra hơn.</AppText>
+      </View>}
       <View style={styles.heading}>
-        <Text accessibilityRole="header" style={styles.title}>{profile.displayName}, {profile.age}</Text>
-        <View style={styles.metaRow}><AppIcon name="location" color={colors.inkMuted} size={17} /><Text style={styles.meta}>{profile.publicLocation || 'Chưa thêm khu vực công khai'}</Text><Text style={styles.metaDot}>•</Text><Text style={styles.meta}>{profile.photos.length}/6 ảnh</Text></View>
+        <AppText accessibilityRole="header" variant="title">{profile.displayName}, {profile.age}</AppText>
+        <View style={styles.metaRow}><AppIcon name="location" color={colors.inkMuted} size={17} /><AppText tone="muted" style={styles.meta}>{profile.publicLocation || 'Chưa thêm khu vực công khai'}</AppText><AppText variant="caption" tone="muted">•</AppText><AppText tone="muted" style={styles.meta}>{profile.photos.length}/6 ảnh</AppText></View>
       </View>
-      <Text style={styles.bio}>{profile.bio || 'Thêm một phần giới thiệu để người phù hợp dễ bắt đầu cuộc trò chuyện.'}</Text>
+      <AppText style={styles.bio}>{profile.bio || 'Thêm một phần giới thiệu để người phù hợp dễ bắt đầu cuộc trò chuyện.'}</AppText>
       {profile.interests.length ? <View style={styles.chips}>{profile.interests.map((interest) => <SelectedChip key={interest} label={interest} />)}</View> : null}
       <AppButton label="Chỉnh sửa hồ sơ" leadingIcon="more" onPress={() => navigation.navigate('EditProfile')} />
       <View style={styles.settingsGroup}>
+        <SectionHeader title="Tài khoản" description="Quản lý quyền riêng tư và phiên đăng nhập." />
         <SettingsRow icon="shield" title="An toàn & quyền riêng tư" description="Xem cách HeartSync bảo vệ dữ liệu của bạn" onPress={() => navigation.navigate('Safety')} />
         <SettingsRow icon="logout" title="Đăng xuất" description="Kết thúc phiên trên thiết bị này" destructive onPress={() => void handleSignOut()} />
       </View>
@@ -93,18 +101,18 @@ export function ProfileScreen({ navigation }: Props) {
 function SettingsRow({ icon, title, description, destructive = false, onPress }: { icon: 'shield' | 'logout'; title: string; description: string; destructive?: boolean; onPress: () => void }) {
   const color = destructive ? colors.danger : colors.primaryPressed;
   return <AnimatedPressable accessibilityRole="button" accessibilityLabel={title} accessibilityHint={description} onPress={onPress} style={styles.settingsRow}>
-    <View style={[styles.settingsIcon, { backgroundColor: destructive ? '#FDEBED' : colors.primarySoft }]}><AppIcon name={icon} color={color} size={21} /></View>
-    <View style={styles.settingsCopy}><Text style={[styles.settingsTitle, destructive && { color }]}>{title}</Text><Text style={styles.settingsDescription}>{description}</Text></View>
+    <View style={styles.settingsIcon}><AppIcon name={icon} color={color} size={21} /></View>
+    <View style={styles.settingsCopy}><AppText variant="label" tone={destructive ? 'danger' : 'default'}>{title}</AppText><AppText variant="caption" tone="muted">{description}</AppText></View>
     <AppIcon name="forward" color={destructive ? colors.danger : colors.inkMuted} size={22} />
   </AnimatedPressable>;
 }
 
 const styles = StyleSheet.create({
-  gallery: { gap: spacing.sm }, photoPager: { borderRadius: radii.lg, backgroundColor: colors.surfaceMuted }, photo: { aspectRatio: 0.86, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
+  gallery: { gap: spacing.sm }, photoPager: { borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceMuted }, photo: { aspectRatio: 0.86, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xxs }, dot: { width: 6, height: 6, borderRadius: radii.pill, backgroundColor: colors.border }, dotActive: { width: 18, backgroundColor: colors.primary },
-  photoPlaceholder: { minHeight: 238, borderRadius: radii.lg, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', padding: spacing.lg, gap: spacing.sm },
-  photoPlaceholderText: { ...type.body, color: colors.primaryPressed, textAlign: 'center' }, heading: { gap: spacing.xxs }, title: { ...type.title, color: colors.ink }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, flexWrap: 'wrap' }, meta: { ...type.body, color: colors.inkMuted }, metaDot: { ...type.caption, color: colors.inkMuted },
-  bio: { ...type.body, color: colors.ink }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  settingsGroup: { borderTopWidth: 1, borderTopColor: colors.border }, settingsRow: { minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
-  settingsIcon: { width: 44, height: 44, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' }, settingsCopy: { flex: 1, gap: spacing.xxs }, settingsTitle: { ...type.label, color: colors.ink }, settingsDescription: { ...type.caption, color: colors.inkMuted },
+  photoPlaceholder: { minHeight: 238, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', padding: spacing.lg, gap: spacing.sm },
+  photoPlaceholderText: { textAlign: 'center' }, heading: { gap: spacing.xxs }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, flexWrap: 'wrap' }, meta: { flexShrink: 1 },
+  bio: { flexShrink: 1 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  settingsGroup: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg, gap: spacing.xs }, settingsRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  settingsIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }, settingsCopy: { flex: 1, gap: spacing.xxs },
 });

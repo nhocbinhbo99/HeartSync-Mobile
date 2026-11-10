@@ -25,7 +25,7 @@ replace any real backend state with fixtures.
 | Sign up | `SignUp` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | 18+ validation stays server-backed. |
 | Forgot password | `ForgotPassword` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Preserve recovery deep link flow. |
 | Update password | `UpdatePassword` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Preserve authenticated recovery state. |
-| Profile setup | `ProfileSetup` | Missing | DONE | Static review; Android device review pending | This commit | Reuses private profile editor. |
+| Profile setup | `ProfileSetup` | Missing | DONE | Static review; Android device review pending | `be8d86a` | Reuses private profile editor. |
 | Discover | `Discover` | Missing | TODO | Pending | — | Candidate DTO stays public-only. |
 | Filters | `Filters` | Missing | TODO | Pending | — | Keep explicit location consent. |
 | Other profile | `OtherProfile` | Missing | TODO | Pending | — | No DOB or exact coordinates. |
@@ -36,7 +36,7 @@ replace any real backend state with fixtures.
 | Incoming call | `IncomingCallOverlay` | Missing | TODO | Pending | — | Keep call authorization state explicit. |
 | Voice call | `AudioCall` | Missing | TODO | Pending | — | Connected is a real media event only. |
 | Video call | `VideoCall` | Missing | TODO | Pending | — | Camera/mic permission state remains real. |
-| My profile | `Profile` | Missing | TODO | Pending | — | Keep private/public separation. |
+| My profile | `Profile` | Missing | DONE | Static review; Android device review pending | This commit | Keep private/public separation. |
 | Edit profile | `EditProfile` | Missing | TODO | Pending | — | Keep storage/photo lifecycle. |
 | Safety | `Safety` | Missing | TODO | Pending | — | Block/report contracts stay unchanged. |
 
