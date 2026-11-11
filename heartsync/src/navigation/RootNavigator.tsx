@@ -13,6 +13,7 @@ import {
   SetupRequiredScreen,
 } from "../features/auth/AuthStateScreens";
 import { UpdatePasswordScreen } from "../features/auth/UpdatePasswordScreen";
+import { OnboardingScreen, WelcomeScreen } from "../features/auth/WelcomeScreens";
 import { useAuth } from "../features/auth/AuthProvider";
 import {
   AudioCallScreen,
@@ -123,15 +124,17 @@ export function RootNavigator() {
         ) : null}
         {mode === "auth" ? (
           <>
+            <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
             <Stack.Screen name="SignIn" options={{ headerShown: false }}>
               {(props) => <AuthScreen {...props} mode="sign-in" />}
             </Stack.Screen>
-            <Stack.Screen name="SignUp" options={{ title: "Tạo tài khoản" }}>
+            <Stack.Screen name="SignUp" options={{ headerShown: false }}>
               {(props) => <AuthScreen {...props} mode="sign-up" />}
             </Stack.Screen>
             <Stack.Screen
               name="ForgotPassword"
-              options={{ title: "Quên mật khẩu" }}
+              options={{ headerShown: false }}
             >
               {(props) => <AuthScreen {...props} mode="forgot-password" />}
             </Stack.Screen>

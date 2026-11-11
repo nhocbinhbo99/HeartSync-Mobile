@@ -29,15 +29,16 @@ typed routes, repository contracts and confirmed backend state take precedence.
 
 `REWORK` means a working business screen exists but still follows the old cyan
 direction and has not been checked against the listed Pink Romance reference.
-`BUILD` means the visual concept has no corresponding route/screen yet. No
-screen below is marked visually complete until a device comparison is recorded.
+`BUILD` means the visual concept has no corresponding route/screen yet.
+`IMPLEMENTED — device QA pending` means code and static validation are done;
+no screen below is visually complete until a device comparison is recorded.
 
 | # | Reference | Product route / owner | Status |
 | --- | --- | --- | --- |
-| 01 | `01_welcome.png` | Auth landing | BUILD |
-| 02 | `02_onboarding.png` | Auth onboarding | BUILD |
-| 03 | `03_login.png` | `SignIn` | REWORK |
-| 04 | `04_register.png` | `SignUp` / profile setup | REWORK |
+| 01 | `01_welcome.png` | `Welcome` | IMPLEMENTED — device QA pending |
+| 02 | `02_onboarding.png` | `Onboarding` | IMPLEMENTED — device QA pending |
+| 03 | `03_login.png` | `SignIn` | IMPLEMENTED — device QA pending |
+| 04 | `04_register.png` | `SignUp` / profile setup | IMPLEMENTED — device QA pending |
 | 05 | `05_discover.png` | `Discover` | REWORK |
 | 06 | `06_profile_detail.png` | `OtherProfile` | REWORK |
 | 07 | `07_filters_sheet.png` | `Filters` | REWORK |
@@ -61,8 +62,8 @@ screen below is marked visually complete until a device comparison is recorded.
 
 | Area | Status | Evidence |
 | --- | --- | --- |
-| Tokens, primitive geometry and navigation colours | IN PROGRESS | `heartsync/src/shared/theme/tokens.ts`, `navigationTheme.ts` |
-| Project design specification | IN PROGRESS | `DESIGN.md` now maps to supplied Pink Romance direction |
+| Tokens, primitive geometry and navigation colours | IMPLEMENTED — device QA pending | `heartsync/src/shared/theme/tokens.ts`, `navigationTheme.ts` |
+| Project design specification | IMPLEMENTED | `DESIGN.md` now maps to supplied Pink Romance direction |
 | Full-screen visual QA | NOT STARTED | Requires Expo development build on an Android device or emulator |
 
 ## Guardrails that stay true through the redesign

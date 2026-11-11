@@ -14,7 +14,7 @@ type Props = PropsWithChildren<Pick<PressableProps, 'accessibilityHint' | 'acces
 
 const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
 
-export function AnimatedPressable({ children, style, pressedScale = 0.98, rippleColor = 'rgba(0, 102, 116, 0.12)', disabledOpacity = 0.52, disabled = false, ...props }: Props) {
+export function AnimatedPressable({ children, style, pressedScale = 0.98, rippleColor = 'rgba(230, 56, 111, 0.12)', disabledOpacity = 0.52, disabled = false, ...props }: Props) {
   const pressed = useSharedValue(0);
   const reduceMotion = useReducedMotion();
   const animatedStyle = useAnimatedStyle(() => ({

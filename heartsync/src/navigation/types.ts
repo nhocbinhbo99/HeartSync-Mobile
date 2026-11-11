@@ -8,6 +8,8 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
+  Welcome: undefined;
+  Onboarding: undefined;
   SignIn: undefined;
   SignUp: undefined;
   ForgotPassword: undefined;
