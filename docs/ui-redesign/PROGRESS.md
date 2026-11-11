@@ -32,6 +32,8 @@ direction and has not been checked against the listed Pink Romance reference.
 `BUILD` means the visual concept has no corresponding route/screen yet.
 `IMPLEMENTED — device QA pending` means code and static validation are done;
 no screen below is visually complete until a device comparison is recorded.
+`IMPLEMENTED — service pending` means the UI is deliberate about an unavailable
+backend action and never presents a false confirmation.
 
 | # | Reference | Product route / owner | Status |
 | --- | --- | --- | --- |
@@ -40,8 +42,8 @@ no screen below is visually complete until a device comparison is recorded.
 | 03 | `03_login.png` | `SignIn` | IMPLEMENTED — device QA pending |
 | 04 | `04_register.png` | `SignUp` / profile setup | IMPLEMENTED — device QA pending |
 | 05 | `05_discover.png` | `Discover` | IMPLEMENTED — device QA pending |
-| 06 | `06_profile_detail.png` | `OtherProfile` | REWORK |
-| 07 | `07_filters_sheet.png` | `Filters` | REWORK |
+| 06 | `06_profile_detail.png` | `OtherProfile` | IMPLEMENTED — device QA pending |
+| 07 | `07_filters_sheet.png` | `Filters` | IMPLEMENTED — device QA pending |
 | 08 | `08_match_found.png` | `MatchFound` | IMPLEMENTED — device QA pending |
 | 09 | `09_saved.png` | `Saved` | IMPLEMENTED — device QA pending |
 | 10 | `10_connections.png` | `Matches` | REWORK |
@@ -52,8 +54,8 @@ no screen below is visually complete until a device comparison is recorded.
 | 15 | `15_my_profile.png` | `Profile` | IMPLEMENTED — device QA pending |
 | 16 | `16_edit_profile.png` | `EditProfile` | IMPLEMENTED — device QA pending |
 | 17 | `17_interests.png` | `Interests` | IMPLEMENTED — device QA pending |
-| 18 | `18_safety_center.png` | `Safety` | REWORK |
-| 19 | `19_report.png` | Report flow | BUILD |
+| 18 | `18_safety_center.png` | `Safety` | IMPLEMENTED — device QA pending |
+| 19 | `19_report.png` | `Report` | IMPLEMENTED — service pending |
 | 20 | `20_empty_discover.png` | `Discover` empty state | IMPLEMENTED — device QA pending |
 | 21 | `21_settings.png` | `Settings` | IMPLEMENTED — device QA pending |
 | 22 | `22_dark_chat.png` | Chat appearance treatment | BUILD |

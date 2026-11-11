@@ -26,6 +26,7 @@ import { MatchesScreen } from "../features/matching/MatchesScreen";
 import {
   EditProfileScreen,
   OtherProfileScreen,
+  ReportScreen,
   SafetyScreen,
 } from "../features/profile/ProfileDetailScreens";
 import { InterestsScreen, SettingsScreen } from "../features/profile/ProfileExtraScreens";
@@ -215,6 +216,11 @@ export function RootNavigator() {
               name="Safety"
               component={SafetyScreen}
               options={{ title: "An toàn" }}
+            />
+            <Stack.Screen
+              name="Report"
+              component={ReportScreen}
+              options={{ title: "Báo cáo" }}
             />
           </>
         ) : null}

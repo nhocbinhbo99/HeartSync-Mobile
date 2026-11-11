@@ -64,10 +64,10 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
   if (!services) return <Screen><StatePanel title="Chưa thể tải bộ lọc" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
   if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tải bộ lọc" description="Đang đọc lựa chọn riêng của bạn." /></Screen>;
 
-  return <Screen footer={<BottomActionBar><AppButton label="Lưu bộ lọc" loading={busy} disabled={busy} trailingIcon="check" onPress={() => void save()} /></BottomActionBar>}>
+  return <Screen footer={<BottomActionBar><AppButton label="Áp dụng bộ lọc" loading={busy} disabled={busy} trailingIcon="check" onPress={() => void save()} /><AppButton label="Đặt lại" variant="quiet" disabled={busy} onPress={() => setFilters({ ...DEFAULT_FILTERS, distanceKm: locationReady ? 50 : null })} /></BottomActionBar>}>
     <View style={styles.intro}>
       <View style={styles.iconCircle}><AppIcon name="filter" color={colors.primaryPressed} size={24} /></View>
-      <AppText accessibilityRole="header" variant="title">Điều chỉnh gợi ý</AppText>
+      <AppText accessibilityRole="header" variant="heading">Tùy chỉnh tìm kiếm</AppText>
       <AppText tone="muted">Bạn luôn kiểm soát tiêu chí; các lựa chọn này chỉ thuộc về tài khoản của bạn.</AppText>
     </View>
     <AnimatedSection><View style={styles.section}>

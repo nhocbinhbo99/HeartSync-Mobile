@@ -28,6 +28,7 @@ export type RootStackParamList = {
   VideoCall: { matchId: string; callId: string; incoming?: boolean };
   MatchFound: { matchId?: string } | undefined;
   Safety: { profileId?: string } | undefined;
+  Report: { profileId?: string } | undefined;
 };
 
 declare global {
