@@ -24,6 +24,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
 import type { ChatMessage } from '../../shared/types/domain.types';
 import { brandAssets } from '../../shared/utils/avatarHelper';
+import { AiIcebreakerAssistant } from '../ai/AiIcebreakerAssistant';
 
 type Message = ChatMessage & { delivery?: 'sending' | 'failed' };
 
@@ -267,43 +268,55 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
   const canSend = Boolean(text.trim() && enabled);
 
   const composer = (
-    <View style={styles.composer}>
-      <View style={styles.inputCapsule}>
-        <View style={styles.capsuleIcon}>
-          <AppIcon name="smile" color={colors.inkMuted} size={22} />
-        </View>
-        <TextInput
-          accessibilityLabel="Tin nhắn"
-          value={text}
-          onChangeText={setText}
-          multiline
-          maxLength={4000}
-          placeholder="Nhập tin nhắn..."
-          placeholderTextColor={colors.inkMuted}
-          editable={enabled}
-          style={styles.composerInput}
-        />
-        <View style={styles.capsuleIcon}>
-          <AppIcon name="add" color={colors.primaryPressed} size={22} />
-        </View>
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Gửi tin nhắn"
-        disabled={!canSend}
-        onPress={submit}
-        style={[styles.sendCircle, !canSend && styles.sendCircleDisabled]}
-      >
-        {canSend ? (
-          <Image
-            source={brandAssets.pinkButtonGradient}
-            style={StyleSheet.absoluteFill}
-            resizeMode="stretch"
+    <View style={styles.composerWrap}>
+      {enabled ? (
+        <View style={styles.aiStrip}>
+          <AiIcebreakerAssistant
+            key={`${matchId}:${enabled ? 'active' : 'inactive'}`}
+            matchId={matchId}
+            enabled={enabled}
+            onSelect={setText}
           />
-        ) : null}
-        <AppIcon name="send" color="#FFFFFF" size={20} />
-      </Pressable>
+        </View>
+      ) : null}
+      <View style={styles.composer}>
+        <View style={styles.inputCapsule}>
+          <View style={styles.capsuleIcon}>
+            <AppIcon name="smile" color={colors.inkMuted} size={22} />
+          </View>
+          <TextInput
+            accessibilityLabel="Tin nhắn"
+            value={text}
+            onChangeText={setText}
+            multiline
+            maxLength={4000}
+            placeholder="Nhập tin nhắn..."
+            placeholderTextColor={colors.inkMuted}
+            editable={enabled}
+            style={styles.composerInput}
+          />
+          <View style={styles.capsuleIcon}>
+            <AppIcon name="add" color={colors.primaryPressed} size={22} />
+          </View>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Gửi tin nhắn"
+          disabled={!canSend}
+          onPress={submit}
+          style={[styles.sendCircle, !canSend && styles.sendCircleDisabled]}
+        >
+          {canSend ? (
+            <Image
+              source={brandAssets.pinkButtonGradient}
+              style={StyleSheet.absoluteFill}
+              resizeMode="stretch"
+            />
+          ) : null}
+          <AppIcon name="send" color="#FFFFFF" size={20} />
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -624,6 +637,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7F9',
     borderTopWidth: 1,
     borderTopColor: '#F6E0E9',
+  },
+  composerWrap: {
+    width: '100%',
+  },
+  aiStrip: {
+    paddingHorizontal: spacing.md,
+    paddingTop: 8,
+    paddingBottom: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   composer: {
     flexDirection: 'row',

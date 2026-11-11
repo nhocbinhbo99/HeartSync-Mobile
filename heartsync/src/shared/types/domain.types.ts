@@ -133,7 +133,10 @@ export type ApiErrorCode =
   | "validation"
   | "not_found"
   | "conflict"
-  | "rate_limited";
+  | "rate_limited"
+  | "quota_exhausted"
+  | "unavailable"
+  | "request_in_progress";
 
 export type ApiError = {
   code: ApiErrorCode;

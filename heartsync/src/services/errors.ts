@@ -14,6 +14,9 @@ const messages: Record<ApiErrorCode, string> = {
   not_found: "Không tìm thấy dữ liệu được yêu cầu.",
   conflict: "Dữ liệu đã thay đổi hoặc thao tác bị xung đột.",
   rate_limited: "Bạn thao tác quá nhanh. Vui lòng thử lại sau.",
+  quota_exhausted: "Bạn đã dùng hết lượt AI miễn phí.",
+  unavailable: "Dịch vụ tạm thời chưa khả dụng. Vui lòng thử lại sau.",
+  request_in_progress: "Yêu cầu đang được xử lý. Vui lòng đợi một chút.",
 };
 
 function isRecord(value: unknown): value is ErrorRecord {

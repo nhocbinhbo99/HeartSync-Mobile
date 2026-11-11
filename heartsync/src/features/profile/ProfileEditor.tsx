@@ -44,6 +44,7 @@ import type {
 } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAuth } from '../auth/AuthProvider';
+import { AiBioAssistant } from '../ai/AiBioAssistant';
 
 type Draft = {
   displayName: string;
@@ -579,6 +580,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
           error={errors.bio}
           placeholder="Sở thích, thói quen hoặc điều bạn đang tìm kiếm…"
         />
+        <AiBioAssistant bio={draft.bio} interests={draft.interests} onUseBio={(value) => update('bio', value)} />
         <SingleChoiceField
           label="Nghề nghiệp"
           options={OCCUPATION_OPTIONS}

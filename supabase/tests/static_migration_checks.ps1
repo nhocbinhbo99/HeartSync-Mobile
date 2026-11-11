@@ -8,6 +8,8 @@ $profileContracts = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\2
 $reorderRepair = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261105080739_fix_reorder_profile_photos_constraint.sql')
 $callLiveness = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261105120000_call_liveness.sql')
 $videoCall = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261107065833_enable_video_calls_with_liveness.sql')
+$aiQuota = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261111110000_heartsync_ai_quota.sql')
+$aiQuotaConstraintRepair = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261111160000_fix_ai_icebreaker_period_constraint.sql')
 $rlsTests = Get-Content -Raw -LiteralPath (Join-Path $root 'tests\rls_security.sql')
 
 $tables = @(
@@ -71,6 +73,51 @@ if ($videoCall -notmatch "revoke execute on function public\.start_call\(uuid, p
   throw 'Final start_call contract must remain revoked from public/anon.'
 }
 
+foreach ($fragment in @(
+  'create table public.ai_quota_buckets',
+  'create table private.ai_generation_requests',
+  'alter table public.ai_quota_buckets enable row level security',
+  "create policy ai_quota_buckets_select_own",
+  'private.ai_period_key',
+  'public.reserve_ai_request',
+  'public.finalize_ai_request',
+  'public.fail_ai_request',
+  'public.get_ai_quotas',
+  'public.ai_icebreaker_context',
+  "Asia/Ho_Chi_Minh",
+  "reserved_count",
+  "REQUEST_EXPIRED"
+)) {
+  if ($aiQuota -notmatch [regex]::Escape($fragment)) { throw "Missing AI quota invariant: $fragment" }
+}
+if ($aiQuota -match 'grant\s+(all|insert|update|delete)\s+on table public\.ai_quota_buckets\s+to authenticated') {
+  throw 'Authenticated clients must not be granted AI quota mutations.'
+}
+if ($aiQuota -notmatch "revoke all on function public\.reserve_ai_request[\s\S]*from public, anon") {
+  throw 'AI quota RPCs must be revoked from public/anon.'
+}
+if ($aiQuota -notmatch "grant execute on function public\.reserve_ai_request[\s\S]*to authenticated") {
+  throw 'AI quota RPCs must be granted only to authenticated callers.'
+}
+if ($aiQuotaConstraintRepair -notmatch 'drop constraint if exists ai_generation_request_shape') {
+  throw 'AI Icebreaker period constraint repair must replace the deployed constraint forward-only.'
+}
+if ($aiQuotaConstraintRepair -notmatch 'drop constraint if exists ai_quota_buckets_period_key_check') {
+  throw 'AI Icebreaker period constraint repair must replace the deployed quota bucket constraint forward-only.'
+}
+if ($aiQuotaConstraintRepair -notmatch "period_key ~ '\^\[0-9\]\{4\}-\[0-9\]\{2\}-\[0-9\]\{2\}\$'") {
+  throw 'AI Icebreaker period constraint repair must accept YYYY-MM-DD using an unambiguous digit pattern.'
+}
+if ($aiQuotaConstraintRepair -notmatch "notify pgrst, 'reload schema'") {
+  throw 'AI Icebreaker period constraint repair must reload the PostgREST schema cache.'
+}
+$aiFunctionBlocks = [regex]::Matches($aiQuota, 'create or replace function[\s\S]*?\$\$;', [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+foreach ($block in $aiFunctionBlocks) {
+  if ($block.Value -match 'security definer' -and $block.Value -notmatch "set search_path = ''") {
+    throw 'AI SECURITY DEFINER function without empty search_path.'
+  }
+}
+
 $profileRpcs = @(
   'save_my_profile', 'save_my_private_location', 'save_my_preferences',
   'reorder_profile_photos', 'set_primary_profile_photo', 'list_saved_profiles'
@@ -104,4 +151,5 @@ foreach ($case in @('anonymous users cannot read profiles', 'user A cannot chang
 }
 
 Write-Output "Static migration checks passed for $($tables.Count) RLS tables and $((4 + $profileRpcs.Count)) public RPCs."
+Write-Output 'Static AI quota migration checks passed (RLS, auth grants, timezone, reservation/finalize/refund invariants).'
 Write-Output 'This is not a PostgreSQL execution test.'
