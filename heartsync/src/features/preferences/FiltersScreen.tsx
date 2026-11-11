@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
@@ -7,16 +7,18 @@ import { validateDiscoveryFilters } from '../../shared/domain/filters';
 import { AnimatedSection } from '../../shared/components/AnimatedSection';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
+import { AppText } from '../../shared/components/AppText';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { BottomActionBar } from '../../shared/components/BottomActionBar';
 import { MultiChoiceField } from '../../shared/components/ChoiceFields';
 import { RangeSliderField, ValueSliderField } from '../../shared/components/RangeFields';
 import { Screen } from '../../shared/components/Screen';
+import { SectionHeader } from '../../shared/components/SectionHeader';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { useSnackbar } from '../../shared/components/Snackbar';
 import { feedback } from '../../shared/motion/feedback';
 import { GENDER_OPTIONS, LANGUAGE_OPTIONS } from '../../shared/domain/profileOptions';
-import { colors, radii, spacing, type } from '../../shared/theme/tokens';
+import { colors, radii, spacing } from '../../shared/theme/tokens';
 import type { DiscoveryFilters } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -65,16 +67,16 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
   return <Screen footer={<BottomActionBar><AppButton label="Lưu bộ lọc" loading={busy} disabled={busy} trailingIcon="check" onPress={() => void save()} /></BottomActionBar>}>
     <View style={styles.intro}>
       <View style={styles.iconCircle}><AppIcon name="filter" color={colors.primaryPressed} size={24} /></View>
-      <Text accessibilityRole="header" style={styles.title}>Điều chỉnh gợi ý</Text>
-      <Text style={styles.body}>Bạn luôn kiểm soát tiêu chí; các lựa chọn này chỉ thuộc về tài khoản của bạn.</Text>
+      <AppText accessibilityRole="header" variant="title">Điều chỉnh gợi ý</AppText>
+      <AppText tone="muted">Bạn luôn kiểm soát tiêu chí; các lựa chọn này chỉ thuộc về tài khoản của bạn.</AppText>
     </View>
     <AnimatedSection><View style={styles.section}>
-      <Text style={styles.sectionTitle}>Độ tuổi</Text>
+      <SectionHeader title="Độ tuổi" />
       <RangeSliderField label="Khoảng tuổi mong muốn" min={18} max={120} low={filters.ageMin} high={filters.ageMax}
         onChange={(ageMin, ageMax) => setFilters((current) => ({ ...current, ageMin, ageMax }))} />
     </View></AnimatedSection>
     <AnimatedSection><View style={styles.section}>
-      <Text style={styles.sectionTitle}>Bạn muốn gặp ai?</Text>
+      <SectionHeader title="Bạn muốn gặp ai?" description="Để trống một tiêu chí nếu bạn không muốn giới hạn gợi ý." />
       <MultiChoiceField label="Giới tính" options={GENDER_OPTIONS} values={filters.preferredGenders}
         onChange={(preferredGenders) => setFilters((current) => ({ ...current, preferredGenders }))}
         helperText="Không chọn nghĩa là không giới hạn theo giới tính." searchable={false} />
@@ -83,14 +85,14 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         helperText="Không chọn nghĩa là không giới hạn theo ngôn ngữ." />
     </View></AnimatedSection>
     <AnimatedSection><View style={styles.section}>
-      <Text style={styles.sectionTitle}>Khoảng cách</Text>
+      <SectionHeader title="Khoảng cách" description="Vị trí chính xác không xuất hiện trên hồ sơ công khai." />
       {!locationReady ? <View style={styles.locationNotice}>
         <View style={styles.noticeIcon}><AppIcon name="locationOff" color={colors.inkMuted} size={22} /></View>
-        <View style={styles.noticeCopy}><Text style={styles.noticeTitle}>Không giới hạn khoảng cách</Text><Text style={styles.noticeBody}>Bật vị trí trong Hồ sơ để lọc theo khoảng cách. Tọa độ chính xác luôn riêng tư.</Text></View>
+        <View style={styles.noticeCopy}><AppText variant="label">Không giới hạn khoảng cách</AppText><AppText variant="caption" tone="muted">Bật vị trí trong Hồ sơ để lọc theo khoảng cách. Tọa độ chính xác luôn riêng tư.</AppText></View>
         <AppButton label="Thiết lập" variant="secondary" trailingIcon="forward" onPress={() => navigation.navigate('EditProfile')} />
       </View> : <>
         <View style={styles.switchRow}>
-          <View style={styles.switchCopy}><Text style={styles.noticeTitle}>Không giới hạn khoảng cách</Text><Text style={styles.noticeBody}>Tắt để chọn bán kính tối đa.</Text></View>
+          <View style={styles.switchCopy}><AppText variant="label">Không giới hạn khoảng cách</AppText><AppText variant="caption" tone="muted">Tắt để chọn bán kính tối đa.</AppText></View>
           <Switch accessibilityLabel="Không giới hạn khoảng cách" value={filters.distanceKm === null} trackColor={{ false: colors.border, true: colors.primarySoft }}
             thumbColor={filters.distanceKm === null ? colors.primary : colors.inkMuted} onValueChange={(unlimited) => { feedback(unlimited ? 'toggleOn' : 'toggleOff'); setFilters((current) => ({ ...current, distanceKm: unlimited ? null : 50 })); }} />
         </View>
@@ -98,17 +100,16 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
           onChange={(distanceKm) => setFilters((current) => ({ ...current, distanceKm }))} /></AnimatedSection> : null}
       </>}
     </View></AnimatedSection>
-    {error ? <View accessibilityLiveRegion="polite" style={styles.error}><AppIcon name="error" color={colors.danger} size={20} /><Text style={styles.errorText}>{error}</Text></View> : null}
+    {error ? <View accessibilityLiveRegion="polite" style={styles.error}><AppIcon name="error" color={colors.danger} size={20} /><AppText variant="caption" tone="danger" style={styles.errorText}>{error}</AppText></View> : null}
   </Screen>;
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs, marginBottom: spacing.xs }, iconCircle: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
-  title: { ...type.title, color: colors.ink }, body: { ...type.body, color: colors.inkMuted },
-  section: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg, gap: spacing.md }, sectionTitle: { ...type.subtitle, color: colors.ink },
-  locationNotice: { borderRadius: radii.md, backgroundColor: colors.surfaceMuted, padding: spacing.md, gap: spacing.sm },
-  noticeIcon: { width: 40, height: 40, borderRadius: radii.pill, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  noticeCopy: { gap: spacing.xxs }, noticeTitle: { ...type.label, color: colors.ink }, noticeBody: { ...type.caption, color: colors.inkMuted },
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, backgroundColor: colors.surfaceMuted, borderRadius: radii.md }, switchCopy: { flex: 1, gap: spacing.xxs },
-  error: { borderWidth: 1, borderColor: colors.danger, borderRadius: radii.md, padding: spacing.sm, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs }, errorText: { ...type.caption, color: colors.danger, flex: 1 },
+  intro: { gap: spacing.xs, marginBottom: spacing.xs }, iconCircle: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  section: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg, gap: spacing.md },
+  locationNotice: { borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, backgroundColor: colors.surface, padding: spacing.md, gap: spacing.sm },
+  noticeIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  noticeCopy: { gap: spacing.xxs },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radii.md }, switchCopy: { flex: 1, gap: spacing.xxs },
+  error: { borderWidth: 1, borderColor: colors.danger, borderRadius: radii.md, padding: spacing.sm, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs }, errorText: { flex: 1 },
 });
