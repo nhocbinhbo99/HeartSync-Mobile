@@ -15,6 +15,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { useAppServices } from "../../services/AppServicesProvider";
 import { dedupeMessages } from "../../shared/domain/messages";
 import { AppButton } from "../../shared/components/AppButton";
+import { AppText } from "../../shared/components/AppText";
 import { AppTextField } from "../../shared/components/AppTextField";
 import { Screen } from "../../shared/components/Screen";
 import type { RootStackParamList } from "../../navigation/types";
@@ -256,28 +257,18 @@ function Conversation({
   if (!matchId || !services)
     return (
       <Screen>
-        <Text>Chưa thể mở cuộc trò chuyện.</Text>
+        <AppText>Chưa thể mở cuộc trò chuyện.</AppText>
       </Screen>
     );
   return (
     <Screen scroll={false} keyboardAware>
       {recipient ? <ConversationProfile profileId={recipient} /> : null}
-      <AppButton
-        label="Gọi thoại"
-        variant="secondary"
-        disabled={!enabled || startingCall}
-        onPress={() => void startCall("audio")}
-      />
-      <AppButton
-        label="Gọi video"
-        variant="secondary"
-        disabled={!enabled || startingCall}
-        onPress={() => void startCall("video")}
-      />
+      <View style={styles.callActions}><AppButton label="Gọi thoại" variant="secondary" disabled={!enabled || startingCall} onPress={() => void startCall("audio")} style={styles.callAction} />
+        <AppButton label="Gọi video" variant="secondary" disabled={!enabled || startingCall} onPress={() => void startCall("video")} style={styles.callAction} /></View>
       {error ? (
-        <Text accessibilityLiveRegion="polite" style={styles.error}>
+        <AppText accessibilityLiveRegion="polite" variant="caption" tone="danger" style={styles.error}>
           {error}
-        </Text>
+        </AppText>
       ) : null}
       <FlatList
         style={{ flex: 1 }}
@@ -295,9 +286,9 @@ function Conversation({
         viewabilityConfig={viewability}
         onViewableItemsChanged={visibleCallback}
         ListEmptyComponent={
-          <Text>
+          <AppText tone="muted" style={styles.empty}>
             {loading ? "Đang tải…" : "Hãy bắt đầu bằng một lời chào."}
-          </Text>
+          </AppText>
         }
         renderItem={({ item, index }) => {
           const mine = item.senderId === user?.id;
@@ -307,11 +298,11 @@ function Conversation({
             <View>
               {!prior ||
               new Date(prior.sentAt).toLocaleDateString() !== date ? (
-                <Text style={styles.day}>{date}</Text>
+                <AppText variant="caption" tone="muted" style={styles.day}>{date}</AppText>
               ) : null}
               <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
-                <Text style={styles.content}>{item.content}</Text>
-                <Text style={styles.caption}>
+                <AppText style={styles.content}>{item.content}</AppText>
+                <AppText variant="caption" tone="muted" style={styles.caption}>
                   {new Date(item.sentAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -325,7 +316,7 @@ function Conversation({
                           ? " · Đã đọc"
                           : " · Đã gửi"
                     : ""}
-                </Text>
+                </AppText>
                 {item.delivery === "failed" ? (
                   <Pressable
                     accessibilityRole="button"
@@ -369,4 +360,7 @@ const styles = StyleSheet.create({
   caption: { color: colors.inkMuted, fontSize: 12, marginTop: 4 },
   day: { textAlign: "center", color: colors.inkMuted, marginVertical: 10 },
   error: { color: colors.danger },
+  callActions: { flexDirection: "row", gap: spacing.sm },
+  callAction: { flex: 1 },
+  empty: { padding: spacing.lg, textAlign: "center" },
 });

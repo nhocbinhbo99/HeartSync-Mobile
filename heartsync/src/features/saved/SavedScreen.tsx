@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -15,7 +15,7 @@ import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { useSnackbar } from '../../shared/components/Snackbar';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
-import { colors, radii, spacing, type } from '../../shared/theme/tokens';
+import { colors, radii, spacing } from '../../shared/theme/tokens';
 import type { ProfilePublic } from '../../shared/types/domain.types';
 
 type Props = CompositeScreenProps<BottomTabScreenProps<MainTabParamList, 'Saved'>, NativeStackScreenProps<RootStackParamList>>;
