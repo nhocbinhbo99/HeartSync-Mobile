@@ -13,15 +13,15 @@ Audience and task: an adult user should immediately understand whether a screen 
 
 ## Direction contract
 
-THESIS: HeartSync presents connection as a verified state, not a romantic promise. It refuses the category default of photo-first mockups that imply working data before the backend exists.
+THESIS: HeartSync makes a first conversation feel personal and low-pressure. It rejects the old cyan utility shell and a recolour-only implementation: the supplied Pink Romance references define each screen's composition, while live data defines which profile, message, location, badge, or call state may appear.
 
-OWN-WORLD: White and cool mist surfaces carry a disciplined cyan signal, charcoal text, and restrained status colors. Standard Android navigation and controls stay familiar; rounded surfaces are reserved for controls and state panels, not used as a grid of decorative cards. The signature move is a thin Sync Line that changes only with actual loading, selection, or readiness.
+OWN-WORLD: Pink Romance uses a pale rose canvas (#FFF7F9), white task surfaces, deep plum type (#3B1024), and one confident pink action (#FF4D7D). A large photo is the content when the service supplies one; otherwise a purpose-built, quiet empty illustration replaces it. Primary controls are 52–56dp, outlined controls stay white, and the four-item bottom navigation uses a pink selected container rather than a generic tint. There are no fake verification, presence, unread, distance, match, or call claims.
 
-STORY: The user sees the current destination, its honest state, and the action that can be taken now. Auth, discovery, saved profiles, matches, profile, and detail routes use one vocabulary for loading, empty, error, and development states.
+STORY: The first-time visitor gets a memorable welcome and a clear account path. A signed-in person sees one dominant candidate, real conversations with a readable hierarchy, and their own profile as a portrait-led identity page. Empty, loading, error, and unavailable states stay equally deliberate without pretending that backend data exists.
 
-FIRST VIEWPORT: A compact Android top app bar establishes screen context, the main content begins with a direct title and state-specific copy, and any primary action follows the explanation within thumb reach. Signed-in destinations use a four-item Material-style bottom navigation bar; detail screens use native-stack Back behavior.
+FIRST VIEWPORT: Welcome is a drenched-rose introduction with concentric artwork, a display wordmark, one filled CTA and a legible secondary account action. Discover starts with a direct title and filters, then gives the candidate photo almost all available height; its empty state uses the same visual weight. Connections leads with recent matches horizontally and message rows below. Profile places name and public metadata on a photo scrim. Chat holds a compact recipient bar and a fixed rose composer above the Android IME.
 
-FORM: Code-led Operate surface using the queue-pinned HeartSync reference direction; `seed: none (unavailable)`. Standard platform layout owns navigation and controls; the world contributes palette, density, type roles, and the Sync Line.
+FORM: Code-led Android Operate surface using the user-pinned `UI_UX_Design/screens` Pink Romance references; `seed: none (unavailable)`. Material-safe navigation, touch targets, Back behaviour and keyboard insets remain intact; the visual world owns hierarchy, density, image treatment, controls and truthful states.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 

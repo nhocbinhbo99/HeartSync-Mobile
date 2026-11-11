@@ -26,18 +26,23 @@ export function WelcomeScreen({ navigation }: WelcomeProps) {
     <View style={styles.welcomeHero}>
       <View pointerEvents="none" accessible={false} style={[styles.orbit, styles.orbitOuter]} />
       <View pointerEvents="none" accessible={false} style={[styles.orbit, styles.orbitInner]} />
-      <HeartMark inverse />
+      <View accessible accessibilityRole="image" accessibilityLabel="Biểu tượng HeartSync" style={styles.welcomeMedallion}>
+        <HeartMark inverse />
+      </View>
     </View>
     <View style={styles.welcomeCopy}>
-      <View style={styles.wordmark}><AppIcon name="heart" color={colors.onPrimary} size={24} /><AppText variant="heading" tone="onPrimary">HeartSync</AppText></View>
-      <AppText variant="display" tone="onPrimary">Gặp gỡ người thật.{`\n`}Theo cách của bạn.</AppText>
-      <AppText tone="onPrimary" style={styles.welcomeSupporting}>Kết nối có ý nghĩa bắt đầu từ sự chân thành.</AppText>
+      <View style={styles.welcomeRule} />
+      <AppText tone="onPrimary" style={styles.welcomeWordmark}>HeartSync</AppText>
+      <AppText tone="onPrimary" style={styles.welcomeTitle}>Gặp gỡ người thật.{`\n`}Theo cách của bạn.</AppText>
     </View>
     <View style={styles.welcomeActions}>
       <AppButton label="Bắt đầu khám phá" trailingIcon="forward" onPress={() => navigation.navigate('Onboarding')}
         style={styles.welcomePrimary} />
-      <AppButton label="Tôi đã có tài khoản" variant="quiet" onPress={() => navigation.navigate('SignIn')}
-        style={styles.welcomeSecondary} />
+      <AnimatedPressable accessibilityRole="button" accessibilityLabel="Tôi đã có tài khoản" onPress={() => navigation.navigate('SignIn')}
+        rippleColor="rgba(255,255,255,0.20)" style={styles.welcomeSecondary}>
+        <AppText variant="label" tone="onPrimary">Tôi đã có tài khoản</AppText>
+      </AnimatedPressable>
+      <AppText tone="onPrimary" style={styles.welcomeSupporting}>Kết nối có ý nghĩa bắt đầu từ sự chân thành.</AppText>
     </View>
   </Screen>;
 }
@@ -69,10 +74,12 @@ export function OnboardingScreen({ navigation }: OnboardingProps) {
 
   return <Screen scroll={false} safeTop contentStyle={styles.onboardingPage}>
     <View style={styles.onboardingHeader}>
-      <View style={styles.onboardingBrand}><AppIcon name="heart" color={colors.primaryPressed} size={22} /><AppText variant="title" tone="primary">HeartSync</AppText></View>
-      <AnimatedPressable accessibilityRole="button" accessibilityLabel="Bỏ qua giới thiệu" onPress={() => navigation.replace('SignIn')} style={styles.skipButton}>
-        <AppText variant="label" tone="muted">Bỏ qua</AppText>
-      </AnimatedPressable>
+      <AppText style={styles.onboardingWordmark} tone="primary">HeartSync</AppText>
+      <View style={styles.onboardingProgress}><AppText variant="label" tone="muted">{`0${page + 1} / 03`}</AppText>
+        <AnimatedPressable accessibilityRole="button" accessibilityLabel="Bỏ qua giới thiệu" onPress={() => navigation.replace('SignIn')} style={styles.skipButton}>
+          <AppText variant="caption" tone="primary">Bỏ qua</AppText>
+        </AnimatedPressable>
+      </View>
     </View>
     <View style={styles.onboardingArtwork} accessible accessibilityRole="image" accessibilityLabel="Minh họa kết nối chân thành">
       <View pointerEvents="none" accessible={false} style={[styles.artPanel, styles.artPanelBack]} />
@@ -95,28 +102,32 @@ export function OnboardingScreen({ navigation }: OnboardingProps) {
 }
 
 const styles = StyleSheet.create({
-  welcomePage: { backgroundColor: colors.primaryPressed, padding: spacing.lg, gap: spacing.lg },
-  welcomeHero: { minHeight: 286, alignItems: 'center', justifyContent: 'center' },
-  orbit: { position: 'absolute', borderWidth: 36, borderColor: 'rgba(255, 255, 255, 0.13)', borderRadius: radii.pill },
-  orbitOuter: { width: 320, height: 320 },
-  orbitInner: { width: 232, height: 232, borderWidth: 28, borderColor: 'rgba(255, 255, 255, 0.16)' },
+  welcomePage: { backgroundColor: colors.primaryPressed, paddingHorizontal: 34, paddingTop: spacing.xs, paddingBottom: spacing.lg, gap: 0 },
+  welcomeHero: { height: 430, alignItems: 'center', justifyContent: 'center' },
+  orbit: { position: 'absolute', borderWidth: 36, borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: radii.pill },
+  orbitOuter: { width: 354, height: 354 },
+  orbitInner: { width: 252, height: 252, borderWidth: 28, borderColor: 'rgba(255, 255, 255, 0.15)' },
+  welcomeMedallion: { width: 144, height: 144, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' },
   heartMark: { width: 104, height: 104, borderRadius: radii.pill, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   heartMarkInverse: { backgroundColor: colors.surface },
-  welcomeCopy: { flex: 1, justifyContent: 'center', gap: spacing.md },
-  wordmark: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  welcomeSupporting: { opacity: 0.82 },
-  welcomeActions: { gap: spacing.sm },
-  welcomePrimary: { backgroundColor: '#FF779D', borderColor: '#FF779D' },
-  welcomeSecondary: { borderColor: 'rgba(255,255,255,0.42)' },
+  welcomeCopy: { gap: spacing.md },
+  welcomeRule: { width: 130, height: 6, borderRadius: radii.pill, backgroundColor: '#FF779D', marginBottom: spacing.xs },
+  welcomeWordmark: { fontSize: 52, lineHeight: 58, fontWeight: '700' },
+  welcomeTitle: { fontSize: 29, lineHeight: 38, fontWeight: '400', opacity: 0.94 },
+  welcomeSupporting: { fontSize: 14, lineHeight: 20, opacity: 0.74, textAlign: 'center', marginTop: spacing.xs },
+  welcomeActions: { marginTop: 'auto', gap: spacing.sm },
+  welcomePrimary: { minHeight: 62, backgroundColor: '#FF4D7D', borderColor: '#FF4D7D', borderRadius: 18 },
+  welcomeSecondary: { minHeight: 52, borderWidth: 1, borderColor: 'rgba(255,255,255,0.62)', borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' },
   onboardingPage: { padding: spacing.lg, gap: spacing.xl },
   onboardingHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  onboardingBrand: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  skipButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.xs },
-  onboardingArtwork: { minHeight: 300, justifyContent: 'center', alignItems: 'center' },
-  artPanel: { position: 'absolute', width: 216, height: 238, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border },
-  artPanelBack: { backgroundColor: colors.primarySoft, transform: [{ rotate: '-7deg' }, { translateX: -42 }] },
-  artPanelFront: { backgroundColor: colors.surface, transform: [{ rotate: '6deg' }, { translateX: 42 }], alignItems: 'center', justifyContent: 'center' },
-  artLine: { position: 'absolute', height: 8, width: 180, borderRadius: radii.pill, backgroundColor: colors.primary, bottom: 26 },
+  onboardingWordmark: { fontSize: 32, lineHeight: 38, fontWeight: '700' },
+  onboardingProgress: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  skipButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.xs },
+  onboardingArtwork: { minHeight: 348, justifyContent: 'center', alignItems: 'center' },
+  artPanel: { position: 'absolute', width: 220, height: 276, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border },
+  artPanelBack: { backgroundColor: colors.primarySoft, transform: [{ rotate: '-6deg' }, { translateX: -50 }] },
+  artPanelFront: { backgroundColor: colors.surface, transform: [{ rotate: '5deg' }, { translateX: 50 }], alignItems: 'center', justifyContent: 'center' },
+  artLine: { position: 'absolute', height: 8, width: 205, borderRadius: radii.pill, backgroundColor: colors.primary, bottom: 12 },
   onboardingCopy: { flex: 1, justifyContent: 'center', gap: spacing.md },
   onboardingFooter: { gap: spacing.lg },
   pagination: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

@@ -7,6 +7,7 @@ import { useNavigation, type NavigationAction, type NavigationProp } from '@reac
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppButton } from '../../shared/components/AppButton';
+import { IconButton } from '../../shared/components/IconButton';
 import { AppText } from '../../shared/components/AppText';
 import { AnimatedSection } from '../../shared/components/AnimatedSection';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
@@ -336,10 +337,14 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
       onPress={cancel} /> : null}
   </BottomActionBar>;
 
-  return <Screen keyboardAware footer={actions}>
+  return <Screen keyboardAware safeTop footer={actions} contentStyle={styles.editorScreen}>
+    {mode === 'edit' ? <View style={styles.editorHeader}>
+      <IconButton icon="back" label="Quay lại hồ sơ" onPress={() => { if (onCancel) onCancel(); else navigation.goBack(); }} />
+      <AppText accessibilityRole="header" style={styles.editorTitle}>Chỉnh sửa hồ sơ</AppText>
+    </View> : null}
     <View style={styles.intro}>
-      <AppText accessibilityRole="header" variant="title">{mode === 'setup' ? 'Hoàn thiện hồ sơ' : 'Chỉnh sửa hồ sơ'}</AppText>
-      <AppText tone="muted">Ngày sinh và tọa độ chỉ dùng để xác minh tuổi và lọc phù hợp. Người khác chỉ thấy thông tin công khai.</AppText>
+      {mode === 'setup' ? <AppText accessibilityRole="header" variant="heading">Hoàn thiện hồ sơ</AppText> : null}
+      <AppText tone="muted">{mode === 'edit' ? 'Một hồ sơ thật, đủ để bắt đầu trò chuyện.' : 'Ngày sinh và tọa độ chỉ dùng để xác minh tuổi và lọc phù hợp. Người khác chỉ thấy thông tin công khai.'}</AppText>
       {mode === 'setup' ? <AppText variant="caption" tone="muted">Bạn có thể thêm hoặc thay đổi ảnh sau khi hoàn tất hồ sơ.</AppText> : null}
     </View>
 
@@ -411,7 +416,10 @@ function Section({ title, description, children }: { title: string; description:
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs },
+  editorScreen: { paddingTop: spacing.sm, gap: spacing.lg },
+  editorHeader: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginLeft: -spacing.xs },
+  editorTitle: { fontSize: 34, lineHeight: 40, fontWeight: '700', color: colors.ink, letterSpacing: -0.4 },
+  intro: { gap: spacing.xs, paddingBottom: spacing.sm },
   section: { borderTopColor: colors.border, borderTopWidth: 1, paddingTop: spacing.lg, gap: spacing.md },
   multiline: { minHeight: 132, paddingTop: spacing.md }, error: { paddingTop: spacing.xs },
 });

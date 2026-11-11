@@ -268,7 +268,6 @@ export function DiscoverScreen({ navigation }: Props) {
       <SwipeControl accessibilityLabel={`Thích ${candidate.displayName}`} disabled={busy || saving} icon={icons.like} onPress={() => void swipe('like')} tone="like" />
       <SwipeControl accessibilityLabel={`Lưu ${candidate.displayName}`} disabled={busy || saving} icon="bookmark" onPress={() => void saveCandidate()} tone="save" />
     </View>
-    <Text style={styles.hint}>Vuốt trái để bỏ qua · Vuốt phải để thích</Text>
   </Screen>;
 }
 
@@ -281,23 +280,29 @@ function DiscoverHeader({ onOpenFilters }: { onOpenFilters: () => void }) {
 
 function EmptyDiscoveryState({ loading, onReload, onOpenFilters }: { loading: boolean; onReload: () => void; onOpenFilters: () => void }) {
   return <View style={styles.emptyState}>
-    <View accessible accessibilityRole="image" accessibilityLabel="Chưa có gợi ý mới" style={styles.emptyArtwork}><AppIcon name="heartOutline" color={colors.primaryPressed} size={48} /></View>
+    <View accessible accessibilityRole="image" accessibilityLabel="Chưa có gợi ý mới" style={styles.emptyArtwork}>
+      <View pointerEvents="none" accessible={false} style={[styles.emptyOrb, styles.emptyOrbLeft]} />
+      <View pointerEvents="none" accessible={false} style={[styles.emptyOrb, styles.emptyOrbRight]} />
+      <View pointerEvents="none" accessible={false} style={styles.emptyHeart}><AppIcon name="heartOutline" color={colors.primaryPressed} size={46} /></View>
+    </View>
     <AppText accessibilityRole="header" variant="heading" style={styles.emptyTitle}>{loading ? 'Đang tìm thêm người phù hợp.' : 'Tạm thời chưa có ai phù hợp với bộ lọc.'}</AppText>
     <AppText tone="muted" style={styles.emptyCopy}>Thử mở rộng độ tuổi hoặc khoảng cách để gặp thêm những người thú vị nhé.</AppText>
     <AppButton label="Điều chỉnh bộ lọc" onPress={onOpenFilters} />
-    <AppButton label="Tải lại" variant="quiet" onPress={onReload} />
+    {loading ? null : <AnimatedPressable accessibilityRole="button" accessibilityLabel="Tải lại gợi ý" onPress={onReload} style={styles.emptyReload}>
+      <AppText variant="label" tone="primary">Tải lại</AppText>
+    </AnimatedPressable>}
   </View>;
 }
 
 const styles = StyleSheet.create({
-  screen: { paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.sm },
+  screen: { paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xxs },
   filterButton: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-  deck: { flex: 1, minHeight: 0, justifyContent: 'center' },
-  nextCard: { position: 'absolute', top: 10, right: 12, bottom: 0, left: 12, backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, justifyContent: 'flex-end', padding: spacing.lg, gap: spacing.xs },
-  card: { flex: 1, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, overflow: 'hidden' },
-  photoFrame: { flex: 1, minHeight: 260, backgroundColor: colors.surfaceMuted, position: 'relative' },
+  deck: { flex: 1, minHeight: 0, justifyContent: 'center', paddingHorizontal: spacing.xxs },
+  nextCard: { position: 'absolute', top: 12, right: 14, bottom: 0, left: 14, backgroundColor: colors.primarySoft, borderRadius: 24, justifyContent: 'flex-end', padding: spacing.lg, gap: spacing.xs },
+  card: { flex: 1, backgroundColor: colors.surface, borderRadius: 26, overflow: 'hidden' },
+  photoFrame: { flex: 1, minHeight: 300, backgroundColor: colors.surfaceMuted, position: 'relative' },
   photo: { width: '100%', height: '100%', resizeMode: 'cover' },
   photoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   swipeBadge: { position: 'absolute', top: spacing.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 2, borderRadius: radii.sm, backgroundColor: colors.surface },
@@ -309,23 +314,27 @@ const styles = StyleSheet.create({
   locationBadgeText: { ...type.label, color: colors.primaryPressed, flexShrink: 1 },
   photoCount: { position: 'absolute', right: spacing.md, top: spacing.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.pill, backgroundColor: 'rgba(59,16,36,0.76)' },
   photoCountText: { ...type.caption, color: colors.onPrimary, fontWeight: '600' },
-  photoDetails: { position: 'absolute', right: 0, bottom: 0, left: 0, padding: spacing.lg, gap: spacing.xs, backgroundColor: 'rgba(59,16,36,0.76)' },
-  name: { ...type.display, color: colors.onPrimary },
+  photoDetails: { position: 'absolute', right: 0, bottom: 0, left: 0, padding: spacing.lg, paddingTop: spacing.xxl, gap: spacing.xs, backgroundColor: 'rgba(59,16,36,0.78)' },
+  name: { ...type.display, fontSize: 34, lineHeight: 40, color: colors.onPrimary },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, maxWidth: '100%' },
   metaText: { ...type.body, color: colors.onPrimary, flexShrink: 1 },
   interestLine: { ...type.body, color: colors.onPrimary },
-  viewProfile: { alignSelf: 'flex-start', minHeight: 48, marginTop: spacing.xs, paddingHorizontal: spacing.md },
-  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', paddingHorizontal: spacing.xl },
-  actionControl: { width: 58, height: 58, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  viewProfile: { alignSelf: 'flex-start', minHeight: 48, marginTop: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radii.md },
+  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', paddingHorizontal: spacing.xl, paddingVertical: spacing.xs },
+  actionControl: { width: 62, height: 62, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
   actionPass: { backgroundColor: colors.surface, borderColor: colors.danger },
   actionSave: { backgroundColor: colors.surface, borderColor: colors.primary },
-  actionLike: { backgroundColor: colors.primary, borderColor: colors.primary },
+  actionLike: { width: 80, height: 80, backgroundColor: colors.primary, borderColor: colors.primary },
   actionDisabled: { backgroundColor: colors.disabled, borderColor: colors.border },
-  hint: { ...type.caption, color: colors.inkMuted, textAlign: 'center' },
   error: { ...type.caption, color: colors.danger, textAlign: 'center' },
   pageError: { alignItems: 'center', gap: spacing.xxs },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg },
-  emptyArtwork: { width: 176, height: 176, borderRadius: radii.lg, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { textAlign: 'center' },
-  emptyCopy: { textAlign: 'center' },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.lg, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  emptyArtwork: { width: '74%', aspectRatio: 1, borderRadius: 28, backgroundColor: '#FFE8EF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: spacing.md },
+  emptyOrb: { position: 'absolute', width: 124, height: 124, borderRadius: radii.pill, backgroundColor: colors.surface },
+  emptyOrbLeft: { transform: [{ translateX: -50 }] },
+  emptyOrbRight: { transform: [{ translateX: 50 }] },
+  emptyHeart: { width: 88, height: 88, borderRadius: radii.pill, backgroundColor: colors.surface, borderWidth: 7, borderColor: colors.primaryPressed, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { textAlign: 'center', fontSize: 30, lineHeight: 38 },
+  emptyCopy: { textAlign: 'center', fontSize: 17, lineHeight: 25 },
+  emptyReload: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.md, marginTop: -spacing.sm },
 });

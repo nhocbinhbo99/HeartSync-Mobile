@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   group: { gap: spacing.xs },
   label: { ...type.label, color: colors.ink },
   field: { minHeight: 52, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md,
-    backgroundColor: colors.background, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    backgroundColor: colors.surface, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   fieldError: { borderColor: colors.danger },
   value: { ...type.body, color: colors.ink, flex: 1 },
   placeholder: { color: colors.inkMuted },

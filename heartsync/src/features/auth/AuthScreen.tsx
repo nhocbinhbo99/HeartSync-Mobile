@@ -169,7 +169,7 @@ export function AuthScreen({ navigation, mode }: Props) {
 }
 
 const styles = StyleSheet.create({
-  page: { justifyContent: 'center', paddingVertical: spacing.xxl, gap: spacing.lg },
+  page: { justifyContent: 'flex-start', paddingTop: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.lg },
   backButton: { alignSelf: 'flex-start', marginLeft: -spacing.xs },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: -spacing.sm },
   stepSegment: { height: 4, flex: 1, backgroundColor: colors.border, borderRadius: radii.pill },

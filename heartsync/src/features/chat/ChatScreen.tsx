@@ -263,7 +263,7 @@ function Conversation({
     );
   const palette = darkAppearance
     ? { background: '#351020', surface: '#642743', incoming: '#4A3E45', text: '#FFF7F9', muted: '#E5CAD5', border: '#7B3A58', composer: '#642743', input: '#4A3E45' }
-    : { background: colors.background, surface: colors.surface, incoming: colors.surface, text: colors.ink, muted: colors.inkMuted, border: colors.border, composer: colors.surface, input: colors.surfaceMuted };
+    : { background: '#FFF5F8', surface: colors.surface, incoming: colors.surface, text: colors.ink, muted: colors.inkMuted, border: colors.border, composer: colors.surface, input: '#FFF1F5' };
   const composer = <View style={styles.composer}>
     <TextInput accessibilityLabel="Tin nhắn" value={text} onChangeText={setText} multiline maxLength={4000}
       placeholder="Nhắn gì đó thật tự nhiên…" placeholderTextColor={colors.inkMuted} editable={enabled}
@@ -316,7 +316,7 @@ function Conversation({
               new Date(prior.sentAt).toLocaleDateString() !== date ? (
                 <AppText variant="caption" tone="muted" style={[styles.day, { color: palette.muted }]}>{date}</AppText>
               ) : null}
-              <View style={[styles.bubble, mine ? styles.mine : styles.theirs, { backgroundColor: mine ? colors.primary : palette.incoming }]}>
+              <View style={[styles.bubble, mine ? styles.mine : styles.theirs, { backgroundColor: mine ? colors.primaryPressed : palette.incoming }]}>
                 <AppText style={[styles.content, { color: mine ? colors.onPrimary : palette.text }]}>{item.content}</AppText>
                 <AppText variant="caption" tone="muted" style={[styles.caption, { color: mine ? colors.onPrimary : palette.muted, opacity: mine ? 0.8 : 1 }]}>
                   {new Date(item.sentAt).toLocaleTimeString([], {
@@ -352,26 +352,26 @@ function Conversation({
 }
 const styles = StyleSheet.create({
   screen: { padding: 0, gap: 0 },
-  chatHeader: { minHeight: 76, paddingHorizontal: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  chatHeader: { minHeight: 88, paddingHorizontal: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: spacing.xs },
   headerCopy: { flex: 1, minWidth: 0, gap: 2 },
   messageList: { flex: 1, backgroundColor: colors.background },
-  messageContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.lg, gap: spacing.xs, flexGrow: 1 },
+  messageContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.xl, gap: spacing.sm, flexGrow: 1 },
   bubble: {
-    maxWidth: "85%",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.lg,
+    maxWidth: "84%",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 24,
     marginVertical: 4,
   },
-  mine: { alignSelf: "flex-end", backgroundColor: colors.primary },
+  mine: { alignSelf: "flex-end", backgroundColor: colors.primaryPressed, borderBottomRightRadius: 8 },
   theirs: { alignSelf: "flex-start", backgroundColor: colors.surface },
-  content: { color: colors.ink, fontSize: 16 },
+  content: { color: colors.ink, fontSize: 18, lineHeight: 26 },
   caption: { color: colors.inkMuted, fontSize: 12, marginTop: 4 },
   day: { textAlign: "center", color: colors.inkMuted, marginVertical: 10 },
   error: { color: colors.danger, paddingHorizontal: spacing.md, paddingTop: spacing.xs },
   empty: { padding: spacing.lg, textAlign: "center" },
   composerShell: { borderTopWidth: 1 },
-  composer: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md },
-  composerInput: { flex: 1, minHeight: 52, maxHeight: 120, backgroundColor: colors.surfaceMuted, borderRadius: radii.pill, color: colors.ink, fontSize: 16, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, textAlignVertical: "center" },
-  sendButton: { backgroundColor: colors.primary, width: 52, height: 52 },
+  composer: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md },
+  composerInput: { flex: 1, minHeight: 56, maxHeight: 120, backgroundColor: colors.surfaceMuted, borderRadius: radii.pill, color: colors.ink, fontSize: 16, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, textAlignVertical: "center" },
+  sendButton: { backgroundColor: colors.primaryPressed, width: 58, height: 58 },
 });

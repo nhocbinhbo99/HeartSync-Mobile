@@ -17,7 +17,7 @@ export function AppTextField({ label, error, style, rightAccessory, ...inputProp
 const styles = StyleSheet.create({
   group: { gap: spacing.xs }, label: { ...type.label, color: colors.ink },
   frame: { minHeight: componentSize.fieldHeight, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md,
-    backgroundColor: colors.background, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center' },
+    backgroundColor: colors.surface, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center' },
   input: { minHeight: componentSize.fieldHeight - 2, flex: 1, color: colors.ink, fontSize: 16, paddingVertical: spacing.sm },
   inputError: { borderColor: colors.danger }, error: { ...type.caption, color: colors.danger },
 });

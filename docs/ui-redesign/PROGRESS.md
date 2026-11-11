@@ -30,35 +30,37 @@ typed routes, repository contracts and confirmed backend state take precedence.
 `REWORK` means a working business screen exists but still follows the old cyan
 direction and has not been checked against the listed Pink Romance reference.
 `BUILD` means the visual concept has no corresponding route/screen yet.
-`IMPLEMENTED — device QA pending` means code and static validation are done;
-no screen below is visually complete until a device comparison is recorded.
+`REBUILD IN PROGRESS` means the route works but the supplied Android runtime
+screenshots show a material composition mismatch with the corresponding Pink
+Romance reference. It is deliberately not treated as completed just because
+tokens or colors were changed.
 `IMPLEMENTED — service pending` means the UI is deliberate about an unavailable
 backend action and never presents a false confirmation.
 
 | # | Reference | Product route / owner | Status |
 | --- | --- | --- | --- |
-| 01 | `01_welcome.png` | `Welcome` | IMPLEMENTED — device QA pending |
-| 02 | `02_onboarding.png` | `Onboarding` | IMPLEMENTED — device QA pending |
-| 03 | `03_login.png` | `SignIn` | IMPLEMENTED — device QA pending |
-| 04 | `04_register.png` | `SignUp` / profile setup | IMPLEMENTED — device QA pending |
-| 05 | `05_discover.png` | `Discover` | IMPLEMENTED — device QA pending |
-| 06 | `06_profile_detail.png` | `OtherProfile` | IMPLEMENTED — device QA pending |
-| 07 | `07_filters_sheet.png` | `Filters` | IMPLEMENTED — device QA pending |
-| 08 | `08_match_found.png` | `MatchFound` | IMPLEMENTED — device QA pending |
-| 09 | `09_saved.png` | `Saved` | IMPLEMENTED — device QA pending |
-| 10 | `10_connections.png` | `Matches` | IMPLEMENTED — device QA pending |
-| 11 | `11_chat.png` | `Chat` | IMPLEMENTED — device QA pending |
-| 12 | `12_audio_ringing.png` | `IncomingCallOverlay` / `AudioCall` | IMPLEMENTED — device QA pending |
-| 13 | `13_audio_active.png` | `AudioCall` | IMPLEMENTED — device QA pending |
-| 14 | `14_video_call.png` | `VideoCall` | IMPLEMENTED — device QA pending |
-| 15 | `15_my_profile.png` | `Profile` | IMPLEMENTED — device QA pending |
-| 16 | `16_edit_profile.png` | `EditProfile` | IMPLEMENTED — device QA pending |
-| 17 | `17_interests.png` | `Interests` | IMPLEMENTED — device QA pending |
-| 18 | `18_safety_center.png` | `Safety` | IMPLEMENTED — device QA pending |
-| 19 | `19_report.png` | `Report` | IMPLEMENTED — service pending |
-| 20 | `20_empty_discover.png` | `Discover` empty state | IMPLEMENTED — device QA pending |
-| 21 | `21_settings.png` | `Settings` | IMPLEMENTED — device QA pending |
-| 22 | `22_dark_chat.png` | `Chat` appearance treatment | IMPLEMENTED — device QA pending |
+| 01 | `01_welcome.png` | `Welcome` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 02 | `02_onboarding.png` | `Onboarding` | PENDING VISUAL AUDIT — no Android capture yet |
+| 03 | `03_login.png` | `SignIn` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 04 | `04_register.png` | `SignUp` / profile setup | PENDING VISUAL AUDIT — no Android capture yet |
+| 05 | `05_discover.png` | `Discover` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 06 | `06_profile_detail.png` | `OtherProfile` | PENDING VISUAL AUDIT — no Android capture yet |
+| 07 | `07_filters_sheet.png` | `Filters` | PENDING VISUAL AUDIT — no Android capture yet |
+| 08 | `08_match_found.png` | `MatchFound` | PENDING VISUAL AUDIT — no Android capture yet |
+| 09 | `09_saved.png` | `Saved` | PENDING VISUAL AUDIT — no Android capture yet |
+| 10 | `10_connections.png` | `Matches` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 11 | `11_chat.png` | `Chat` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 12 | `12_audio_ringing.png` | `IncomingCallOverlay` / `AudioCall` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 13 | `13_audio_active.png` | `AudioCall` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 14 | `14_video_call.png` | `VideoCall` | PENDING VISUAL AUDIT — no Android capture yet |
+| 15 | `15_my_profile.png` | `Profile` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 16 | `16_edit_profile.png` | `EditProfile` | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 17 | `17_interests.png` | `Interests` | PENDING VISUAL AUDIT — no Android capture yet |
+| 18 | `18_safety_center.png` | `Safety` | PENDING VISUAL AUDIT — no Android capture yet |
+| 19 | `19_report.png` | `Report` | PENDING VISUAL AUDIT — backend service still intentionally unavailable |
+| 20 | `20_empty_discover.png` | `Discover` empty state | REBUILD IN PROGRESS — runtime mismatch recorded |
+| 21 | `21_settings.png` | `Settings` | PENDING VISUAL AUDIT — no Android capture yet |
+| 22 | `22_dark_chat.png` | `Chat` appearance treatment | PENDING VISUAL AUDIT — no Android capture yet |
 
 ## Foundation status
 
@@ -66,7 +68,7 @@ backend action and never presents a false confirmation.
 | --- | --- | --- |
 | Tokens, primitive geometry and navigation colours | IMPLEMENTED — device QA pending | `heartsync/src/shared/theme/tokens.ts`, `navigationTheme.ts` |
 | Project design specification | IMPLEMENTED | `DESIGN.md` now maps to supplied Pink Romance direction |
-| Full-screen visual QA | NOT STARTED | Requires Expo development build on an Android device or emulator |
+| Full-screen visual QA | ROUND 1 BASELINE RECORDED | Twelve Android screenshots in `UI_UX_Design/runtime-screenshots/` identify the composition gaps above; the second capture occurs after the rebuild |
 
 ## Guardrails that stay true through the redesign
 

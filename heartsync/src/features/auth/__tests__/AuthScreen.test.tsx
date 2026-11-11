@@ -46,7 +46,7 @@ beforeEach(() => {
 it('keeps the sign-in hierarchy, safety copy, and route actions accessible', async () => {
   const screen = await render(<AuthScreen navigation={navigation as never} route={{ key: 'sign-in', name: 'SignIn' } as never} mode="sign-in" />);
 
-  expect(screen.getByRole('header', { name: 'Chào mừng trở lại' })).toBeTruthy();
+  expect(screen.getByRole('header', { name: 'Mừng bạn trở lại.' })).toBeTruthy();
   expect(screen.getByText('Kết nối chỉ được tạo khi cả hai cùng đồng ý.')).toBeTruthy();
   fireEvent.press(screen.getByText('Tạo tài khoản'));
   fireEvent.press(screen.getByText('Quên mật khẩu'));

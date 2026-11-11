@@ -12,7 +12,6 @@ import { Avatar } from '../../shared/components/Avatar';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
-import { SelectedChip } from '../../shared/components/SelectedChip';
 import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { useAppServices } from '../../services/AppServicesProvider';
@@ -62,27 +61,35 @@ export function ProfileScreen({ navigation }: Props) {
   if (state === 'loading') return <Screen safeTop>{header}<AsyncStatePanel state="loading" title="Đang tải hồ sơ" description="Đang đọc hồ sơ riêng của bạn." /></Screen>;
   if (state === 'error') return <Screen safeTop>{header}<AsyncStatePanel state="error" title="Không thể tải hồ sơ" description={error} actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
 
-  return <Screen safeTop>
+  return <Screen safeTop contentStyle={styles.screen}>
     {header}
     {profile ? <>
       {photoUrls.length ? <View style={styles.gallery}>
         <ScrollView horizontal pagingEnabled onMomentumScrollEnd={onPhotoScroll} showsHorizontalScrollIndicator={false} style={styles.photoPager}>
           {photoUrls.map((uri, index) => <Image key={uri} accessibilityLabel={`Ảnh hồ sơ ${index + 1} của bạn`} source={{ uri }} style={[styles.photo, { width: photoWidth }]} />)}
         </ScrollView>
+        <View style={styles.heroScrim}>
+          <AppText accessibilityRole="header" style={styles.heroName}>{profile.displayName}, {profile.age}</AppText>
+          <View style={styles.metaRow}><AppIcon name="location" color={colors.onPrimary} size={17} /><AppText tone="onPrimary" style={styles.meta}>{profile.publicLocation || 'Chưa thêm khu vực công khai'}</AppText><AppText variant="caption" tone="onPrimary">•</AppText><AppText tone="onPrimary" style={styles.meta}>{profile.photos.length}/6 ảnh</AppText></View>
+        </View>
         {photoUrls.length > 1 ? <View accessible accessibilityLabel={`Ảnh ${activePhoto + 1} trên ${photoUrls.length}`} style={styles.dots}>{photoUrls.map((_, index) => <View key={index} style={[styles.dot, index === activePhoto && styles.dotActive]} />)}</View> : null}
       </View> : <View style={styles.photoPlaceholder}>
         <Avatar label={profile.displayName} size={64} />
         <AppText variant="subtitle">Chưa có ảnh hồ sơ</AppText>
         <AppText variant="caption" tone="muted" style={styles.photoPlaceholderText}>Thêm ảnh để hồ sơ dễ được nhận ra hơn.</AppText>
       </View>}
-      <View style={styles.heading}>
-        <AppText accessibilityRole="header" variant="title">{profile.displayName}, {profile.age}</AppText>
-        <View style={styles.metaRow}><AppIcon name="location" color={colors.inkMuted} size={17} /><AppText tone="muted" style={styles.meta}>{profile.publicLocation || 'Chưa thêm khu vực công khai'}</AppText><AppText variant="caption" tone="muted">•</AppText><AppText tone="muted" style={styles.meta}>{profile.photos.length}/6 ảnh</AppText></View>
+      <AppButton label="Chỉnh sửa hồ sơ" variant="secondary" onPress={() => navigation.navigate('EditProfile')} style={styles.profileEdit} />
+      <View style={styles.profileSection}>
+        <AppText variant="caption" tone="muted" style={styles.sectionEyeline}>HỒ SƠ CỦA BẠN</AppText>
+        <AppText accessibilityRole="header" variant="heading">Một chút về mình</AppText>
+        <AppText style={styles.bio}>{profile.bio || 'Thêm một phần giới thiệu để người phù hợp dễ bắt đầu cuộc trò chuyện.'}</AppText>
       </View>
-      <AppText style={styles.bio}>{profile.bio || 'Thêm một phần giới thiệu để người phù hợp dễ bắt đầu cuộc trò chuyện.'}</AppText>
-      {profile.interests.length ? <View style={styles.chips}>{profile.interests.map((interest) => <SelectedChip key={interest} label={interest} />)}</View> : null}
-      <AppButton label="Chỉnh sửa hồ sơ" onPress={() => navigation.navigate('EditProfile')} />
-      <AppButton label="Sở thích của bạn" variant="secondary" leadingIcon="heart" onPress={() => navigation.navigate('Interests')} />
+      <View style={styles.interestsSection}>
+        <AppText accessibilityRole="header" variant="title">Sở thích</AppText>
+        <AppText style={styles.interestLine}>{profile.interests.length ? profile.interests.join('  ·  ') : 'Thêm sở thích để gợi ý người hợp với bạn.'}</AppText>
+        <AppText variant="caption" tone="muted">Thông tin riêng tư chỉ hiển thị cho bạn.</AppText>
+        <AppButton label="Quản lý sở thích" variant="quiet" leadingIcon="heart" onPress={() => navigation.navigate('Interests')} style={styles.manageInterests} />
+      </View>
     </> : <>
       <StatePanel title="Hoàn thiện hồ sơ của bạn" description="Thêm thông tin cơ bản để xuất hiện trong Khám phá. Ngày sinh và tọa độ luôn là dữ liệu riêng tư." />
       <AppButton label="Tạo hồ sơ" leadingIcon="add" onPress={() => navigation.navigate('EditProfile')} />
@@ -91,11 +98,20 @@ export function ProfileScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  topBar: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  screen: { paddingTop: spacing.sm, gap: spacing.lg },
+  topBar: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   settingsButton: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-  gallery: { gap: spacing.sm }, photoPager: { borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceMuted }, photo: { aspectRatio: 0.86, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xxs }, dot: { width: 6, height: 6, borderRadius: radii.pill, backgroundColor: colors.border }, dotActive: { width: 18, backgroundColor: colors.primary },
+  gallery: { borderRadius: 24, backgroundColor: colors.surfaceMuted, overflow: 'hidden', position: 'relative' }, photoPager: { backgroundColor: colors.surfaceMuted }, photo: { aspectRatio: 1.34, backgroundColor: colors.surfaceMuted },
+  heroScrim: { position: 'absolute', right: 0, bottom: 0, left: 0, minHeight: 104, justifyContent: 'center', gap: spacing.xxs, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: 'rgba(34, 18, 29, 0.90)' },
+  heroName: { fontSize: 29, lineHeight: 35, fontWeight: '700', color: colors.onPrimary },
+  dots: { position: 'absolute', right: spacing.md, top: spacing.md, flexDirection: 'row', justifyContent: 'center', gap: spacing.xxs }, dot: { width: 6, height: 6, borderRadius: radii.pill, backgroundColor: 'rgba(255,255,255,0.55)' }, dotActive: { width: 18, backgroundColor: colors.primary },
   photoPlaceholder: { minHeight: 238, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', padding: spacing.lg, gap: spacing.sm },
-  photoPlaceholderText: { textAlign: 'center' }, heading: { gap: spacing.xxs }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, flexWrap: 'wrap' }, meta: { flexShrink: 1 },
-  bio: { flexShrink: 1 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  photoPlaceholderText: { textAlign: 'center' }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, flexWrap: 'wrap' }, meta: { flexShrink: 1, fontSize: 15, lineHeight: 20 },
+  profileEdit: { minHeight: 56, borderColor: colors.border, borderRadius: 18 },
+  profileSection: { gap: spacing.sm, paddingTop: spacing.sm },
+  sectionEyeline: { letterSpacing: 0.5, fontWeight: '700' },
+  bio: { flexShrink: 1, fontSize: 18, lineHeight: 29, color: colors.inkMuted },
+  interestsSection: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg, gap: spacing.md },
+  interestLine: { color: colors.primaryPressed, fontSize: 18, lineHeight: 26 },
+  manageInterests: { alignSelf: 'flex-start', marginLeft: -spacing.md },
 });

@@ -319,6 +319,35 @@ function CallSession({
         />
       </Screen>
     );
+  if (callType === "audio" && (waitingForParticipant || status === "connected"))
+    return (
+      <Screen scroll={false} safeTop contentStyle={styles.audioWaitingContent}>
+        <View style={styles.audioWaitingSurface}>
+          {participant ? <ConversationProfile profileId={participant} presentation="callHero" /> : <View style={styles.waitingFallback} />}
+          <AppText tone="onPrimary" style={styles.audioModeLabel}>{status === "connected" ? "ĐANG GỌI THOẠI" : "Cuộc gọi thoại"}</AppText>
+          <View pointerEvents="none" style={styles.audioCallMeta}>
+            <AppText tone="onPrimary" style={styles.audioCallStatus}>{status === "connected" ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : waitingDescription}</AppText>
+          </View>
+          <View style={styles.audioCallActions}>
+            {incoming && status === "ringing" ? <>
+              <AppButton label="Từ chối" variant="danger" disabled={busy} onPress={() => void reject()} style={styles.audioIncomingAction} />
+              <AppButton label="Chấp nhận" disabled={busy} onPress={() => void accept()} style={styles.audioIncomingAction} />
+            </> : null}
+            {!incoming && status === "ringing" ? <AppButton label="Hủy cuộc gọi" disabled={busy} onPress={() => void end()} style={styles.audioCancelAction} /> : null}
+            {status === "connected" ? <>
+              <IconButton icon={muted ? "microphoneOff" : "microphone"} label={muted ? "Bật micro" : "Tắt micro"} tone="onPrimary" style={styles.audioRoundControl} onPress={() => {
+                void gateway.current?.setMuted(!muted).then((result) => {
+                  if (result?.ok) setMuted(!muted);
+                  else if (result) setError(result.error.message);
+                });
+              }} />
+              <IconButton icon="callEnd" label="Kết thúc cuộc gọi" tone="onPrimary" style={styles.audioEndControl} onPress={() => void end()} />
+            </> : null}
+          </View>
+          {error ? <AppText accessibilityLiveRegion="polite" variant="caption" tone="onPrimary" style={styles.audioCallError}>{error}</AppText> : null}
+        </View>
+      </Screen>
+    );
   if (fullScreenVideo)
     return (
       <Screen scroll={false} safeTop contentStyle={styles.fullScreenContent}>
@@ -472,6 +501,17 @@ function CallSession({
 
 const styles = StyleSheet.create({
   error: {},
+  audioWaitingContent: { padding: 0, gap: 0, backgroundColor: colors.callBackdrop },
+  audioWaitingSurface: { flex: 1, backgroundColor: colors.callBackdrop, overflow: "hidden" },
+  audioModeLabel: { position: "absolute", top: 76, left: 24, right: 24, textAlign: "center", fontSize: 17, lineHeight: 24, fontWeight: "600", letterSpacing: 0.5 },
+  audioCallMeta: { position: "absolute", left: 24, right: 24, bottom: 226, alignItems: "center" },
+  audioCallStatus: { fontSize: 22, lineHeight: 30, fontWeight: "500", textAlign: "center" },
+  audioCallActions: { position: "absolute", left: 24, right: 24, bottom: 48, minHeight: 62, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 20 },
+  audioCancelAction: { alignSelf: "stretch", flex: 1, backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 24 },
+  audioIncomingAction: { flex: 1, alignSelf: "stretch", borderRadius: 24 },
+  audioRoundControl: { width: 70, height: 70, backgroundColor: "rgba(36,25,37,0.80)" },
+  audioEndControl: { width: 70, height: 70, backgroundColor: colors.danger },
+  audioCallError: { position: "absolute", left: 24, right: 24, bottom: 132, textAlign: "center", color: colors.onPrimary },
   waitingSurface: { flex: 1, minHeight: 480, backgroundColor: colors.callBackdrop, borderRadius: 22, overflow: "hidden" },
   waitingFallback: { flex: 1, backgroundColor: colors.primarySoft },
   waitingLocalVideo: { position: "absolute", top: 20, right: 16, width: 116, height: 164, borderRadius: 16, borderWidth: 1, borderColor: colors.onPrimary, backgroundColor: colors.callBackdrop },

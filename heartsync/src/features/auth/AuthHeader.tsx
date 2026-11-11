@@ -1,8 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
-import { colors, radii, spacing } from '../../shared/theme/tokens';
+import { colors, spacing } from '../../shared/theme/tokens';
 
 type Props = {
   title: string;
@@ -12,18 +11,14 @@ type Props = {
 /** A consistent Pink Romance identity and hierarchy for auth routes. */
 export function AuthHeader({ title, body }: Props) {
   return <View style={styles.container}>
-    <View style={styles.brand}>
-      <View accessible={false} style={styles.mark}><AppIcon name="heart" color={colors.primaryPressed} size={20} /></View>
-      <AppText variant="label" tone="primary">HeartSync</AppText>
-    </View>
-    <AppText accessibilityRole="header" variant="display">{title}</AppText>
+    <AppText tone="primary" style={styles.brand}>HeartSync</AppText>
+    <AppText accessibilityRole="header" style={styles.title}>{title}</AppText>
     <AppText tone="muted">{body}</AppText>
   </View>;
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.xs },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  mark: { width: 40, height: 40, borderWidth: 1, borderColor: colors.border, borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  container: { gap: spacing.md },
+  brand: { fontSize: 32, lineHeight: 38, fontWeight: '700', marginBottom: spacing.xxl },
+  title: { fontSize: 44, lineHeight: 52, fontWeight: '700', color: colors.ink, letterSpacing: -0.6 },
 });

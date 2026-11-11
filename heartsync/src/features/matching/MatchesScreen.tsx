@@ -120,7 +120,6 @@ export function MatchesScreen({ navigation }: Props) {
           onPress={() => openChat(match.id)} style={styles.conversationRow}>
           <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} />
           <View style={styles.conversationContent}><View style={styles.conversationTopLine}><Text numberOfLines={1} style={styles.conversationName}>{match.otherProfile.displayName}</Text><Text style={styles.conversationTime}>{connectedAt(match.createdAt)}</Text></View><Text numberOfLines={2} style={styles.preview}>{match.lastMessagePreview}</Text></View>
-          <AppIcon name={icons.chat} color={colors.primaryPressed} size={20} />
         </AnimatedPressable>)}
       </View>
     </View> : null}
@@ -140,23 +139,23 @@ function ConnectionsHeader() {
 
 const styles = StyleSheet.create({
   screen: { gap: spacing.xl, paddingTop: spacing.sm },
-  header: { gap: spacing.xxs },
-  section: { gap: spacing.md },
+  header: { gap: spacing.xs, paddingBottom: spacing.sm },
+  section: { gap: spacing.lg },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   sectionTitle: { ...type.title, color: colors.ink },
   sectionBody: { ...type.caption, color: colors.inkMuted, marginTop: spacing.xxs },
   matchCount: { minWidth: 36, height: 30, paddingHorizontal: spacing.sm, borderRadius: radii.pill, backgroundColor: colors.primarySoft, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xxs },
   matchCountText: { ...type.label, color: colors.primaryPressed },
-  newMatches: { gap: spacing.md, paddingRight: spacing.lg },
-  matchTile: { width: 88, alignItems: 'center', gap: spacing.xs },
+  newMatches: { gap: spacing.lg, paddingRight: spacing.lg },
+  matchTile: { width: 86, alignItems: 'center', gap: spacing.xs },
   matchBadge: { position: 'absolute', right: -2, bottom: -2, width: 25, height: 25, borderRadius: radii.pill, borderWidth: 2, borderColor: colors.surface, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   matchName: { ...type.label, color: colors.ink, textAlign: 'center', width: '100%' },
   matchTime: { ...type.caption, color: colors.inkMuted, textAlign: 'center', width: '100%' },
   conversationList: { borderTopWidth: 1, borderColor: colors.border },
-  conversationRow: { minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderColor: colors.border },
+  conversationRow: { minHeight: 96, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderColor: colors.border },
   conversationContent: { flex: 1, minWidth: 0, gap: spacing.xxs },
   conversationTopLine: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-  conversationName: { ...type.subtitle, color: colors.ink, flex: 1 },
+  conversationName: { ...type.subtitle, fontSize: 20, lineHeight: 26, color: colors.ink, flex: 1 },
   conversationTime: { ...type.caption, color: colors.inkMuted },
   preview: { ...type.body, color: colors.inkMuted },
   firstMessageCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, backgroundColor: colors.surface },

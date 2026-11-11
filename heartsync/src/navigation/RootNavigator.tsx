@@ -5,6 +5,7 @@ import {
 } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { View } from "react-native";
 
 import { AppIcon } from "../shared/components/AppIcon";
 import { AuthScreen } from "../features/auth/AuthScreen";
@@ -67,8 +68,10 @@ function MainTabs() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
         },
-        tabBarIcon: ({ color, size }) => (
-          <AppIcon name={tabIcons[route.name]} color={color} size={size} />
+        tabBarIcon: ({ color, size, focused }) => (
+          <View style={{ width: 54, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: focused ? colors.primarySoft : "transparent" }}>
+            <AppIcon name={tabIcons[route.name]} color={color} size={focused ? 23 : size} />
+          </View>
         ),
       })}
     >
@@ -170,7 +173,7 @@ export function RootNavigator() {
             <Stack.Screen
               name="EditProfile"
               component={EditProfileScreen}
-              options={{ title: "Chỉnh sửa hồ sơ" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="Interests"
