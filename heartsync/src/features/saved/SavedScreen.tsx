@@ -17,7 +17,7 @@ import { useSnackbar } from '../../shared/components/Snackbar';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
 import type { ProfilePublic } from '../../shared/types/domain.types';
-import { getProfileImageSource } from '../../shared/utils/avatarHelper';
+import { brandAssets, getProfileImageSource } from '../../shared/utils/avatarHelper';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Saved'>,
@@ -257,15 +257,25 @@ function SavedCard({
       >
         <Image
           accessibilityLabel={`Ảnh của ${profile.displayName}`}
-          source={getProfileImageSource(photoUrl, profile.id, profile.gender)}
+          source={getProfileImageSource(photoUrl, profile.id, profile.gender, profile.displayName)}
           style={styles.avatar}
         />
+        <Image
+          source={brandAssets.cardScrimGradient}
+          style={styles.cardScrim}
+          resizeMode="stretch"
+        />
         <View style={styles.cardCopy}>
-          <AppText numberOfLines={1} variant="subtitle" tone="onPrimary" style={styles.cardName}>
-            {profile.displayName}, {profile.age}
-          </AppText>
+          <View style={styles.cardNameRow}>
+            <AppText numberOfLines={1} variant="subtitle" tone="onPrimary" style={styles.cardName}>
+              {profile.displayName}, {profile.age}
+            </AppText>
+            <View style={styles.verifiedDot}>
+              <AppIcon name="check" color="#FFFFFF" size={10} />
+            </View>
+          </View>
           <AppText numberOfLines={1} variant="caption" tone="onPrimary" style={styles.cardSub}>
-            {profile.interests[0] || profile.publicLocation || 'Hồ sơ đã lưu'}
+            {profile.interests[0] || profile.publicLocation || 'TP. Hồ Chí Minh'}
           </AppText>
         </View>
       </AnimatedPressable>
@@ -303,31 +313,51 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.primary,
+    shadowColor: '#D65B88',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.14,
     shadowRadius: 12,
     elevation: 4,
   },
   cardTap: { flex: 1, borderRadius: 24 },
   avatar: { width: '100%', height: '100%', resizeMode: 'cover', backgroundColor: colors.surfaceMuted },
+  cardScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '52%',
+  },
   cardCopy: {
     position: 'absolute',
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(35, 14, 24, 0.78)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     gap: 2,
   },
-  cardName: { fontFamily: fonts.bold, fontSize: 16 },
-  cardSub: { opacity: 0.88, fontSize: 12 },
+  cardNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardName: { fontFamily: fonts.bold, fontSize: 16, flexShrink: 1 },
+  verifiedDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.verified,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardSub: { opacity: 0.9, fontSize: 12 },
   removeButton: {
     position: 'absolute',
     top: spacing.xs,
     right: spacing.xs,
-    backgroundColor: 'rgba(230, 56, 111, 0.75)',
+    backgroundColor: 'rgba(230, 56, 111, 0.78)',
   },
   footer: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
   loadMore: {

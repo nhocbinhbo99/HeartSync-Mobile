@@ -443,7 +443,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
         label={saving ? 'Đang lưu' : mode === 'setup' ? 'Hoàn tất hồ sơ' : 'Lưu thay đổi'}
         loading={saving}
         trailingIcon="check"
-        disabled={saving || photoBusy || (!isDirty && mode === 'edit')}
+        disabled={saving || photoBusy}
         onPress={() => void save()}
       />
       {mode === 'setup' && onCancel ? (
@@ -478,9 +478,24 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
 
       <View style={styles.intro}>
         {mode === 'setup' ? (
-          <AppText accessibilityRole="header" variant="heading">
-            Hoàn thiện hồ sơ
-          </AppText>
+          <>
+            <View style={styles.stepIndicatorRow}>
+              <View style={[styles.stepDot, styles.stepDotDone]}>
+                <AppIcon name="check" color="#FFFFFF" size={12} />
+              </View>
+              <View style={[styles.stepLine, styles.stepLineActive]} />
+              <View style={[styles.stepDot, styles.stepDotActive]}>
+                <Text style={styles.stepDotActiveText}>2</Text>
+              </View>
+              <View style={styles.stepLine} />
+              <View style={styles.stepDot}>
+                <Text style={styles.stepDotText}>3</Text>
+              </View>
+            </View>
+            <AppText accessibilityRole="header" variant="heading">
+              Hoàn thiện hồ sơ
+            </AppText>
+          </>
         ) : null}
         <AppText tone="muted">
           {mode === 'edit'
@@ -489,19 +504,17 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
         </AppText>
       </View>
 
-      {mode === 'edit' ? (
-        <Section title="Ảnh hồ sơ" description="Ảnh chính xuất hiện đầu tiên. Tối đa 6 ảnh.">
-          <PhotoGrid
-            photos={photoItems}
-            busy={photoBusy}
-            onAdd={() => void addPhoto()}
-            onDelete={removePhoto}
-            onReorder={(id, targetIndex) => void reorderPhoto(id, targetIndex)}
-            onSetPrimary={(id) => void setPrimaryPhoto(id)}
-            onRetry={() => void loadPhotoUrls(draft.photos)}
-          />
-        </Section>
-      ) : null}
+      <Section title="Ảnh hồ sơ" description="Ảnh chính xuất hiện đầu tiên. Tối đa 6 ảnh.">
+        <PhotoGrid
+          photos={photoItems}
+          busy={photoBusy}
+          onAdd={() => void addPhoto()}
+          onDelete={removePhoto}
+          onReorder={(id, targetIndex) => void reorderPhoto(id, targetIndex)}
+          onSetPrimary={(id) => void setPrimaryPhoto(id)}
+          onRetry={() => void loadPhotoUrls(draft.photos)}
+        />
+      </Section>
 
       <Section title="Thông tin cơ bản" description="Giúp mọi người gọi tên và nhận ra bạn dễ dàng.">
         <FormField
@@ -535,7 +548,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
                   <Text style={[styles.choicePillText, active && styles.choicePillTextActive]}>
                     {option.label}
                   </Text>
-                  {active ? <AppIcon name="check" color={colors.primaryPressed} size={14} /> : null}
+                  {active ? <AppIcon name="check" color="#FFFFFF" size={14} /> : null}
                 </AnimatedPressable>
               );
             })}
@@ -700,6 +713,50 @@ const styles = StyleSheet.create({
   },
   editorTitle: { fontFamily: fonts.extrabold, fontSize: 26, lineHeight: 32, color: colors.ink },
   intro: { gap: spacing.xs },
+  stepIndicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    gap: 6,
+  },
+  stepDot: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotDone: {
+    backgroundColor: colors.primaryPressed,
+    borderColor: colors.primaryPressed,
+  },
+  stepDotActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  stepDotText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.inkMuted,
+  },
+  stepDotActiveText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  stepLine: {
+    width: 36,
+    height: 2,
+    backgroundColor: colors.border,
+    borderRadius: 1,
+  },
+  stepLineActive: {
+    backgroundColor: colors.primary,
+  },
   section: { borderTopColor: colors.border, borderTopWidth: 1, paddingTop: spacing.md, gap: spacing.md },
   fieldBlock: { gap: spacing.xs },
   fieldLabel: { ...type.label, color: colors.ink },
@@ -717,17 +774,17 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   choicePillActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
+    backgroundColor: colors.primaryPressed,
+    borderColor: colors.primaryPressed,
   },
   choicePillText: {
     fontFamily: fonts.semibold,
     fontSize: 14,
-    color: colors.inkMuted,
+    color: colors.ink,
   },
   choicePillTextActive: {
     fontFamily: fonts.bold,
-    color: colors.primaryPressed,
+    color: '#FFFFFF',
   },
   multiline: { minHeight: 120, paddingTop: spacing.md },
   error: { paddingTop: spacing.xs },

@@ -26,7 +26,12 @@ import { useAppServices } from '../../services/AppServicesProvider';
 import type { AsyncViewState } from '../../shared/types/ui';
 import type { ProfilePublic } from '../../shared/types/domain.types';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
-import { getFallbackAvatar } from '../../shared/utils/avatarHelper';
+import {
+  brandAssets,
+  formatNaturalBio,
+  getFallbackAvatar,
+  getProfileImageSource,
+} from '../../shared/utils/avatarHelper';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Profile'>,
@@ -90,7 +95,7 @@ export function ProfileScreen({ navigation }: Props) {
       <IconButton
         icon="settings"
         label="Mở cài đặt"
-        tone="primary"
+        tone="default"
         onPress={() => navigation.navigate('Settings')}
         style={styles.settingsButton}
       />
@@ -132,13 +137,44 @@ export function ProfileScreen({ navigation }: Props) {
     );
   }
 
+  const avatarSource = getProfileImageSource(photoUrls[0], profile?.id ?? 'me', profile?.gender, profile?.displayName);
+
   return (
     <Screen safeTop contentStyle={styles.screen}>
       {header}
       {profile ? (
         <>
-          <View style={styles.gallery}>
-            {photoUrls.length ? (
+          <AnimatedPressable
+            accessibilityRole="button"
+            accessibilityLabel={`Hồ sơ của ${profile.displayName}`}
+            onPress={() => navigation.navigate('EditProfile')}
+            style={styles.profileHeaderRow}
+          >
+            <View style={styles.avatarWrap}>
+              <Image
+                accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`}
+                source={avatarSource}
+                style={styles.avatarImage}
+              />
+              <View style={styles.onlineDot} />
+            </View>
+            <View style={styles.profileHeaderCopy}>
+              <View style={styles.nameBadgeRow}>
+                <AppText accessibilityRole="header" numberOfLines={1} style={styles.profileName}>
+                  {profile.displayName}, {profile.age}
+                </AppText>
+                <View style={styles.verifiedBadge}>
+                  <AppIcon name="check" color="#FFFFFF" size={11} />
+                </View>
+              </View>
+              <AppText tone="muted" style={styles.viewProfileHint}>
+                {profile.publicLocation ? `${profile.publicLocation} · Xem hồ sơ của bạn` : 'Xem hồ sơ của bạn'}
+              </AppText>
+            </View>
+          </AnimatedPressable>
+
+          {photoUrls.length > 0 ? (
+            <View style={styles.gallery}>
               <ScrollView
                 horizontal
                 pagingEnabled
@@ -155,60 +191,38 @@ export function ProfileScreen({ navigation }: Props) {
                   />
                 ))}
               </ScrollView>
-            ) : (
-              <Image
-                accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`}
-                source={getFallbackAvatar(profile.id, profile.gender)}
-                style={[styles.photo, { width: photoWidth }]}
-              />
-            )}
-            <View style={styles.heroScrim}>
-              <View style={styles.heroNameRow}>
-                <AppText accessibilityRole="header" style={styles.heroName}>
-                  {profile.displayName}, {profile.age}
-                </AppText>
-                <View style={styles.verifiedBadge}>
-                  <AppIcon name="check" color="#FFFFFF" size={13} />
+              <Image source={brandAssets.cardScrimGradient} style={styles.scrimImage} resizeMode="stretch" />
+              <View style={styles.heroScrim}>
+                <View style={styles.metaRow}>
+                  <AppIcon name="location" color={colors.onPrimary} size={14} />
+                  <AppText tone="onPrimary" style={styles.meta}>
+                    {profile.publicLocation || 'Chưa thêm khu vực'}
+                  </AppText>
+                  <AppText variant="caption" tone="onPrimary">
+                    •
+                  </AppText>
+                  <AppText tone="onPrimary" style={styles.meta}>
+                    {profile.photos.length}/6 ảnh
+                  </AppText>
                 </View>
               </View>
-              <View style={styles.metaRow}>
-                <AppIcon name="location" color={colors.onPrimary} size={15} />
-                <AppText tone="onPrimary" style={styles.meta}>
-                  {profile.publicLocation || 'Chưa thêm khu vực'}
-                </AppText>
-                <AppText variant="caption" tone="onPrimary">
-                  •
-                </AppText>
-                <AppText tone="onPrimary" style={styles.meta}>
-                  {profile.photos.length}/6 ảnh
-                </AppText>
-              </View>
+              {photoUrls.length > 1 ? (
+                <View
+                  accessible
+                  accessibilityLabel={`Ảnh ${activePhoto + 1} trên ${photoUrls.length}`}
+                  style={styles.dots}
+                >
+                  {photoUrls.map((_, index) => (
+                    <View key={index} style={[styles.dot, index === activePhoto && styles.dotActive]} />
+                  ))}
+                </View>
+              ) : null}
             </View>
-            {photoUrls.length > 1 ? (
-              <View
-                accessible
-                accessibilityLabel={`Ảnh ${activePhoto + 1} trên ${photoUrls.length}`}
-                style={styles.dots}
-              >
-                {photoUrls.map((_, index) => (
-                  <View key={index} style={[styles.dot, index === activePhoto && styles.dotActive]} />
-                ))}
-              </View>
-            ) : null}
-          </View>
-
-          <AppButton
-            label="Chỉnh sửa hồ sơ"
-            leadingIcon="photoAdd"
-            onPress={() => navigation.navigate('EditProfile')}
-          />
+          ) : null}
 
           <View style={styles.infoCard}>
-            <AppText variant="label" tone="muted" style={styles.sectionEyeline}>
-              GIỚI THIỆU BẢN THÂN
-            </AppText>
             <AppText style={styles.bio}>
-              {profile.bio || 'Thêm đôi dòng giới thiệu để mọi người hiểu hơn về bạn nhé.'}
+              {formatNaturalBio(profile.bio, profile.displayName)}
             </AppText>
 
             {profile.interests.length > 0 ? (
@@ -222,29 +236,35 @@ export function ProfileScreen({ navigation }: Props) {
             ) : null}
           </View>
 
-          <View style={styles.menuCard}>
+          <View style={styles.menuList}>
+            <ProfileMenuRow
+              icon="edit"
+              title="Chỉnh sửa hồ sơ"
+              onPress={() => navigation.navigate('EditProfile')}
+            />
             <ProfileMenuRow
               icon="heart"
               title="Sở thích của bạn"
-              subtitle="Chọn các chủ đề giúp ghép đôi chuẩn hơn"
               onPress={() => navigation.navigate('Interests')}
             />
             <ProfileMenuRow
               icon="filter"
               title="Tiêu chí tìm kiếm"
-              subtitle="Tuổi, giới tính và ngôn ngữ ưu tiên"
               onPress={() => navigation.navigate('Filters')}
             />
             <ProfileMenuRow
+              icon="lock"
+              title="Tài khoản & bảo mật"
+              onPress={() => navigation.navigate('Settings')}
+            />
+            <ProfileMenuRow
               icon="shield"
-              title="Trung tâm an toàn & quyền riêng tư"
-              subtitle="Kiểm soát hiển thị và dữ liệu cá nhân"
+              title="Trung tâm an toàn"
               onPress={() => navigation.navigate('Safety')}
             />
             <ProfileMenuRow
               icon="settings"
               title="Cài đặt & Tài khoản"
-              subtitle="Đăng xuất và tùy chỉnh ứng dụng"
               onPress={() => navigation.navigate('Settings')}
               isLast
             />
@@ -252,6 +272,11 @@ export function ProfileScreen({ navigation }: Props) {
         </>
       ) : (
         <View style={styles.emptyCard}>
+          <Image
+            accessibilityLabel="Ảnh đại diện mặc định"
+            source={getFallbackAvatar('me')}
+            style={styles.emptyAvatar}
+          />
           <StatePanel
             title="Hoàn thiện hồ sơ của bạn"
             description="Thêm tên, giới thiệu và sở thích để kết nối với những người phù hợp trên HeartSync."
@@ -266,13 +291,11 @@ export function ProfileScreen({ navigation }: Props) {
 function ProfileMenuRow({
   icon,
   title,
-  subtitle,
   onPress,
   isLast = false,
 }: {
   icon: AppIconName;
   title: string;
-  subtitle: string;
   onPress: () => void;
   isLast?: boolean;
 }) {
@@ -284,57 +307,107 @@ function ProfileMenuRow({
       style={[styles.menuRow, isLast && styles.menuRowLast]}
     >
       <View style={styles.menuIconWrap}>
-        <AppIcon name={icon} color={colors.primaryPressed} size={20} />
+        <AppIcon name={icon} color={colors.ink} size={20} />
       </View>
       <View style={styles.menuCopy}>
         <AppText style={styles.menuTitle}>{title}</AppText>
-        <AppText variant="caption" tone="muted">
-          {subtitle}
-        </AppText>
       </View>
-      <AppIcon name="forward" color={colors.inkMuted} size={18} />
+      <AppIcon name="chevronRight" color={colors.inkMuted} size={20} />
     </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { paddingTop: spacing.xs, paddingBottom: spacing.xl, gap: spacing.md },
-  topBar: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topBar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pageTitle: { fontFamily: fonts.extrabold, fontSize: 28, lineHeight: 34, color: colors.ink },
-  settingsButton: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  settingsButton: {
+    width: 42,
+    height: 42,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  profileHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  avatarWrap: {
+    position: 'relative',
+    width: 72,
+    height: 72,
+  },
+  avatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.surfaceMuted,
+  },
+  onlineDot: {
+    position: 'absolute',
+    right: 2,
+    bottom: 2,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: colors.online,
+    borderWidth: 2.5,
+    borderColor: colors.background,
+  },
+  profileHeaderCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  nameBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  profileName: {
+    flexShrink: 1,
+    fontFamily: fonts.extrabold,
+    fontSize: 22,
+    lineHeight: 28,
+    color: colors.ink,
+  },
+  verifiedBadge: {
+    width: 19,
+    height: 19,
+    borderRadius: 10,
+    backgroundColor: colors.verified,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewProfileHint: {
+    fontSize: 14,
+    lineHeight: 19,
+  },
   gallery: {
-    borderRadius: 26,
+    borderRadius: 24,
     backgroundColor: colors.surfaceMuted,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    elevation: 4,
   },
   photoPager: { backgroundColor: colors.surfaceMuted },
-  photo: { aspectRatio: 1.15, resizeMode: 'cover', backgroundColor: colors.surfaceMuted },
+  photo: { aspectRatio: 1.25, resizeMode: 'cover', backgroundColor: colors.surfaceMuted },
+  scrimImage: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    left: 0,
+    height: '45%',
+    width: '100%',
+  },
   heroScrim: {
     position: 'absolute',
     right: 0,
     bottom: 0,
     left: 0,
     justifyContent: 'flex-end',
-    gap: 2,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: 'rgba(32, 12, 24, 0.72)',
-  },
-  heroNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  heroName: { fontFamily: fonts.extrabold, fontSize: 24, lineHeight: 30, color: colors.onPrimary },
-  verifiedBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   dots: {
     position: 'absolute',
@@ -347,50 +420,47 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: radii.pill, backgroundColor: 'rgba(255,255,255,0.55)' },
   dotActive: { width: 18, backgroundColor: colors.primary },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, flexWrap: 'wrap' },
-  meta: { flexShrink: 1, fontSize: 13, lineHeight: 18, opacity: 0.9 },
+  meta: { flexShrink: 1, fontSize: 13, lineHeight: 18, opacity: 0.94 },
   infoCard: {
     backgroundColor: colors.surface,
-    borderRadius: radii.xl,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  sectionEyeline: { fontSize: 11, letterSpacing: 0.6 },
-  bio: { fontSize: 15, lineHeight: 22, color: colors.ink },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xxs },
+  bio: { fontSize: 14, lineHeight: 21, color: colors.ink },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: 2 },
   interestPill: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
     borderRadius: radii.pill,
     backgroundColor: colors.primarySoft,
   },
-  interestPillText: { fontFamily: fonts.bold, fontSize: 13, color: colors.primaryPressed },
-  menuCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
+  interestPillText: { fontFamily: fonts.bold, fontSize: 12, color: colors.primaryPressed },
+  menuList: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.xs,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
+    gap: spacing.md,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: 'rgba(243, 214, 226, 0.55)',
   },
   menuRowLast: { borderBottomWidth: 0 },
   menuIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuCopy: { flex: 1, gap: 1 },
-  menuTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink },
-  emptyCard: { gap: spacing.md },
+  menuCopy: { flex: 1 },
+  menuTitle: { fontFamily: fonts.semibold, fontSize: 16, color: colors.ink },
+  emptyCard: { gap: spacing.md, alignItems: 'center' },
+  emptyAvatar: { width: 92, height: 92, borderRadius: 46 },
 });

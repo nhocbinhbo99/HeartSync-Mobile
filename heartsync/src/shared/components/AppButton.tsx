@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, Text, type ViewStyle } from 'react-native';
-import { colors, radii, spacing, type } from '../theme/tokens';
+import { ActivityIndicator, Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { colors, fonts, radii, spacing } from '../theme/tokens';
+import { brandAssets } from '../utils/avatarHelper';
 import { AnimatedPressable } from './AnimatedPressable';
 import { AppIcon, type AppIconName } from './AppIcon';
 
@@ -19,8 +20,8 @@ type AppButtonProps = {
 };
 
 const variants = {
-  primary: { background: colors.primary, border: colors.primary, text: colors.onPrimary },
-  secondary: { background: colors.surface, border: colors.primary, text: colors.primaryPressed },
+  primary: { background: colors.primary, border: 'transparent', text: colors.onPrimary },
+  secondary: { background: '#FFF0F5', border: '#F6C6D8', text: colors.primaryPressed },
   quiet: { background: 'transparent', border: 'transparent', text: colors.primaryPressed },
   danger: { background: colors.surface, border: colors.danger, text: colors.danger },
 } as const;
@@ -52,50 +53,66 @@ export function AppButton({
       style={[
         styles.base,
         { backgroundColor: palette.background, borderColor: palette.border },
+        isPrimary ? { borderWidth: 0 } : undefined,
         isPrimary && !disabled && !loading ? styles.primaryShadow : undefined,
         disabled || loading ? styles.disabled : undefined,
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.onPrimary : palette.text} />
-      ) : leadingIcon ? (
-        <AppIcon name={leadingIcon} color={palette.text} size={20} />
-      ) : (
-        icon
-      )}
-      <Text style={[styles.label, { color: disabled || loading ? colors.inkMuted : palette.text }]}>
-        {label}
-      </Text>
-      {trailingIcon && !loading ? (
-        <AppIcon name={trailingIcon} color={palette.text} size={20} />
+      {isPrimary && !disabled ? (
+        <Image
+          source={brandAssets.pinkButtonGradient}
+          style={StyleSheet.absoluteFill}
+          resizeMode="stretch"
+        />
       ) : null}
+      <View style={styles.contentRow}>
+        {loading ? (
+          <ActivityIndicator color={isPrimary ? colors.onPrimary : palette.text} />
+        ) : leadingIcon ? (
+          <AppIcon name={leadingIcon} color={palette.text} size={20} />
+        ) : (
+          icon
+        )}
+        <Text style={[styles.label, { color: disabled || loading ? colors.inkMuted : palette.text }]}>
+          {label}
+        </Text>
+        {trailingIcon && !loading ? (
+          <AppIcon name={trailingIcon} color={palette.text} size={20} />
+        ) : null}
+      </View>
     </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 50,
+    minHeight: 52,
     borderRadius: radii.pill,
-    borderWidth: 1.5,
+    borderWidth: 1.2,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  contentRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs,
   },
   primaryShadow: {
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.24,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: '#E6386F',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 4,
   },
   label: {
-    ...type.label,
-    fontSize: 15,
+    fontFamily: fonts.bold,
+    fontSize: 16,
+    lineHeight: 22,
   },
   disabled: {
     backgroundColor: colors.disabled,

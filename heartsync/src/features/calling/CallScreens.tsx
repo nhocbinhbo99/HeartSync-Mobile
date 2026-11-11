@@ -454,8 +454,8 @@ function CallSession({
             <IconButton
               icon={muted ? 'microphoneOff' : 'microphone'}
               label={muted ? 'Bật micro' : 'Tắt micro'}
-              tone="onPrimary"
-              style={muted ? styles.callControlMuted : styles.callControl}
+              tone={muted ? 'onPrimary' : 'default'}
+              style={muted ? styles.callControlMuted : styles.callControlLight}
               onPress={() => {
                 void gateway.current?.setMuted(!muted).then((result) => {
                   if (result?.ok) setMuted(!muted);
@@ -466,8 +466,8 @@ function CallSession({
             <IconButton
               icon={cameraEnabled ? 'video' : 'videoOff'}
               label={cameraEnabled ? 'Tắt camera' : 'Bật camera'}
-              tone="onPrimary"
-              style={!cameraEnabled ? styles.callControlMuted : styles.callControl}
+              tone={!cameraEnabled ? 'onPrimary' : 'default'}
+              style={!cameraEnabled ? styles.callControlMuted : styles.callControlLight}
               onPress={() => {
                 void gateway.current?.setCameraEnabled(!cameraEnabled).then((result) => {
                   if (result?.ok) setCameraEnabled(!cameraEnabled);
@@ -651,10 +651,11 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   callTopBar: { position: 'absolute', top: 20, left: 20, right: 140, gap: 2 },
-  callControls: { position: 'absolute', left: 0, right: 0, bottom: 30, flexDirection: 'row', justifyContent: 'center', gap: 12 },
-  callControl: { backgroundColor: 'rgba(54, 17, 42, 0.72)', width: 56, height: 56 },
-  callControlMuted: { backgroundColor: colors.inkMuted, width: 56, height: 56 },
-  endCallControl: { backgroundColor: colors.danger, width: 56, height: 56 },
+  callControls: { position: 'absolute', left: 0, right: 0, bottom: 32, flexDirection: 'row', justifyContent: 'center', gap: 16 },
+  callControlLight: { backgroundColor: '#FFFFFF', width: 58, height: 58 },
+  callControl: { backgroundColor: 'rgba(31, 31, 31, 0.56)', width: 58, height: 58 },
+  callControlMuted: { backgroundColor: colors.inkMuted, width: 58, height: 58 },
+  endCallControl: { backgroundColor: '#FF4757', width: 58, height: 58 },
   fullScreenError: { position: 'absolute', left: 24, right: 24, bottom: 100, ...type.caption, color: colors.onPrimary, textAlign: 'center' },
   remoteVideo: { width: '100%', height: '100%' },
 });

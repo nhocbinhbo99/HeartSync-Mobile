@@ -1,65 +1,79 @@
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
-import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
-import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
+import { colors, fonts, spacing } from '../../shared/theme/tokens';
+import { brandAssets } from '../../shared/utils/avatarHelper';
 
 type Props = {
   title: string;
   body: string;
+  align?: 'center' | 'left';
 };
 
 /** Pink Romance identity and hierarchy for auth routes. */
-export function AuthHeader({ title, body }: Props) {
+export function AuthHeader({ title, body, align = 'center' }: Props) {
   return (
     <View style={styles.container}>
-      <View style={styles.brandRow}>
-        <View style={styles.brandBadge}>
-          <AppIcon name="heart" color={colors.primary} size={22} />
-        </View>
-        <AppText tone="primary" style={styles.brand}>
-          HeartSync
+      <View style={styles.brandStack}>
+        <Image source={brandAssets.logoPink} style={styles.logoImage} resizeMode="contain" />
+        <AppText style={styles.brand}>HeartSync</AppText>
+      </View>
+      <View style={[styles.copyWrap, align === 'left' ? styles.copyLeft : styles.copyCenter]}>
+        <AppText
+          accessibilityRole="header"
+          style={[styles.title, align === 'left' ? styles.textLeft : styles.textCenter]}
+        >
+          {title}
+        </AppText>
+        <AppText
+          tone="muted"
+          style={[styles.body, align === 'left' ? styles.textLeft : styles.textCenter]}
+        >
+          {body}
         </AppText>
       </View>
-      <AppText accessibilityRole="header" style={styles.title}>
-        {title}
-      </AppText>
-      <AppText tone="muted" style={styles.body}>
-        {body}
-      </AppText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.xs },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  brandBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
+  container: { gap: spacing.md },
+  brandStack: {
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  logoImage: {
+    width: 58,
+    height: 44,
   },
   brand: {
     fontFamily: fonts.extrabold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 22,
+    lineHeight: 28,
+    color: colors.ink,
+  },
+  copyWrap: {
+    gap: 4,
+  },
+  copyCenter: {
+    alignItems: 'center',
+  },
+  copyLeft: {
+    alignItems: 'flex-start',
   },
   title: {
     fontFamily: fonts.extrabold,
-    fontSize: 32,
-    lineHeight: 40,
+    fontSize: 26,
+    lineHeight: 34,
     color: colors.ink,
   },
   body: {
     fontSize: 15,
     lineHeight: 22,
+    color: colors.inkMuted,
   },
+  textCenter: { textAlign: 'center' },
+  textLeft: { textAlign: 'left' },
 });

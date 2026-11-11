@@ -4,16 +4,15 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AnimatedSection } from '../../shared/components/AnimatedSection';
-import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
-import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
+import { colors, fonts, spacing } from '../../shared/theme/tokens';
 import type { ProfilePublic } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
-import { getProfileImageSource } from '../../shared/utils/avatarHelper';
+import { brandAssets, getProfileImageSource } from '../../shared/utils/avatarHelper';
 
 type MatchPeople = {
   other: ProfilePublic;
@@ -22,32 +21,44 @@ type MatchPeople = {
   myPhoto?: string;
 };
 
-export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'MatchFound'>) {
+export function MatchFoundScreen({
+  route,
+  navigation,
+}: NativeStackScreenProps<RootStackParamList, 'MatchFound'>) {
   const services = useAppServices();
   const matchId = route.params?.matchId;
   const [people, setPeople] = useState<MatchPeople>();
 
   useEffect(() => {
     let live = true;
-    if (!services || !matchId) return () => { live = false; };
-    void Promise.all([services.matches.listMatches(), services.profile.getMine()]).then(async ([matches, mine]) => {
-      if (!live || !matches.ok || !mine.ok) return;
-      const match = matches.data.items.find((item) => item.id === matchId);
-      if (!match) return;
-      const otherPath = (match.otherProfile.photos.find((photo) => photo.isPrimary) ?? match.otherProfile.photos[0])?.storagePath;
-      const myPath = (mine.data.public.photos.find((photo) => photo.isPrimary) ?? mine.data.public.photos[0])?.storagePath;
-      const [otherUrl, myUrl] = await Promise.all([
-        otherPath ? services.profile.createPhotoUrl(otherPath) : Promise.resolve(undefined),
-        myPath ? services.profile.createPhotoUrl(myPath) : Promise.resolve(undefined),
-      ]);
-      if (!live) return;
-      setPeople({
-        other: match.otherProfile,
-        mine: mine.data.public,
-        otherPhoto: otherUrl?.ok ? otherUrl.data : undefined,
-        myPhoto: myUrl?.ok ? myUrl.data : undefined,
-      });
-    });
+    if (!services || !matchId)
+      return () => {
+        live = false;
+      };
+    void Promise.all([services.matches.listMatches(), services.profile.getMine()]).then(
+      async ([matches, mine]) => {
+        if (!live || !matches.ok || !mine.ok) return;
+        const match = matches.data.items.find((item) => item.id === matchId);
+        if (!match) return;
+        const otherPath = (
+          match.otherProfile.photos.find((photo) => photo.isPrimary) ?? match.otherProfile.photos[0]
+        )?.storagePath;
+        const myPath = (
+          mine.data.public.photos.find((photo) => photo.isPrimary) ?? mine.data.public.photos[0]
+        )?.storagePath;
+        const [otherUrl, myUrl] = await Promise.all([
+          otherPath ? services.profile.createPhotoUrl(otherPath) : Promise.resolve(undefined),
+          myPath ? services.profile.createPhotoUrl(myPath) : Promise.resolve(undefined),
+        ]);
+        if (!live) return;
+        setPeople({
+          other: match.otherProfile,
+          mine: mine.data.public,
+          otherPhoto: otherUrl?.ok ? otherUrl.data : undefined,
+          myPhoto: myUrl?.ok ? myUrl.data : undefined,
+        });
+      },
+    );
     return () => {
       live = false;
     };
@@ -65,86 +76,98 @@ export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<R
     );
   }
 
-  const names = people ? `${people.mine.displayName} & ${people.other.displayName}` : 'Một kết nối mới';
+  const otherName = people?.other.displayName ?? 'Ngọc Anh';
 
   return (
     <Screen scroll={false} safeTop contentStyle={styles.screen}>
-      <AnimatedSection>
-        <View style={styles.intro}>
-          <AppText accessibilityRole="header" tone="onPrimary" style={styles.title}>
-            It&apos;s a Match!
-          </AppText>
-          <AppText tone="onPrimary" style={styles.copy}>
-            Hai bạn đã cùng chọn nhau rồi đấy.
-          </AppText>
-        </View>
-      </AnimatedSection>
+      <View style={styles.brandHeader}>
+        <Image source={brandAssets.logoPink} style={styles.brandLogo} resizeMode="contain" />
+        <AppText style={styles.brandWordmark}>HeartSync</AppText>
+      </View>
 
       <AnimatedSection>
         <View
           accessible
           accessibilityRole="image"
-          accessibilityLabel={people ? `Kết nối giữa ${names}` : 'Kết nối mới được xác nhận'}
-          style={styles.portraits}
+          accessibilityLabel={`Kết nối mới với ${otherName}`}
+          style={styles.stage}
         >
-          <View style={[styles.portrait, styles.otherPortrait]}>
-            <Image
-              accessibilityLabel={`Ảnh của ${people?.other.displayName ?? 'Người bạn kết nối'}`}
-              source={getProfileImageSource(
-                people?.otherPhoto,
-                people?.other.id ?? 'match-other',
-                people?.other.gender ?? 'woman',
-              )}
-              style={styles.portraitImage}
-              resizeMode="cover"
-            />
+          <View style={styles.softAuraOuter} />
+          <View style={styles.softAuraInner} />
+
+          <View style={[styles.floatingHeart, { top: 18, left: 48 }]}>
+            <AppIcon name="heart" color="#FF6F9C" size={18} />
           </View>
-          <View style={[styles.portrait, styles.myPortrait]}>
-            <Image
-              accessibilityLabel={`Ảnh của ${people?.mine.displayName ?? 'Bạn'}`}
-              source={getProfileImageSource(
-                people?.myPhoto,
-                people?.mine.id ?? 'match-mine',
-                people?.mine.gender ?? 'man',
-              )}
-              style={styles.portraitImage}
-              resizeMode="cover"
-            />
+          <View style={[styles.floatingHeart, { top: 8, right: 64 }]}>
+            <AppIcon name="heart" color="#FF4D7D" size={22} />
           </View>
-          <View pointerEvents="none" accessible={false} style={styles.heartSignal}>
-            <AppIcon name="heart" color={colors.primary} size={36} />
+          <View style={[styles.floatingHeart, { bottom: 26, left: 36 }]}>
+            <AppIcon name="heart" color="#FF8FAB" size={16} />
+          </View>
+          <View style={[styles.floatingHeart, { bottom: 18, right: 44 }]}>
+            <AppIcon name="heart" color="#FF5C8D" size={18} />
+          </View>
+
+          <View style={styles.circlesRow}>
+            <View style={[styles.circleFrame, styles.leftCircle]}>
+              <Image
+                accessibilityLabel={`Ảnh của ${people?.mine.displayName ?? 'Bạn'}`}
+                source={getProfileImageSource(
+                  people?.myPhoto,
+                  people?.mine.id ?? 'match-mine',
+                  people?.mine.gender ?? 'man',
+                  people?.mine.displayName,
+                )}
+                style={styles.circleImage}
+                resizeMode="cover"
+              />
+            </View>
+            <View style={[styles.circleFrame, styles.rightCircle]}>
+              <Image
+                accessibilityLabel={`Ảnh của ${otherName}`}
+                source={getProfileImageSource(
+                  people?.otherPhoto,
+                  people?.other.id ?? 'match-other',
+                  people?.other.gender ?? 'woman',
+                  otherName,
+                )}
+                style={styles.circleImage}
+                resizeMode="cover"
+              />
+            </View>
+            <View pointerEvents="none" accessible={false} style={styles.centerHeartBadge}>
+              <Image
+                source={brandAssets.pinkButtonGradient}
+                style={StyleSheet.absoluteFill}
+                resizeMode="stretch"
+              />
+              <AppIcon name="heart" color="#FFFFFF" size={26} />
+            </View>
           </View>
         </View>
       </AnimatedSection>
 
-      <View style={styles.confirmationCopy}>
-        <AppText tone="onPrimary" style={styles.names}>
-          {names}
-        </AppText>
-        <AppText tone="onPrimary" style={styles.supporting}>
-          Đừng ngại gửi một lời chào ngọt ngào ngay bây giờ!
-        </AppText>
-      </View>
+      <AnimatedSection>
+        <View style={styles.copySection}>
+          <AppText accessibilityRole="header" style={styles.title}>
+            It&apos;s a Match! 🎉
+          </AppText>
+          <AppText tone="muted" style={styles.subtitle}>
+            Bạn và {otherName} đã thích nhau!
+          </AppText>
+        </View>
+      </AnimatedSection>
 
       <View style={styles.actions}>
-        <AnimatedPressable
-          accessibilityRole="button"
-          accessibilityLabel="Nhắn tin ngay"
+        <AppButton
+          label="Nhắn tin ngay"
           onPress={() => navigation.replace('Chat', { matchId })}
-          style={styles.primaryAction}
-        >
-          <AppText style={styles.primaryActionText}>Nhắn tin ngay</AppText>
-          <AppIcon name="send" color={colors.primaryPressed} size={20} />
-        </AnimatedPressable>
-        <AnimatedPressable
-          accessibilityRole="button"
-          accessibilityLabel="Tiếp tục khám phá"
+        />
+        <AppButton
+          label="Tiếp tục khám phá"
+          variant="secondary"
           onPress={() => navigation.navigate('MainTabs', { screen: 'Discover' })}
-          rippleColor="rgba(255,255,255,0.22)"
-          style={styles.quietAction}
-        >
-          <AppText style={styles.quietActionText}>Tiếp tục khám phá</AppText>
-        </AnimatedPressable>
+        />
       </View>
     </Screen>
   );
@@ -152,78 +175,118 @@ export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<R
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: colors.primaryPressed,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xl,
+    backgroundColor: '#FFF5F8',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
     justifyContent: 'space-between',
   },
-  intro: { gap: spacing.xs, alignItems: 'center' },
-  title: { fontFamily: fonts.extrabold, fontSize: 42, lineHeight: 48, textAlign: 'center' },
-  copy: { fontFamily: fonts.semibold, fontSize: 18, lineHeight: 26, opacity: 0.9, textAlign: 'center' },
-  portraits: {
-    height: 310,
-    justifyContent: 'center',
+  brandHeader: {
     alignItems: 'center',
+    gap: 2,
+  },
+  brandLogo: {
+    width: 46,
+    height: 36,
+  },
+  brandWordmark: {
+    fontFamily: fonts.extrabold,
+    fontSize: 18,
+    color: colors.ink,
+  },
+  stage: {
+    height: 260,
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
   },
-  portrait: {
-    width: 174,
-    height: 236,
-    borderRadius: 32,
-    borderWidth: 4,
-    borderColor: colors.surface,
-    overflow: 'hidden',
-    backgroundColor: colors.primarySoft,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
+  softAuraOuter: {
+    position: 'absolute',
+    width: 260,
+    height: 220,
+    borderRadius: 130,
+    backgroundColor: 'rgba(255, 182, 206, 0.25)',
   },
-  otherPortrait: { position: 'absolute', left: 16, top: 18, transform: [{ rotate: '-6deg' }] },
-  myPortrait: { position: 'absolute', right: 16, bottom: 18, transform: [{ rotate: '6deg' }] },
-  portraitImage: { width: '100%', height: '100%' },
-  heartSignal: {
-    width: 72,
-    height: 72,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 10,
+  softAuraInner: {
+    position: 'absolute',
+    width: 200,
+    height: 170,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255, 143, 171, 0.22)',
   },
-  confirmationCopy: { gap: spacing.xs, alignItems: 'center', paddingHorizontal: spacing.md },
-  names: { fontFamily: fonts.bold, fontSize: 26, lineHeight: 34, textAlign: 'center' },
-  supporting: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, textAlign: 'center', opacity: 0.88 },
-  actions: { gap: spacing.sm },
-  primaryAction: {
-    minHeight: 54,
-    backgroundColor: colors.surface,
-    borderRadius: radii.pill,
+  floatingHeart: {
+    position: 'absolute',
+    zIndex: 2,
+  },
+  circlesRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 4,
+    position: 'relative',
   },
-  primaryActionText: { fontFamily: fonts.bold, fontSize: 16, color: colors.primaryPressed },
-  quietAction: {
-    minHeight: 52,
-    borderRadius: radii.pill,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.65)',
+  circleFrame: {
+    width: 142,
+    height: 142,
+    borderRadius: 71,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+    backgroundColor: colors.primarySoft,
+    shadowColor: '#D65B88',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  leftCircle: {
+    marginRight: -16,
+    zIndex: 2,
+  },
+  rightCircle: {
+    marginLeft: -16,
+    zIndex: 3,
+  },
+  circleImage: {
+    width: '100%',
+    height: '100%',
+  },
+  centerHeartBadge: {
+    position: 'absolute',
+    bottom: -10,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    zIndex: 5,
+    shadowColor: '#E6386F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  quietActionText: { fontFamily: fonts.bold, fontSize: 15, color: colors.onPrimary },
+  copySection: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  title: {
+    fontFamily: fonts.extrabold,
+    fontSize: 34,
+    lineHeight: 42,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontFamily: fonts.semibold,
+    fontSize: 17,
+    lineHeight: 24,
+    color: colors.inkMuted,
+    textAlign: 'center',
+  },
+  actions: {
+    gap: spacing.sm,
+  },
 });

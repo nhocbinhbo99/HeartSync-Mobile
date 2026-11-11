@@ -28,11 +28,11 @@ const DEFAULT_FILTERS: DiscoveryFilters = {
   preferredLanguages: [],
 };
 
-const GENDER_CHIPS = [
-  { value: 'man', label: 'Nam', icon: 'person' as const },
-  { value: 'woman', label: 'Nữ', icon: 'heart' as const },
-  { value: 'nonbinary', label: 'Phi nhị nguyên', icon: 'sparkle' as const },
-  { value: 'prefer_not_to_say', label: 'Khác', icon: 'shield' as const },
+const GENDER_PILLS = [
+  { value: 'all', label: 'Tất cả' },
+  { value: 'woman', label: 'Nữ' },
+  { value: 'man', label: 'Nam' },
+  { value: 'nonbinary', label: 'Khác' },
 ] as const;
 
 const POPULAR_LANGUAGES = [
@@ -80,13 +80,17 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
     return () => clearTimeout(timer);
   }, [load]);
 
-  const toggleGender = (value: string) => {
+  const selectGender = (value: string) => {
     feedback('selection');
+    if (value === 'all') {
+      setFilters((current) => ({ ...current, preferredGenders: [] }));
+      return;
+    }
     setFilters((current) => {
       const exists = current.preferredGenders.includes(value);
       const nextGenders = exists
         ? current.preferredGenders.filter((item) => item !== value)
-        : [...current.preferredGenders, value];
+        : [value];
       return { ...current, preferredGenders: nextGenders };
     });
   };
@@ -126,17 +130,16 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
       return;
     }
     setFilters(result.data);
-    snackbar.show({ message: 'Đã lưu bộ lọc thành công!', tone: 'success' });
-    setTimeout(() => navigation.goBack(), 280);
+    feedback('confirm');
+    navigation.goBack();
   };
 
   const topHeader = (
     <View style={styles.topHeader}>
-      <IconButton icon="back" label="Quay lại Khám phá" onPress={() => navigation.goBack()} />
       <Text accessibilityRole="header" style={styles.topTitle}>
         Tùy chỉnh tìm kiếm
       </Text>
-      <View style={styles.headerSpacer} />
+      <IconButton icon="close" label="Đóng bộ lọc" onPress={() => navigation.goBack()} />
     </View>
   );
 
@@ -152,7 +155,11 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
     return (
       <Screen safeTop>
         {topHeader}
-        <AsyncStatePanel state="loading" title="Đang tải bộ lọc" description="Đang đọc các tùy chọn của bạn." />
+        <AsyncStatePanel
+          state="loading"
+          title="Đang tải bộ lọc"
+          description="Đang đọc các tùy chọn của bạn."
+        />
       </Screen>
     );
   }
@@ -163,15 +170,20 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         label="Áp dụng bộ lọc"
         loading={busy}
         disabled={busy}
-        trailingIcon="check"
         onPress={() => void save()}
       />
-      <AppButton label="Đặt lại về mặc định" variant="quiet" disabled={busy} onPress={resetFilters} />
+      <AppButton
+        label="Đặt lại về mặc định"
+        variant="quiet"
+        disabled={busy}
+        onPress={resetFilters}
+      />
     </BottomActionBar>
   );
 
   return (
-    <Screen safeTop footer={actions}>
+    <Screen safeTop footer={actions} contentStyle={styles.page}>
+      <View style={styles.sheetHandle} />
       {topHeader}
 
       {error ? (
@@ -182,48 +194,42 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
       ) : null}
 
       <AnimatedSection>
-        <View style={styles.cardSection}>
+        <View style={styles.sectionBlock}>
           <RangeSliderField
-            label="Độ tuổi mong muốn"
+            label="Độ tuổi"
             min={18}
             max={99}
             low={filters.ageMin}
             high={filters.ageMax}
-            onChange={(ageMin, ageMax) => setFilters((current) => ({ ...current, ageMin, ageMax }))}
+            onChange={(ageMin, ageMax) =>
+              setFilters((current) => ({ ...current, ageMin, ageMax }))
+            }
           />
         </View>
       </AnimatedSection>
 
+      <View style={styles.divider} />
+
       <AnimatedSection>
-        <View style={styles.cardSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Giới tính mong muốn</Text>
-            <Text style={styles.sectionHint}>
-              {filters.preferredGenders.length === 0
-                ? 'Mọi giới tính'
-                : `${filters.preferredGenders.length} đã chọn`}
-            </Text>
-          </View>
-          <Text style={styles.helperText}>Không chọn nghĩa là hiển thị tất cả mọi người.</Text>
-          <View style={styles.genderGrid}>
-            {GENDER_CHIPS.map((chip) => {
-              const active = filters.preferredGenders.includes(chip.value);
+        <View style={styles.sectionBlock}>
+          <Text style={styles.sectionTitle}>Giới tính mong muốn</Text>
+          <View style={styles.pillRow}>
+            {GENDER_PILLS.map((pill) => {
+              const active =
+                pill.value === 'all'
+                  ? filters.preferredGenders.length === 0
+                  : filters.preferredGenders.includes(pill.value);
               return (
                 <AnimatedPressable
-                  key={chip.value}
-                  accessibilityRole="checkbox"
-                  accessibilityLabel={chip.label}
-                  accessibilityState={{ checked: active }}
-                  onPress={() => toggleGender(chip.value)}
-                  style={[styles.genderChip, active && styles.genderChipActive]}
+                  key={pill.value}
+                  accessibilityRole="button"
+                  accessibilityLabel={pill.label}
+                  accessibilityState={{ selected: active }}
+                  onPress={() => selectGender(pill.value)}
+                  style={[styles.choicePill, active && styles.choicePillActive]}
                 >
-                  <AppIcon
-                    name={chip.icon}
-                    color={active ? colors.primaryPressed : colors.inkMuted}
-                    size={18}
-                  />
-                  <Text style={[styles.genderChipLabel, active && styles.genderChipLabelActive]}>
-                    {chip.label}
+                  <Text style={[styles.choicePillText, active && styles.choicePillTextActive]}>
+                    {pill.label}
                   </Text>
                 </AnimatedPressable>
               );
@@ -232,17 +238,19 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         </View>
       </AnimatedSection>
 
+      <View style={styles.divider} />
+
       <AnimatedSection>
-        <View style={styles.cardSection}>
+        <View style={styles.sectionBlock}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Ngôn ngữ giao tiếp</Text>
             <Text style={styles.sectionHint}>
               {filters.preferredLanguages.length === 0
-                ? 'Tất cả'
+                ? 'Tất cả ngôn ngữ'
                 : `${filters.preferredLanguages.length} đã chọn`}
             </Text>
           </View>
-          <Text style={styles.helperText}>Chọn một hoặc nhiều ngôn ngữ bạn muốn trò chuyện.</Text>
+          <Text style={styles.helperText}>Chỉ chọn điều thật sự quan trọng với bạn.</Text>
           <View style={styles.languageTags}>
             {POPULAR_LANGUAGES.map((lang) => {
               const active = filters.preferredLanguages.includes(lang.code);
@@ -258,7 +266,6 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
                   <Text style={[styles.langChipText, active && styles.langChipTextActive]}>
                     {lang.label}
                   </Text>
-                  {active ? <AppIcon name="check" color={colors.primaryPressed} size={14} /> : null}
                 </AnimatedPressable>
               );
             })}
@@ -266,42 +273,51 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         </View>
       </AnimatedSection>
 
+      <View style={styles.divider} />
+
       <AnimatedSection>
-        <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>Khoảng cách</Text>
+        <View style={styles.sectionBlock}>
           {!locationReady ? (
-            <View style={styles.locationNotice}>
-              <View style={styles.noticeIcon}>
-                <AppIcon name="locationOff" color={colors.inkMuted} size={22} />
+            <View style={styles.locationCompactCard}>
+              <View style={styles.locationCompactLeft}>
+                <View style={styles.noticeIcon}>
+                  <AppIcon name="location" color={colors.primaryPressed} size={18} />
+                </View>
+                <View style={styles.locationCompactCopy}>
+                  <Text style={styles.noticeTitle}>Khoảng cách quanh bạn</Text>
+                  <Text style={styles.noticeBody}>
+                    Bật vị trí trong Hồ sơ để lọc theo km.
+                  </Text>
+                </View>
               </View>
-              <View style={styles.noticeCopy}>
-                <Text style={styles.noticeTitle}>Chưa bật vị trí</Text>
-                <Text style={styles.noticeBody}>
-                  Bật vị trí trong Hồ sơ để lọc theo khoảng cách. Tọa độ chính xác luôn được giữ riêng tư.
-                </Text>
-              </View>
-              <AppButton
-                label="Bật vị trí"
-                variant="secondary"
-                trailingIcon="forward"
+              <AnimatedPressable
+                accessibilityRole="button"
+                accessibilityLabel="Bật vị trí"
                 onPress={() => navigation.navigate('EditProfile')}
-              />
+                style={styles.enableLocBtn}
+              >
+                <Text style={styles.enableLocText}>Bật vị trí</Text>
+              </AnimatedPressable>
             </View>
           ) : (
             <>
               <View style={styles.switchRow}>
                 <View style={styles.switchCopy}>
-                  <Text style={styles.switchTitle}>Không giới hạn khoảng cách</Text>
-                  <Text style={styles.switchBody}>Tắt để chọn bán kính tìm kiếm quanh bạn.</Text>
+                  <Text style={styles.sectionTitle}>Khoảng cách</Text>
+                  <Text style={styles.switchBody}>
+                    {filters.distanceKm === null
+                      ? 'Đang hiển thị mọi khoảng cách'
+                      : `Trong bán kính ${filters.distanceKm} km`}
+                  </Text>
                 </View>
                 <Switch
-                  accessibilityLabel="Không giới hạn khoảng cách"
-                  value={filters.distanceKm === null}
-                  trackColor={{ false: colors.border, true: colors.primarySoft }}
-                  thumbColor={filters.distanceKm === null ? colors.primary : colors.inkMuted}
-                  onValueChange={(unlimited) => {
-                    feedback(unlimited ? 'toggleOn' : 'toggleOff');
-                    setFilters((current) => ({ ...current, distanceKm: unlimited ? null : 50 }));
+                  accessibilityLabel="Giới hạn khoảng cách"
+                  value={filters.distanceKm !== null}
+                  trackColor={{ false: '#F2D7E3', true: colors.primarySoft }}
+                  thumbColor={filters.distanceKm !== null ? colors.primary : '#B8A2AD'}
+                  onValueChange={(limited) => {
+                    feedback(limited ? 'toggleOn' : 'toggleOff');
+                    setFilters((current) => ({ ...current, distanceKm: limited ? 25 : null }));
                   }}
                 />
               </View>
@@ -323,21 +339,33 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
 }
 
 const styles = StyleSheet.create({
+  page: {
+    backgroundColor: '#FFF7F9',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+  },
+  sheetHandle: {
+    width: 48,
+    height: 5,
+    borderRadius: 99,
+    backgroundColor: '#F3C8D8',
+    alignSelf: 'center',
+    marginBottom: -4,
+  },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 52,
-    marginLeft: -spacing.xs,
-    marginBottom: spacing.xs,
+    minHeight: 46,
   },
   topTitle: {
     fontFamily: fonts.extrabold,
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 24,
+    lineHeight: 30,
     color: colors.ink,
   },
-  headerSpacer: { width: 48 },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -345,26 +373,19 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: radii.md,
     backgroundColor: colors.dangerSoft,
-    marginBottom: spacing.sm,
   },
   errorText: {
     ...type.caption,
     color: colors.danger,
     flex: 1,
   },
-  cardSection: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.xl,
-    padding: spacing.md,
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+  sectionBlock: {
+    gap: 10,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F5DCE6',
+    marginVertical: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -373,130 +394,146 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fonts.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.ink,
   },
   sectionHint: {
-    fontFamily: fonts.semibold,
-    fontSize: 12,
+    fontFamily: fonts.bold,
+    fontSize: 13,
     color: colors.primaryPressed,
   },
   helperText: {
     ...type.caption,
+    fontSize: 13,
     color: colors.inkMuted,
-    marginTop: -spacing.xs,
+    marginTop: -4,
   },
-  genderGrid: {
+  pillRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
+    gap: 10,
   },
-  genderChip: {
-    flexBasis: '48%',
-    flexGrow: 1,
-    minHeight: 46,
-    flexDirection: 'row',
+  choicePill: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3D6E2',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceMuted,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
   },
-  genderChipActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
+  choicePillActive: {
+    backgroundColor: colors.primaryPressed,
+    borderColor: colors.primaryPressed,
+    shadowColor: '#E6386F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  genderChipLabel: {
+  choicePillText: {
     fontFamily: fonts.semibold,
     fontSize: 14,
-    color: colors.inkMuted,
+    color: colors.ink,
   },
-  genderChipLabelActive: {
+  choicePillTextActive: {
     fontFamily: fonts.bold,
-    color: colors.primaryPressed,
+    color: '#FFFFFF',
   },
   languageTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
+    gap: 8,
+    marginTop: 2,
   },
   langChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: radii.pill,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#F3D6E2',
   },
   langChipActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
+    backgroundColor: colors.primaryPressed,
+    borderColor: colors.primaryPressed,
   },
   langChipText: {
     fontFamily: fonts.semibold,
-    fontSize: 13,
-    color: colors.inkMuted,
+    fontSize: 13.5,
+    color: colors.ink,
   },
   langChipTextActive: {
     fontFamily: fonts.bold,
-    color: colors.primaryPressed,
+    color: '#FFFFFF',
   },
-  locationNotice: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
+  locationCompactCard: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: '#F3D6E2',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+    gap: spacing.sm,
+  },
+  locationCompactLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   noticeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFF0F5',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noticeCopy: {
-    alignItems: 'center',
-    gap: spacing.xxs,
+  locationCompactCopy: {
+    flex: 1,
+    gap: 2,
   },
   noticeTitle: {
     fontFamily: fonts.bold,
     fontSize: 15,
     color: colors.ink,
-    textAlign: 'center',
   },
   noticeBody: {
     ...type.caption,
+    fontSize: 12.5,
     color: colors.inkMuted,
-    textAlign: 'center',
+  },
+  enableLocBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1,
+    borderColor: '#F6C6D8',
+  },
+  enableLocText: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.primaryPressed,
   },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
   },
   switchCopy: {
     flex: 1,
-    gap: spacing.xxs,
+    gap: 2,
     marginRight: spacing.sm,
-  },
-  switchTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 14,
-    color: colors.ink,
   },
   switchBody: {
     ...type.caption,
+    fontSize: 13,
     color: colors.inkMuted,
   },
 });

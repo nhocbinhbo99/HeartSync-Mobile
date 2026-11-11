@@ -6,6 +6,7 @@ import { AnimatedSection } from '../../shared/components/AnimatedSection';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
+import { AppText } from '../../shared/components/AppText';
 import { AppTextField } from '../../shared/components/AppTextField';
 import { DateField } from '../../shared/components/DateField';
 import { FormField } from '../../shared/components/FormField';
@@ -15,7 +16,7 @@ import { Screen } from '../../shared/components/Screen';
 import { useSnackbar } from '../../shared/components/Snackbar';
 import { feedback } from '../../shared/motion/feedback';
 import { GENDER_OPTIONS } from '../../shared/domain/profileOptions';
-import { colors, fonts, radii, spacing, type } from '../../shared/theme/tokens';
+import { colors, fonts, spacing, type } from '../../shared/theme/tokens';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAuth } from './AuthProvider';
 import { validateAuthFields, validateSignUpFields, type AuthFieldErrors } from './validation';
@@ -29,17 +30,17 @@ type Props = NativeStackScreenProps<RootStackParamList, AuthRoute> & {
 
 const copy = {
   'sign-in': {
-    title: 'Mừng bạn trở lại.',
-    body: 'Đăng nhập để tiếp tục những kết nối ngọt ngào hôm nay.',
+    title: 'Chào mừng trở lại! 👋',
+    body: 'Tiếp tục kết nối với HeartSync',
     submit: 'Đăng nhập',
   },
   'sign-up': {
     title: 'Tạo tài khoản',
-    body: 'Chỉ vài bước đơn giản để bắt đầu hành trình cùng HeartSync.',
-    submit: 'Tạo tài khoản',
+    body: 'Bắt đầu hành trình kết nối cùng HeartSync',
+    submit: 'Đăng ký',
   },
   'sign-up-details': {
-    title: 'Thông tin cơ bản',
+    title: 'Giới thiệu bản thân',
     body: 'Ngày sinh luôn riêng tư. Thông tin này giúp gợi ý đúng những người phù hợp.',
     submit: 'Hoàn tất đăng ký',
   },
@@ -68,9 +69,13 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
       accessibilityValue={{ min: 1, max: 2, now: step }}
       style={styles.stepper}
     >
-      <View style={[styles.stepSegment, styles.stepActive]} />
-      <View style={[styles.stepSegment, step === 2 && styles.stepActive]} />
-      <Text style={styles.stepLabel}>Bước {step}/2</Text>
+      <View style={[styles.stepCircle, styles.stepCircleDone]}>
+        <AppIcon name="check" color={colors.onPrimary} size={14} />
+      </View>
+      <View style={[styles.stepLine, step === 2 && styles.stepLineActive]} />
+      <View style={[styles.stepCircle, step === 2 && styles.stepCircleDone]}>
+        <AppText style={[styles.stepNum, step === 2 && styles.stepNumActive]}>2</AppText>
+      </View>
     </View>
   );
 }
@@ -80,11 +85,10 @@ export function AuthScreen({ navigation, mode }: Props) {
   const snackbar = useSnackbar();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState('');
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
@@ -106,7 +110,6 @@ export function AuthScreen({ navigation, mode }: Props) {
 
   const goToProfileStep = () => {
     const nextErrors = validateAuthFields(email, password);
-    if (password !== passwordConfirm) nextErrors.passwordConfirm = 'Mật khẩu xác nhận chưa khớp.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length || !agreedToTerms) {
       if (!agreedToTerms) {
@@ -125,7 +128,14 @@ export function AuthScreen({ navigation, mode }: Props) {
       return;
     }
     const nextErrors = isSignUp
-      ? validateSignUpFields({ email, password, passwordConfirm, displayName, dateOfBirth, gender })
+      ? validateSignUpFields({
+          email,
+          password,
+          passwordConfirm: password,
+          displayName,
+          dateOfBirth,
+          gender,
+        })
       : validateAuthFields(email, needsPassword ? password : undefined);
     setErrors(nextErrors);
     setActionError(undefined);
@@ -150,7 +160,6 @@ export function AuthScreen({ navigation, mode }: Props) {
     setBusy(false);
     if (result.ok) {
       if (mode === 'sign-in') {
-        // Bấm đăng nhập thành công -> vào thẳng ứng dụng, không hiển thị banner hay toast "hoàn tất"
         feedback('selection');
         return;
       }
@@ -164,7 +173,7 @@ export function AuthScreen({ navigation, mode }: Props) {
     }
   };
 
-  const submitLabel = isSignUp && step === 1 ? 'Tiếp tục' : details.submit;
+  const submitLabel = isSignUp && step === 1 ? 'Đăng ký' : details.submit;
   const goBack = () => (navigation.canGoBack() ? navigation.goBack() : navigation.replace('SignIn'));
 
   return (
@@ -172,20 +181,33 @@ export function AuthScreen({ navigation, mode }: Props) {
       {mode !== 'sign-in' ? (
         <IconButton icon="back" label="Quay lại" onPress={goBack} style={styles.backButton} />
       ) : null}
-      <AuthHeader title={details.title} body={details.body} />
+      <AuthHeader
+        title={details.title}
+        body={details.body}
+        align={isSignUp ? 'left' : 'center'}
+      />
       {isSignUp ? <StepIndicator step={step} /> : null}
 
       <View style={styles.form}>
         {!isSignUp || step === 1 ? (
           <AnimatedSection>
             <View style={styles.formGroup}>
+              {isSignUp ? (
+                <AppTextField
+                  label="Tên hiển thị"
+                  placeholder="Nhập tên của bạn"
+                  value={displayName}
+                  onChangeText={setDisplayName}
+                  error={errors.displayName}
+                />
+              ) : null}
               <AppTextField
                 label="Email"
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="email"
                 keyboardType="email-address"
-                placeholder="ban@example.com"
+                placeholder="Nhập email của bạn"
                 value={email}
                 onChangeText={setEmail}
                 error={errors.email}
@@ -195,7 +217,7 @@ export function AuthScreen({ navigation, mode }: Props) {
                   label="Mật khẩu"
                   autoCapitalize="none"
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                  placeholder="Tối thiểu 8 ký tự"
+                  placeholder={isSignUp ? 'Tạo mật khẩu (ít nhất 8 ký tự)' : 'Nhập mật khẩu'}
                   secureTextEntry={!passwordVisible}
                   value={password}
                   onChangeText={setPassword}
@@ -208,46 +230,15 @@ export function AuthScreen({ navigation, mode }: Props) {
                   }
                 />
               ) : null}
-              {isSignUp ? (
-                <AppTextField
-                  label="Xác nhận mật khẩu"
-                  autoCapitalize="none"
-                  autoComplete="new-password"
-                  placeholder="Nhập lại mật khẩu"
-                  secureTextEntry={!passwordVisible}
-                  value={passwordConfirm}
-                  onChangeText={setPasswordConfirm}
-                  error={errors.passwordConfirm}
-                  rightAccessory={
-                    <PasswordAccessory
-                      visible={passwordVisible}
-                      onPress={() => setPasswordVisible((value) => !value)}
-                    />
-                  }
-                />
-              ) : null}
-              {isSignUp ? (
+
+              {mode === 'sign-in' ? (
                 <AnimatedPressable
-                  accessibilityRole="checkbox"
-                  accessibilityLabel="Đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư"
-                  accessibilityState={{ checked: agreedToTerms }}
-                  onPress={() => {
-                    setAgreedToTerms((value) => !value);
-                    setActionError(undefined);
-                  }}
-                  style={styles.terms}
+                  accessibilityRole="button"
+                  accessibilityLabel="Quên mật khẩu"
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                  style={styles.forgotLinkWrap}
                 >
-                  <View
-                    pointerEvents="none"
-                    accessible={false}
-                    style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}
-                  >
-                    {agreedToTerms ? <AppIcon name="check" color={colors.onPrimary} size={16} /> : null}
-                  </View>
-                  <Text style={styles.termsText}>
-                    Tôi đồng ý với <Text style={styles.termsLink}>Điều khoản sử dụng</Text>
-                    {'\n'}và <Text style={styles.termsLink}>Chính sách quyền riêng tư</Text>.
-                  </Text>
+                  <AppText style={styles.forgotLinkText}>Quên mật khẩu?</AppText>
                 </AnimatedPressable>
               ) : null}
             </View>
@@ -255,17 +246,19 @@ export function AuthScreen({ navigation, mode }: Props) {
         ) : (
           <AnimatedSection>
             <View style={styles.formGroup}>
-              <FormField
-                label="Tên hiển thị"
-                value={displayName}
-                onChangeText={setDisplayName}
-                maxLength={80}
-                showCharacterCount
-                error={errors.displayName}
-                placeholder="Tên mọi người sẽ nhìn thấy"
-              />
+              {!displayName.trim() ? (
+                <FormField
+                  label="Tên hiển thị"
+                  value={displayName}
+                  onChangeText={setDisplayName}
+                  maxLength={80}
+                  showCharacterCount
+                  error={errors.displayName}
+                  placeholder="Tên mọi người sẽ nhìn thấy"
+                />
+              ) : null}
               <DateField
-                label="Ngày sinh riêng tư"
+                label="Ngày sinh"
                 value={dateOfBirth}
                 onChange={setDateOfBirth}
                 maximumDate={dateLimits.maximum}
@@ -293,9 +286,27 @@ export function AuthScreen({ navigation, mode }: Props) {
           disabled={busy}
           loading={busy}
           label={busy ? (mode === 'sign-in' ? 'Đang vào...' : 'Đang xử lý') : submitLabel}
-          trailingIcon={isSignUp && step === 1 ? 'forward' : 'check'}
           onPress={() => void submit()}
         />
+
+        {isSignUp && step === 1 ? (
+          <AnimatedPressable
+            accessibilityRole="checkbox"
+            accessibilityLabel="Đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư"
+            accessibilityState={{ checked: agreedToTerms }}
+            onPress={() => {
+              setAgreedToTerms((value) => !value);
+              setActionError(undefined);
+            }}
+            style={styles.termsCentered}
+          >
+            <Text style={styles.termsNoteText}>
+              Bằng việc đăng ký, bạn đồng ý với{'\n'}
+              <Text style={styles.termsLink}>Điều khoản sử dụng</Text> và{' '}
+              <Text style={styles.termsLink}>Chính sách bảo mật</Text>.
+            </Text>
+          </AnimatedPressable>
+        ) : null}
 
         {isSignUp && step === 2 ? (
           <AppButton
@@ -308,31 +319,45 @@ export function AuthScreen({ navigation, mode }: Props) {
         ) : null}
 
         {mode === 'sign-in' ? (
-          <View style={styles.secondaryActions}>
-            <AppButton
-              label="Quên mật khẩu"
-              variant="quiet"
-              onPress={() => navigation.navigate('ForgotPassword')}
-            />
-            <View style={styles.divider} />
-            <AppButton
-              label="Tạo tài khoản"
-              variant="secondary"
-              trailingIcon="forward"
+          <View style={styles.signInFooter}>
+            <View style={styles.orRow}>
+              <View style={styles.orLine} />
+              <AppText tone="muted" style={styles.orText}>
+                Hoặc
+              </AppText>
+              <View style={styles.orLine} />
+            </View>
+
+            <View style={styles.socialRow}>
+              <View style={styles.socialCircle}>
+                <AppText style={styles.googleLetter}>G</AppText>
+              </View>
+              <View style={styles.socialCircle}>
+                <AppText style={styles.appleSymbol}></AppText>
+              </View>
+            </View>
+
+            <AnimatedPressable
+              accessibilityRole="button"
+              accessibilityLabel="Tạo tài khoản"
               onPress={() => navigation.navigate('SignUp')}
-            />
+              style={styles.registerPromptRow}
+            >
+              <AppText tone="muted" style={styles.registerPromptText}>
+                Chưa có tài khoản?{' '}
+              </AppText>
+              <AppText style={styles.registerPromptLink}>Đăng ký ngay</AppText>
+            </AnimatedPressable>
           </View>
-        ) : !isSignUp || step === 1 ? (
+        ) : !isSignUp ? (
           <AppButton label="Quay lại đăng nhập" variant="quiet" leadingIcon="back" onPress={goBack} />
         ) : null}
       </View>
 
-      {mode === 'sign-in' ? (
-        <View style={styles.trustNote}>
-          <AppIcon name="lock" color={colors.primaryPressed} size={16} />
-          <Text style={styles.trustText}>Kết nối chỉ được tạo khi cả hai cùng đồng ý.</Text>
-        </View>
-      ) : null}
+      <View style={styles.trustNote}>
+        <AppIcon name="lock" color={colors.primaryPressed} size={14} />
+        <Text style={styles.trustText}>Kết nối chỉ được tạo khi cả hai cùng đồng ý.</Text>
+      </View>
     </Screen>
   );
 }
@@ -340,41 +365,143 @@ export function AuthScreen({ navigation, mode }: Props) {
 const styles = StyleSheet.create({
   page: {
     justifyContent: 'center',
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xxl,
-    gap: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+    backgroundColor: '#FFF7F9',
   },
-  backButton: { alignSelf: 'flex-start', marginLeft: -spacing.xs },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: -spacing.xs },
-  stepSegment: { height: 4, flex: 1, backgroundColor: colors.border, borderRadius: radii.pill },
-  stepActive: { backgroundColor: colors.primary },
-  stepLabel: { ...type.caption, color: colors.inkMuted, marginLeft: spacing.xs },
+  backButton: { alignSelf: 'flex-start', marginLeft: -spacing.xs, marginBottom: -spacing.xs },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginVertical: 4,
+  },
+  stepCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#F7DCE6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepCircleDone: {
+    backgroundColor: colors.primaryPressed,
+  },
+  stepLine: {
+    width: 48,
+    height: 2,
+    backgroundColor: '#F3D0DF',
+  },
+  stepLineActive: {
+    backgroundColor: colors.primaryPressed,
+  },
+  stepNum: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.inkMuted,
+  },
+  stepNumActive: {
+    color: colors.onPrimary,
+  },
   form: { gap: spacing.md },
-  formGroup: { gap: spacing.md },
-  secondaryActions: { gap: spacing.xs, marginTop: spacing.xs },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.xs },
+  formGroup: { gap: spacing.sm },
+  forgotLinkWrap: {
+    alignSelf: 'flex-end',
+    paddingVertical: 2,
+  },
+  forgotLinkText: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.primaryPressed,
+  },
+  signInFooter: {
+    gap: spacing.md,
+    marginTop: spacing.xs,
+    alignItems: 'center',
+  },
+  orRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    width: '100%',
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#F3D6E2',
+  },
+  orText: {
+    fontSize: 13,
+  },
+  socialRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  socialCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3D6E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#D67094',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  googleLetter: {
+    fontFamily: fonts.extrabold,
+    fontSize: 18,
+    color: '#EA4335',
+  },
+  appleSymbol: {
+    fontFamily: fonts.bold,
+    fontSize: 20,
+    color: '#1F1F1F',
+  },
+  registerPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  registerPromptText: {
+    fontSize: 14,
+  },
+  registerPromptLink: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: colors.primaryPressed,
+  },
+  termsCentered: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  termsNoteText: {
+    ...type.caption,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.inkMuted,
+    textAlign: 'center',
+  },
+  termsLink: {
+    fontFamily: fonts.bold,
+    color: colors.primaryPressed,
+  },
   trustNote: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.md,
+    gap: 6,
+    paddingTop: spacing.xs,
   },
   trustText: { ...type.caption, color: colors.inkMuted },
-  terms: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.xs },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
-  termsText: { ...type.body, fontSize: 14, color: colors.ink, flex: 1 },
-  termsLink: { fontFamily: fonts.bold, color: colors.primaryPressed },
 });

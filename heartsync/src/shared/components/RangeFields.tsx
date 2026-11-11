@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { feedback } from '../motion/feedback';
-import { colors, fonts, radii, spacing } from '../theme/tokens';
+import { colors, fonts, radii } from '../theme/tokens';
 import { AnimatedPressable } from './AnimatedPressable';
 
 type RangeProps = {
@@ -35,8 +35,8 @@ const AGE_PRESETS = [
   { label: '18 – 24', low: 18, high: 24 },
   { label: '22 – 30', low: 22, high: 30 },
   { label: '25 – 35', low: 25, high: 35 },
-  { label: '30 – 50', low: 30, high: 50 },
-  { label: 'Mọi lứa tuổi', low: 18, high: 99 },
+  { label: '30 – 45', low: 30, high: 45 },
+  { label: 'Tất cả', low: 18, high: 99 },
 ] as const;
 
 export function RangeSliderField({
@@ -50,6 +50,7 @@ export function RangeSliderField({
   disabled = false,
 }: RangeProps) {
   const [trackWidth, setTrackWidth] = useState(0);
+  const [activeThumb, setActiveThumb] = useState<'low' | 'high'>('low');
 
   const ratio = (value: number) => {
     if (max <= min) return 0;
@@ -62,35 +63,48 @@ export function RangeSliderField({
     return Math.round(min + (clampedX / trackWidth) * (max - min));
   };
 
-  const handleTrackPress = (locationX: number) => {
-    if (!trackWidth || disabled) return;
-    const candidate = valueFromX(locationX);
-    if (Math.abs(candidate - low) < Math.abs(candidate - high)) {
-      onChange(clamp(candidate, min, high), high);
-    } else {
-      onChange(low, clamp(candidate, low, max));
-    }
-    feedback('selection');
-  };
-
   const panGesture = Gesture.Pan()
     .runOnJS(true)
+    .activeOffsetX([-4, 4])
     .onBegin((event) => {
       if (!trackWidth || disabled) return;
-      handleTrackPress(event.x);
+      const candidate = valueFromX(event.x);
+      const pickLow = Math.abs(candidate - low) <= Math.abs(candidate - high);
+      setActiveThumb(pickLow ? 'low' : 'high');
+      if (pickLow) {
+        onChange(clamp(candidate, min, Math.max(min, high - 1)), high);
+      } else {
+        onChange(low, clamp(candidate, Math.min(max, low + 1), max));
+      }
+      feedback('selection');
     })
     .onUpdate((event) => {
       if (!trackWidth || disabled) return;
       const candidate = valueFromX(event.x);
-      if (Math.abs(candidate - low) < Math.abs(candidate - high)) {
-        onChange(clamp(candidate, min, high), high);
+      if (activeThumb === 'low') {
+        onChange(clamp(candidate, min, Math.max(min, high - 1)), high);
       } else {
-        onChange(low, clamp(candidate, low, max));
+        onChange(low, clamp(candidate, Math.min(max, low + 1), max));
       }
     })
     .onFinalize(() => {
       if (!disabled) feedback('selection');
     });
+
+  const tapGesture = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd((event) => {
+      if (!trackWidth || disabled) return;
+      const candidate = valueFromX(event.x);
+      if (Math.abs(candidate - low) <= Math.abs(candidate - high)) {
+        onChange(clamp(candidate, min, Math.max(min, high - 1)), high);
+      } else {
+        onChange(low, clamp(candidate, Math.min(max, low + 1), max));
+      }
+      feedback('selection');
+    });
+
+  const composedGesture = Gesture.Race(panGesture, tapGesture);
 
   const lowPercent = ratio(low);
   const highPercent = ratio(high);
@@ -100,14 +114,36 @@ export function RangeSliderField({
     <View style={styles.group}>
       <View style={styles.heading}>
         <Text style={styles.label}>{label}</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {low} – {high} {unit}
-          </Text>
-        </View>
+        <Text style={styles.valueInline}>
+          {low} – {high} {unit}
+        </Text>
       </View>
 
-      {/* Preset Quick Chips */}
+      <GestureDetector gesture={composedGesture}>
+        <View
+          accessible
+          accessibilityRole="adjustable"
+          accessibilityLabel={label}
+          accessibilityValue={{ min, max, now: low, text: `${low} đến ${high} ${unit}` }}
+          onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+          style={[styles.sliderContainer, disabled && styles.disabled]}
+        >
+          <View style={styles.trackBackground}>
+            <View
+              style={[
+                styles.trackFill,
+                {
+                  left: `${lowPercent}%`,
+                  width: `${widthPercent}%`,
+                },
+              ]}
+            />
+            <View style={[styles.thumb, { left: `${lowPercent}%` }]} />
+            <View style={[styles.thumb, { left: `${highPercent}%` }]} />
+          </View>
+        </View>
+      </GestureDetector>
+
       <View style={styles.presetRow}>
         {AGE_PRESETS.map((preset) => {
           const isSelected = low === preset.low && high === preset.high;
@@ -130,38 +166,6 @@ export function RangeSliderField({
           );
         })}
       </View>
-
-      {/* Slider Track */}
-      <GestureDetector gesture={panGesture}>
-        <View
-          accessible
-          accessibilityRole="adjustable"
-          accessibilityLabel={label}
-          accessibilityValue={{ min, max, now: low, text: `${low} đến ${high} ${unit}` }}
-          onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
-          style={[styles.sliderContainer, disabled && styles.disabled]}
-        >
-          <View style={styles.trackBackground}>
-            <View
-              style={[
-                styles.trackFill,
-                {
-                  left: `${lowPercent}%`,
-                  width: `${widthPercent}%`,
-                },
-              ]}
-            />
-            {/* Left Thumb */}
-            <View style={[styles.thumb, { left: `${lowPercent}%` }]}>
-              <View style={styles.thumbDot} />
-            </View>
-            {/* Right Thumb */}
-            <View style={[styles.thumb, { left: `${highPercent}%` }]}>
-              <View style={styles.thumbDot} />
-            </View>
-          </View>
-        </View>
-      </GestureDetector>
     </View>
   );
 }
@@ -189,6 +193,7 @@ export function ValueSliderField({
 
   const panGesture = Gesture.Pan()
     .runOnJS(true)
+    .activeOffsetX([-4, 4])
     .onBegin((e) => {
       if (!trackWidth || disabled) return;
       updateValue(e.x);
@@ -206,11 +211,9 @@ export function ValueSliderField({
     <View style={styles.group}>
       <View style={styles.heading}>
         <Text style={styles.label}>{label}</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {value} {unit}
-          </Text>
-        </View>
+        <Text style={styles.valueInline}>
+          Trong {value} {unit}
+        </Text>
       </View>
 
       <GestureDetector gesture={panGesture}>
@@ -224,9 +227,7 @@ export function ValueSliderField({
         >
           <View style={styles.trackBackground}>
             <View style={[styles.trackFill, { left: 0, width: `${ratio}%` }]} />
-            <View style={[styles.thumb, { left: `${ratio}%` }]}>
-              <View style={styles.thumbDot} />
-            </View>
+            <View style={[styles.thumb, { left: `${ratio}%` }]} />
           </View>
         </View>
       </GestureDetector>
@@ -236,8 +237,7 @@ export function ValueSliderField({
 
 const styles = StyleSheet.create({
   group: {
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
+    gap: 10,
   },
   heading: {
     flexDirection: 'row',
@@ -246,91 +246,75 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.bold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.ink,
   },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
-  },
-  badgeText: {
+  valueInline: {
     fontFamily: fonts.bold,
-    fontSize: 13,
+    fontSize: 15,
     color: colors.primaryPressed,
     fontVariant: ['tabular-nums'],
   },
-  presetRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginVertical: spacing.xxs,
-  },
-  presetChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  presetChipActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
-  },
-  presetText: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    color: colors.inkMuted,
-  },
-  presetTextActive: {
-    fontFamily: fonts.bold,
-    color: colors.primaryPressed,
-  },
   sliderContainer: {
-    height: 44,
+    height: 38,
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
   },
   trackBackground: {
-    height: 8,
+    height: 6,
     borderRadius: radii.pill,
-    backgroundColor: colors.surfaceMuted,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: '#FADCE6',
     position: 'relative',
     justifyContent: 'center',
   },
   trackFill: {
     position: 'absolute',
-    height: 8,
+    height: 6,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryPressed,
   },
   thumb: {
     position: 'absolute',
-    top: -10,
-    width: 28,
-    height: 28,
-    marginLeft: -14,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
+    top: -9,
+    width: 24,
+    height: 24,
+    marginLeft: -12,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     borderWidth: 2.5,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.28,
-    shadowRadius: 5,
-    elevation: 4,
+    borderColor: colors.primaryPressed,
+    shadowColor: colors.primaryPressed,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  thumbDot: {
-    width: 8,
-    height: 8,
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 2,
+  },
+  presetChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: radii.pill,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3D6E2',
+  },
+  presetChipActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  presetText: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  presetTextActive: {
+    fontFamily: fonts.bold,
+    color: '#FFFFFF',
   },
   disabled: {
     opacity: 0.45,

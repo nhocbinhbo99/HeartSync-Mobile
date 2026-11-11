@@ -15,7 +15,12 @@ import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { colors, fonts, radii, spacing, type } from '../../shared/theme/tokens';
 import type { ProfilePublic, SwipeAction } from '../../shared/types/domain.types';
-import { getProfileImageSource } from '../../shared/utils/avatarHelper';
+import {
+  brandAssets,
+  formatNaturalBio,
+  formatNaturalOccupation,
+  getProfileImageSource,
+} from '../../shared/utils/avatarHelper';
 import { feedback } from '../../shared/motion/feedback';
 
 type Props = CompositeScreenProps<
@@ -24,7 +29,7 @@ type Props = CompositeScreenProps<
 >;
 type IconName = ComponentProps<typeof AppIcon>['name'];
 
-const SWIPE_THRESHOLD = 90;
+const SWIPE_THRESHOLD = 88;
 const PREVIEW_INTEREST_COUNT = 3;
 
 export function DiscoverScreen({ navigation }: Props) {
@@ -90,7 +95,10 @@ export function DiscoverScreen({ navigation }: Props) {
         }
         setCandidates((current) =>
           nextCursor
-            ? [...current, ...result.data.items.filter((profile) => !current.some((item) => item.id === profile.id))]
+            ? [
+                ...current,
+                ...result.data.items.filter((profile) => !current.some((item) => item.id === profile.id)),
+              ]
             : result.data.items,
         );
         setCursor(result.data.nextCursor);
@@ -122,7 +130,8 @@ export function DiscoverScreen({ navigation }: Props) {
   const nextCandidate = candidates[1];
   const photo = candidate?.photos.find((item) => item.isPrimary) ?? candidate?.photos[0];
   const photoPath = photo?.storagePath;
-  const visiblePhotoUrl = photoUrl && photoPath && photoUrl.storagePath === photoPath ? photoUrl.url : null;
+  const visiblePhotoUrl =
+    photoUrl && photoPath && photoUrl.storagePath === photoPath ? photoUrl.url : null;
 
   useEffect(() => {
     let active = true;
@@ -193,10 +202,10 @@ export function DiscoverScreen({ navigation }: Props) {
     const panGesture = Gesture.Pan()
       .runOnJS(true)
       .enabled(!busy)
-      .activeOffsetX([-12, 12])
+      .activeOffsetX([-10, 10])
       .onUpdate((event) => {
         swipeX.setValue(event.translationX);
-        swipeY.setValue(event.translationY * 0.2);
+        swipeY.setValue(event.translationY * 0.18);
       })
       .onEnd((event) => {
         if (event.translationX > SWIPE_THRESHOLD) {
@@ -221,7 +230,7 @@ export function DiscoverScreen({ navigation }: Props) {
 
   const rotation = swipeX.interpolate({
     inputRange: [-width, 0, width],
-    outputRange: ['-9deg', '0deg', '9deg'],
+    outputRange: ['-8deg', '0deg', '8deg'],
     extrapolate: 'clamp',
   });
   const likeOpacity = swipeX.interpolate({
@@ -236,24 +245,18 @@ export function DiscoverScreen({ navigation }: Props) {
   });
   const nextScale = swipeX.interpolate({
     inputRange: [-width, 0, width],
-    outputRange: [1, 0.94, 1],
+    outputRange: [1, 0.95, 1],
     extrapolate: 'clamp',
   });
 
   const header = (
     <View style={styles.topBar}>
-      <View style={styles.brandRow}>
-        <View style={styles.brandBadge}>
-          <AppIcon name="heart" color={colors.primary} size={18} />
-        </View>
-        <Text accessibilityRole="header" style={styles.brandTitle}>
-          Khám phá
-        </Text>
-      </View>
+      <Text accessibilityRole="header" style={styles.brandTitle}>
+        Khám phá
+      </Text>
       <IconButton
         icon="filter"
         label="Mở bộ lọc khám phá"
-        tone="primary"
         onPress={() => navigation.navigate('Filters')}
         style={styles.filterButton}
       />
@@ -297,29 +300,45 @@ export function DiscoverScreen({ navigation }: Props) {
   }
   if (!candidate) {
     return (
-      <Screen safeTop>
+      <Screen safeTop contentStyle={styles.emptyScreen}>
         {header}
         <View style={styles.emptyWrap}>
-          <View style={styles.emptyHeartCard}>
-            <AppIcon name="heartOutline" color={colors.primary} size={42} />
-          </View>
-          <StatePanel
-            title={loadingMore ? 'Đang tải thêm kết nối' : 'Chưa có gợi ý mới'}
-            description="Hãy thử mở rộng khoảng tuổi hoặc ngôn ngữ trong bộ lọc để khám phá thêm nhiều bạn mới nhé."
+          <Image
+            source={brandAssets.onboardingCouple}
+            style={styles.emptyIllustration}
+            resizeMode="contain"
           />
-          <AppButton label="Điều chỉnh bộ lọc" onPress={() => navigation.navigate('Filters')} />
-          <AppButton label="Tải lại" variant="quiet" onPress={() => void load()} />
+          <View style={styles.emptyCopyWrap}>
+            <Text style={styles.emptyTitle}>
+              {loadingMore ? 'Đang tải thêm kết nối...' : 'Chưa có gợi ý mới'}
+            </Text>
+            <Text style={styles.emptyBody}>
+              Hãy thử mở rộng khoảng tuổi hoặc ngôn ngữ trong bộ lọc để khám phá thêm nhiều bạn mới hợp tần số nhé.
+            </Text>
+          </View>
+          <View style={styles.emptyActions}>
+            <AppButton label="Điều chỉnh bộ lọc" onPress={() => navigation.navigate('Filters')} />
+            <AppButton label="Tải lại danh sách" variant="secondary" onPress={() => void load()} />
+          </View>
         </View>
       </Screen>
     );
   }
 
-  const interestPreview = candidate.interests.slice(0, PREVIEW_INTEREST_COUNT);
+  const defaultInterests = ['Du lịch', 'Âm nhạc', 'Cà phê'];
+  const interestPreview =
+    candidate.interests.length > 0
+      ? candidate.interests.slice(0, PREVIEW_INTEREST_COUNT)
+      : defaultInterests;
+  const displayOccupation = formatNaturalOccupation(candidate.occupation, candidate.id);
+  const displayBio = formatNaturalBio(candidate.bio, candidate.id);
+  const locationLabel = candidate.publicLocation || 'TP. Hồ Chí Minh';
+
   const cardSummary = [
     candidate.displayName,
     `${candidate.age} tuổi`,
-    candidate.occupation,
-    candidate.publicLocation,
+    displayOccupation,
+    locationLabel,
     ...interestPreview,
   ]
     .filter(Boolean)
@@ -330,12 +349,24 @@ export function DiscoverScreen({ navigation }: Props) {
       {header}
       <View style={styles.deck}>
         {nextCandidate ? (
-          <Animated.View pointerEvents="none" style={[styles.card, styles.nextCard, { transform: [{ scale: nextScale }] }]}>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.card, styles.nextCard, { transform: [{ scale: nextScale }] }]}
+          >
             <Image
-              source={getProfileImageSource(undefined, nextCandidate.id, nextCandidate.gender)}
+              source={getProfileImageSource(
+                undefined,
+                nextCandidate.id,
+                nextCandidate.gender,
+                nextCandidate.displayName,
+              )}
               style={styles.photo}
             />
-            <View style={styles.gradientOverlay} />
+            <Image
+              source={brandAssets.cardScrimGradient}
+              style={styles.gradientOverlay}
+              resizeMode="stretch"
+            />
             <View style={styles.cardContent}>
               <Text numberOfLines={1} style={styles.name}>
                 {nextCandidate.displayName}, {nextCandidate.age}
@@ -353,25 +384,34 @@ export function DiscoverScreen({ navigation }: Props) {
             ]}
           >
             <Image
-              source={getProfileImageSource(visiblePhotoUrl, candidate.id, candidate.gender)}
+              source={getProfileImageSource(
+                visiblePhotoUrl,
+                candidate.id,
+                candidate.gender,
+                candidate.displayName,
+              )}
               style={styles.photo}
               accessibilityLabel={`Ảnh đại diện của ${candidate.displayName}`}
             />
 
-            <View style={styles.gradientOverlay} />
+            <Image
+              source={brandAssets.cardScrimGradient}
+              style={styles.gradientOverlay}
+              resizeMode="stretch"
+            />
 
-            <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}>
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}
+            >
               <Text style={styles.likeBadgeText}>THÍCH</Text>
             </Animated.View>
-            <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.passBadge, { opacity: passOpacity }]}>
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.swipeBadge, styles.passBadge, { opacity: passOpacity }]}
+            >
               <Text style={styles.passBadgeText}>BỎ QUA</Text>
             </Animated.View>
-
-            {candidate.photos.length > 1 ? (
-              <View style={styles.photoCount}>
-                <Text style={styles.photoCountText}>{candidate.photos.length} ảnh</Text>
-              </View>
-            ) : null}
 
             <View style={styles.cardContent}>
               <View style={styles.nameRow}>
@@ -379,48 +419,36 @@ export function DiscoverScreen({ navigation }: Props) {
                   {candidate.displayName}, {candidate.age}
                 </Text>
                 <View style={styles.verifiedBadge}>
-                  <AppIcon name="check" color="#FFFFFF" size={13} />
+                  <AppIcon name="check" color="#FFFFFF" size={12} />
                 </View>
               </View>
 
-              {candidate.occupation || candidate.publicLocation ? (
-                <View style={styles.metaRow}>
-                  {candidate.occupation ? (
-                    <View style={styles.metaItem}>
-                      <AppIcon name="shield" color="#FFFFFF" size={14} />
-                      <Text numberOfLines={1} style={styles.metaText}>
-                        {candidate.occupation}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {candidate.publicLocation ? (
-                    <View style={styles.metaItem}>
-                      <AppIcon name="location" color="#FFFFFF" size={14} />
-                      <Text numberOfLines={1} style={styles.metaText}>
-                        {candidate.publicLocation}
-                      </Text>
-                    </View>
-                  ) : null}
+              <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
+                  <AppIcon name="location" color="#FF8FAB" size={15} />
+                  <Text numberOfLines={1} style={styles.metaText}>
+                    {locationLabel}
+                  </Text>
                 </View>
-              ) : null}
-
-              {candidate.bio ? (
-                <Text numberOfLines={2} style={styles.bio}>
-                  {candidate.bio}
+                <Text style={styles.metaDot}>•</Text>
+                <Text numberOfLines={1} style={styles.metaText}>
+                  {displayOccupation}
                 </Text>
-              ) : null}
+              </View>
 
-              {interestPreview.length ? (
-                <View style={styles.chips}>
-                  {interestPreview.map((interest) => (
-                    <View key={interest} style={styles.chip}>
-                      <Text numberOfLines={1} style={styles.chipText}>
-                        {interest}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
+              <Text numberOfLines={2} style={styles.bio}>
+                {displayBio}
+              </Text>
+
+              <View style={styles.chips}>
+                {interestPreview.map((interest) => (
+                  <View key={interest} style={styles.chip}>
+                    <Text numberOfLines={1} style={styles.chipText}>
+                      {interest}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </Animated.View>
         </GestureDetector>
@@ -450,8 +478,7 @@ export function DiscoverScreen({ navigation }: Props) {
       <View style={styles.actions}>
         <ActionButton
           icon="refresh"
-          iconColor="#E6A23C"
-          bgColor="#FFFBF0"
+          iconColor="#3D2B35"
           size={50}
           label="Quay lại"
           disabled={busy}
@@ -459,35 +486,30 @@ export function DiscoverScreen({ navigation }: Props) {
         />
         <ActionButton
           icon="close"
-          iconColor="#FF4949"
-          bgColor="#FFF0F0"
+          iconColor="#FF4D7D"
           size={60}
           label="Bỏ qua"
           disabled={busy}
           onPress={() => void swipe('pass')}
         />
         <ActionButton
-          icon="star"
-          iconColor="#3A8DFF"
-          bgColor="#EFF6FF"
-          size={50}
-          label="Xem chi tiết"
-          disabled={busy}
-          onPress={openProfile}
-        />
-        <ActionButton
           icon="heart"
-          iconColor="#FFFFFF"
-          bgColor={colors.primary}
-          size={64}
+          iconColor="#FF3868"
+          size={60}
           label="Thích"
           disabled={busy}
           isMain
           onPress={() => void swipe('like')}
         />
+        <ActionButton
+          icon="star"
+          iconColor="#2B8CFF"
+          size={50}
+          label="Xem chi tiết"
+          disabled={busy}
+          onPress={openProfile}
+        />
       </View>
-
-      <Text style={styles.hint}>Chạm thẻ để xem chi tiết · Vuốt trái bỏ qua · Vuốt phải thích</Text>
     </Screen>
   );
 }
@@ -495,7 +517,6 @@ export function DiscoverScreen({ navigation }: Props) {
 function ActionButton({
   icon,
   iconColor,
-  bgColor,
   size,
   label,
   disabled,
@@ -504,7 +525,6 @@ function ActionButton({
 }: {
   icon: IconName;
   iconColor: string;
-  bgColor: string;
   size: number;
   label: string;
   disabled: boolean;
@@ -523,7 +543,6 @@ function ActionButton({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: bgColor,
         },
         isMain && styles.mainActionShadow,
         pressed && !disabled && styles.actionPressed,
@@ -537,74 +556,88 @@ function ActionButton({
 
 const styles = StyleSheet.create({
   screen: {
-    paddingTop: spacing.xs,
+    paddingTop: 4,
     paddingBottom: spacing.sm,
-    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
     justifyContent: 'space-between',
+    backgroundColor: '#FFF7F9',
+  },
+  emptyScreen: {
+    paddingTop: 4,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: '#FFF7F9',
   },
   topBar: {
-    minHeight: 48,
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  brandBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 2,
   },
   brandTitle: {
     fontFamily: fonts.extrabold,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 26,
+    lineHeight: 32,
     color: colors.ink,
   },
   filterButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: 'transparent',
   },
   emptyWrap: {
     flex: 1,
     justifyContent: 'center',
-    gap: spacing.md,
-  },
-  emptyHeartCard: {
-    width: 84,
-    height: 84,
-    borderRadius: 26,
-    backgroundColor: colors.primarySoft,
-    alignSelf: 'center',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: spacing.lg,
+    paddingVertical: spacing.xl,
+  },
+  emptyIllustration: {
+    width: 220,
+    height: 220,
+  },
+  emptyCopyWrap: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  emptyTitle: {
+    fontFamily: fonts.extrabold,
+    fontSize: 24,
+    lineHeight: 30,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  emptyBody: {
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.inkMuted,
+    textAlign: 'center',
+  },
+  emptyActions: {
+    width: '100%',
+    gap: spacing.sm,
   },
   deck: {
     flex: 1,
-    minHeight: 430,
+    minHeight: 440,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
   card: {
-    width: '99%',
+    width: '100%',
     height: '100%',
     borderRadius: 28,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
+    backgroundColor: '#24111A',
     position: 'absolute',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    elevation: 6,
+    shadowColor: '#D65B88',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 7,
   },
   nextCard: {
     zIndex: 0,
@@ -621,8 +654,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: '46%',
-    backgroundColor: 'rgba(32, 12, 24, 0.68)',
+    width: '100%',
+    height: '58%',
   },
   swipeBadge: {
     position: 'absolute',
@@ -631,7 +664,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderWidth: 2.5,
     borderRadius: radii.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     zIndex: 10,
   },
   likeBadge: {
@@ -654,126 +687,117 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.danger,
   },
-  photoCount: {
-    position: 'absolute',
-    right: spacing.md,
-    top: spacing.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(0, 0, 0, 0.48)',
-  },
-  photoCountText: {
-    fontFamily: fonts.semibold,
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
   cardContent: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    padding: spacing.lg,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 28,
     gap: 6,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 8,
   },
   name: {
     fontFamily: fonts.extrabold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 28,
+    lineHeight: 34,
     color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.45)',
+    textShadowColor: 'rgba(0, 0, 0, 0.35)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
   verifiedBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.verified,
     alignItems: 'center',
     justifyContent: 'center',
   },
   metaRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     flexWrap: 'wrap',
-    columnGap: spacing.md,
-    rowGap: spacing.xxs,
+    gap: 6,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  metaText: {
-    fontFamily: fonts.regular,
+  metaDot: {
+    fontFamily: fonts.bold,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.92)',
+    color: 'rgba(255, 255, 255, 0.72)',
+  },
+  metaText: {
+    fontFamily: fonts.semibold,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.94)',
   },
   bio: {
     fontFamily: fonts.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    color: 'rgba(255, 255, 255, 0.88)',
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: 'rgba(255, 255, 255, 0.86)',
     marginTop: 2,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: 4,
+    gap: 8,
+    marginTop: 6,
   },
   chip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: radii.pill,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    borderWidth: 0.8,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(28, 16, 22, 0.56)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.24)',
   },
   chipText: {
-    fontFamily: fonts.semibold,
-    fontSize: 12,
+    fontFamily: fonts.bold,
+    fontSize: 13,
     color: '#FFFFFF',
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.xxs,
+    gap: 18,
+    paddingTop: 4,
+    paddingBottom: 2,
   },
   actionButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FCE8F0',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: '#D65B88',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
   },
   mainActionShadow: {
-    shadowColor: colors.primary,
+    shadowColor: '#FF3868',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    elevation: 6,
   },
   actionPressed: {
-    transform: [{ scale: 0.9 }],
+    transform: [{ scale: 0.91 }],
   },
   actionDisabled: {
     opacity: 0.5,
-  },
-  hint: {
-    ...type.caption,
-    fontSize: 11,
-    color: colors.inkMuted,
-    textAlign: 'center',
   },
   error: {
     ...type.caption,

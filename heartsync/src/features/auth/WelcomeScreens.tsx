@@ -10,32 +10,40 @@ import { AppText } from '../../shared/components/AppText';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { Screen } from '../../shared/components/Screen';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
-import { onboardingAvatars } from '../../shared/utils/avatarHelper';
+import { brandAssets } from '../../shared/utils/avatarHelper';
 
 type WelcomeProps = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 type OnboardingProps = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
-const welcomeBackground = require('../../../assets/images/auth-bg.jpg');
-
 export function WelcomeScreen({ navigation }: WelcomeProps) {
   return (
     <View style={styles.welcomeRoot}>
-      <ImageBackground source={welcomeBackground} resizeMode="cover" style={styles.welcomeBackdrop}>
-        <View style={styles.welcomeOverlay} />
+      <ImageBackground
+        source={brandAssets.splashSunsetBg}
+        resizeMode="cover"
+        style={styles.welcomeBackdrop}
+      >
         <Screen scroll={false} safeTop contentStyle={styles.welcomePage}>
-          <View style={styles.welcomeTop}>
+          <View style={styles.welcomeHero}>
             <AnimatedSection>
-              <View accessible accessibilityRole="image" accessibilityLabel="Biểu tượng HeartSync" style={styles.heartLogoCircle}>
-                <View style={styles.heartLogoInner}>
-                  <AppIcon name="heart" color={colors.primary} size={42} />
-                </View>
+              <View
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel="Biểu tượng HeartSync"
+                style={styles.logoGlowWrap}
+              >
+                <Image
+                  source={brandAssets.logoWhite}
+                  style={styles.welcomeLogoImage}
+                  resizeMode="contain"
+                />
               </View>
             </AnimatedSection>
             <AppText tone="onPrimary" style={styles.welcomeWordmark}>
               HeartSync
             </AppText>
             <AppText tone="onPrimary" style={styles.welcomeTagline}>
-              Kết nối những trái tim{`\n`}cùng nhịp đập
+              Kết nối những trái tim{'\n'}cùng nhịp đập
             </AppText>
           </View>
 
@@ -61,10 +69,6 @@ export function WelcomeScreen({ navigation }: WelcomeProps) {
                 Tôi đã có tài khoản
               </AppText>
             </AnimatedPressable>
-
-            <AppText tone="onPrimary" style={styles.welcomeSupporting}>
-              Kết nối có ý nghĩa bắt đầu từ sự chân thành.
-            </AppText>
           </View>
         </Screen>
       </ImageBackground>
@@ -76,17 +80,20 @@ const onboardingPages = [
   {
     key: 'discover',
     title: 'Gặp gỡ người phù hợp',
-    body: 'Khám phá, kết nối và bắt đầu những câu chuyện đầy cảm xúc cùng những người thực sự hợp gu.',
+    body: 'Khám phá, kết nối và bắt đầu\nnhững câu chuyện mới.',
+    illustration: brandAssets.onboardingCouple,
   },
   {
     key: 'chat',
     title: 'Trò chuyện thoải mái',
-    body: 'Nhắn tin tức thì, gọi thoại và gọi video an toàn để hiểu nhau hơn mỗi ngày.',
+    body: 'Nhắn tin, gọi thoại, gọi video và\nhiểu nhau hơn mỗi ngày.',
+    illustration: brandAssets.onboardingChat,
   },
   {
     key: 'safety',
     title: 'An toàn & Riêng tư',
-    body: 'Mọi thông tin cá nhân luôn được bảo vệ chặt chẽ. Chỉ khi cả hai cùng đồng ý mới mở kết nối.',
+    body: 'Thông tin của bạn luôn được\nbảo vệ và kiểm soát.',
+    illustration: brandAssets.onboardingShield,
   },
 ] as const;
 
@@ -102,13 +109,19 @@ export function OnboardingScreen({ navigation }: OnboardingProps) {
 
   return (
     <Screen scroll={false} safeTop contentStyle={styles.onboardingPage}>
-      <View style={styles.onboardingHeader}>
-        <View style={styles.onboardingBrandRow}>
-          <AppIcon name="heart" color={colors.primary} size={22} />
-          <AppText style={styles.onboardingWordmark} tone="primary">
-            HeartSync
-          </AppText>
-        </View>
+      <View style={styles.onboardingTopBar}>
+        {page > 0 ? (
+          <AnimatedPressable
+            accessibilityRole="button"
+            accessibilityLabel="Quay lại"
+            onPress={() => setPage((value) => Math.max(0, value - 1))}
+            style={styles.skipButton}
+          >
+            <AppIcon name="back" color={colors.ink} size={22} />
+          </AnimatedPressable>
+        ) : (
+          <View style={styles.skipPlaceholder} />
+        )}
         <AnimatedPressable
           accessibilityRole="button"
           accessibilityLabel="Bỏ qua giới thiệu"
@@ -121,35 +134,17 @@ export function OnboardingScreen({ navigation }: OnboardingProps) {
         </AnimatedPressable>
       </View>
 
-      <View style={styles.onboardingArtwork} accessible accessibilityRole="image" accessibilityLabel={current.title}>
-        {current.key === 'discover' ? (
-          <View style={styles.photoPair}>
-            <View style={[styles.photoCard, styles.photoCardLeft]}>
-              <Image source={onboardingAvatars.man} style={styles.photoImage} />
-            </View>
-            <View style={[styles.photoCard, styles.photoCardRight]}>
-              <Image source={onboardingAvatars.woman} style={styles.photoImage} />
-            </View>
-            <View style={styles.centerHeartBadge}>
-              <AppIcon name="heart" color={colors.onPrimary} size={24} />
-            </View>
-          </View>
-        ) : current.key === 'chat' ? (
-          <View style={styles.illustrationStage}>
-            <View style={[styles.chatPill, styles.chatPillTop]}>
-              <AppIcon name="heart" color={colors.onPrimary} size={28} />
-            </View>
-            <View style={[styles.chatPill, styles.chatPillBottom]}>
-              <AppIcon name="send" color={colors.primaryPressed} size={26} />
-            </View>
-          </View>
-        ) : (
-          <View style={styles.shieldStage}>
-            <View style={styles.shieldOuter}>
-              <AppIcon name="shield" color={colors.primary} size={64} />
-            </View>
-          </View>
-        )}
+      <View
+        style={styles.onboardingArtwork}
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={current.title}
+      >
+        <Image
+          source={current.illustration}
+          style={styles.onboardingIllustration}
+          resizeMode="contain"
+        />
       </View>
 
       <View style={styles.onboardingCopy}>
@@ -162,94 +157,111 @@ export function OnboardingScreen({ navigation }: OnboardingProps) {
       </View>
 
       <View style={styles.onboardingFooter}>
-        <View
-          accessibilityRole="progressbar"
-          accessibilityLabel="Tiến trình giới thiệu"
-          accessibilityValue={{ min: 1, max: onboardingPages.length, now: page + 1 }}
-          style={styles.pagination}
-        >
-          {onboardingPages.map((item, index) => (
-            <View key={item.title} style={[styles.dot, index === page && styles.dotActive]} />
-          ))}
-        </View>
-        <AppButton label={isLast ? 'Bắt đầu ngay' : 'Tiếp tục'} trailingIcon="forward" onPress={continueOnboarding} />
+        {isLast ? (
+          <View style={styles.lastSlideFooter}>
+            <View
+              accessibilityRole="progressbar"
+              accessibilityLabel="Tiến trình giới thiệu"
+              accessibilityValue={{ min: 1, max: onboardingPages.length, now: page + 1 }}
+              style={styles.paginationCentered}
+            >
+              {onboardingPages.map((item, index) => (
+                <View key={item.title} style={[styles.dot, index === page && styles.dotActive]} />
+              ))}
+            </View>
+            <AppButton label="Bắt đầu ngay" onPress={continueOnboarding} />
+          </View>
+        ) : (
+          <View style={styles.rowFooter}>
+            <View
+              accessibilityRole="progressbar"
+              accessibilityLabel="Tiến trình giới thiệu"
+              accessibilityValue={{ min: 1, max: onboardingPages.length, now: page + 1 }}
+              style={styles.paginationLeft}
+            >
+              {onboardingPages.map((item, index) => (
+                <View key={item.title} style={[styles.dot, index === page && styles.dotActive]} />
+              ))}
+            </View>
+
+            <AnimatedPressable
+              accessibilityRole="button"
+              accessibilityLabel="Tiếp tục"
+              onPress={continueOnboarding}
+              style={styles.nextCircleBtn}
+            >
+              <Image
+                source={brandAssets.pinkButtonGradient}
+                style={StyleSheet.absoluteFill}
+                resizeMode="stretch"
+              />
+              <AppIcon name="forward" color={colors.onPrimary} size={24} />
+            </AnimatedPressable>
+          </View>
+        )}
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  welcomeRoot: { flex: 1, backgroundColor: colors.primaryPressed },
+  welcomeRoot: { flex: 1, backgroundColor: '#983E73' },
   welcomeBackdrop: { flex: 1 },
-  welcomeOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(176, 30, 82, 0.72)',
-  },
   welcomePage: {
     backgroundColor: 'transparent',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xl,
     justifyContent: 'space-between',
   },
-  welcomeTop: {
-    flex: 1,
+  welcomeHero: {
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
+    marginTop: 56,
+    gap: spacing.xs,
   },
-  heartLogoCircle: {
-    width: 112,
-    height: 112,
-    borderRadius: radii.pill,
-    backgroundColor: 'rgba(255, 255, 255, 0.24)',
+  logoGlowWrap: {
+    width: 108,
+    height: 88,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
-  heartLogoInner: {
-    width: 82,
-    height: 82,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
+  welcomeLogoImage: {
+    width: 96,
+    height: 76,
   },
   welcomeWordmark: {
     fontFamily: fonts.extrabold,
-    fontSize: 42,
+    fontSize: 40,
     lineHeight: 48,
     textAlign: 'center',
+    color: '#FFFFFF',
   },
   welcomeTagline: {
     fontFamily: fonts.semibold,
-    fontSize: 20,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 26,
     textAlign: 'center',
-    opacity: 0.94,
+    color: 'rgba(255, 255, 255, 0.94)',
+    marginTop: 4,
   },
   welcomeActions: {
     gap: spacing.sm,
-    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   welcomePrimaryBtn: {
     minHeight: 54,
     borderRadius: radii.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowColor: '#4A1230',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    elevation: 5,
   },
   welcomePrimaryText: {
     fontFamily: fonts.bold,
@@ -257,109 +269,110 @@ const styles = StyleSheet.create({
     color: colors.primaryPressed,
   },
   welcomeSecondaryBtn: {
-    minHeight: 52,
+    minHeight: 50,
     borderRadius: radii.pill,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.82)',
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: 1.4,
+    borderColor: 'rgba(255, 255, 255, 0.78)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   welcomeSecondaryText: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.onPrimary,
+    color: '#FFFFFF',
   },
-  welcomeSupporting: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    opacity: 0.85,
+  onboardingPage: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF7F9',
+  },
+  onboardingTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 40,
+  },
+  skipPlaceholder: { width: 40 },
+  skipButton: {
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
+  },
+  onboardingArtwork: {
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  onboardingIllustration: {
+    width: 280,
+    height: 280,
+  },
+  onboardingCopy: {
+    gap: spacing.sm,
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  onboardingTitle: {
+    fontFamily: fonts.extrabold,
+    fontSize: 26,
+    lineHeight: 34,
+    color: colors.ink,
     textAlign: 'center',
-    marginTop: spacing.xs,
   },
-  onboardingPage: { padding: spacing.lg, justifyContent: 'space-between', gap: spacing.lg },
-  onboardingHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  onboardingBrandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  onboardingWordmark: { fontFamily: fonts.extrabold, fontSize: 22, lineHeight: 28 },
-  skipButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.sm },
-  onboardingArtwork: { height: 310, justifyContent: 'center', alignItems: 'center' },
-  photoPair: { width: 280, height: 260, justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  photoCard: {
-    position: 'absolute',
-    width: 152,
-    height: 204,
-    borderRadius: 24,
-    borderWidth: 4,
-    borderColor: colors.surface,
-    overflow: 'hidden',
-    backgroundColor: colors.surfaceMuted,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
-    elevation: 6,
+  onboardingBody: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+    color: colors.inkMuted,
   },
-  photoCardLeft: { left: 10, top: 14, transform: [{ rotate: '-8deg' }] },
-  photoCardRight: { right: 10, bottom: 14, transform: [{ rotate: '8deg' }] },
-  photoImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  centerHeartBadge: {
-    width: 56,
-    height: 56,
+  onboardingFooter: {
+    paddingTop: spacing.md,
+  },
+  rowFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xs,
+  },
+  lastSlideFooter: {
+    gap: spacing.lg,
+  },
+  paginationLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paginationCentered: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  dot: {
+    width: 9,
+    height: 9,
+    backgroundColor: '#F6CEDC',
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-    borderWidth: 4,
-    borderColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 4,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
   },
-  illustrationStage: { width: 240, height: 220, justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  chatPill: {
-    width: 136,
-    height: 82,
-    borderRadius: 26,
+  dotActive: {
+    width: 10,
+    height: 10,
+    backgroundColor: colors.primary,
+  },
+  nextCircleBtn: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primary,
+    overflow: 'hidden',
+    shadowColor: '#E6386F',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
-    elevation: 4,
+    elevation: 5,
   },
-  chatPillTop: {
-    backgroundColor: colors.primary,
-    position: 'absolute',
-    top: 24,
-    left: 20,
-    transform: [{ rotate: '-6deg' }],
-  },
-  chatPillBottom: {
-    backgroundColor: colors.primarySoft,
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    transform: [{ rotate: '5deg' }],
-  },
-  shieldStage: { alignItems: 'center', justifyContent: 'center' },
-  shieldOuter: {
-    width: 148,
-    height: 148,
-    borderRadius: 44,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  onboardingCopy: { gap: spacing.sm, alignItems: 'center', paddingHorizontal: spacing.sm },
-  onboardingTitle: { fontFamily: fonts.extrabold, fontSize: 28, lineHeight: 35, color: colors.ink, textAlign: 'center' },
-  onboardingBody: { fontSize: 16, lineHeight: 24, textAlign: 'center' },
-  onboardingFooter: { gap: spacing.lg },
-  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
-  dot: { width: 8, height: 8, backgroundColor: colors.border, borderRadius: radii.pill },
-  dotActive: { width: 28, backgroundColor: colors.primary },
 });

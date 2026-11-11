@@ -44,3 +44,4 @@ grant execute on function public.save_my_preferences(smallint, smallint, smallin
 grant execute on function public.reorder_profile_photos(uuid[]) to authenticated;
 grant execute on function public.set_primary_profile_photo(uuid) to authenticated;
 grant execute on function public.list_saved_profiles(integer, timestamptz) to authenticated;
+

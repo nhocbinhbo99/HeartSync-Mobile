@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  AppState,
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { randomUUID } from 'expo-crypto';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,12 +16,14 @@ import { ConversationProfile } from '../../shared/components/ConversationProfile
 import { useAuth } from '../auth/AuthProvider';
 import { useAppServices } from '../../services/AppServicesProvider';
 import { dedupeMessages } from '../../shared/domain/messages';
+import { AppIcon } from '../../shared/components/AppIcon';
 import { IconButton } from '../../shared/components/IconButton';
 import { AppText } from '../../shared/components/AppText';
 import { Screen } from '../../shared/components/Screen';
 import type { RootStackParamList } from '../../navigation/types';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
 import type { ChatMessage } from '../../shared/types/domain.types';
+import { brandAssets } from '../../shared/utils/avatarHelper';
 
 type Message = ChatMessage & { delivery?: 'sending' | 'failed' };
 
@@ -51,7 +62,6 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
   }, [services, matchId]);
 
   const [text, setText] = useState('');
-  const [darkAppearance, setDarkAppearance] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -159,7 +169,9 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
 
   const send = async (message: Message) => {
     if (!services || !matchId || !enabled) return;
-    setMessages((old) => old.map((m) => (m.id === message.id ? { ...m, delivery: 'sending' } : m)));
+    setMessages((old) =>
+      old.map((m) => (m.id === message.id ? { ...m, delivery: 'sending' } : m)),
+    );
     const result = await services.chat.sendMessage({
       matchId,
       clientMessageId: message.clientMessageId,
@@ -252,49 +264,46 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
     );
   }
 
-  const palette = darkAppearance
-    ? {
-        background: '#351020',
-        surface: '#5B1F3A',
-        incoming: '#4A2B3A',
-        text: '#FFF7F9',
-        muted: '#E5CAD5',
-        border: '#7B3A58',
-        composer: '#4A1930',
-        input: '#351020',
-      }
-    : {
-        background: '#FFF7F9',
-        surface: colors.surface,
-        incoming: colors.surface,
-        text: colors.ink,
-        muted: colors.inkMuted,
-        border: colors.border,
-        composer: colors.surface,
-        input: colors.surfaceMuted,
-      };
+  const canSend = Boolean(text.trim() && enabled);
 
   const composer = (
     <View style={styles.composer}>
-      <TextInput
-        accessibilityLabel="Tin nhắn"
-        value={text}
-        onChangeText={setText}
-        multiline
-        maxLength={4000}
-        placeholder="Nhắn gì đó thật tự nhiên…"
-        placeholderTextColor={palette.muted}
-        editable={enabled}
-        style={[styles.composerInput, { backgroundColor: palette.input, color: palette.text }]}
-      />
-      <IconButton
-        icon="send"
-        label="Gửi tin nhắn"
-        tone="onPrimary"
-        disabled={!text.trim() || !enabled}
+      <View style={styles.inputCapsule}>
+        <View style={styles.capsuleIcon}>
+          <AppIcon name="smile" color={colors.inkMuted} size={22} />
+        </View>
+        <TextInput
+          accessibilityLabel="Tin nhắn"
+          value={text}
+          onChangeText={setText}
+          multiline
+          maxLength={4000}
+          placeholder="Nhập tin nhắn..."
+          placeholderTextColor={colors.inkMuted}
+          editable={enabled}
+          style={styles.composerInput}
+        />
+        <View style={styles.capsuleIcon}>
+          <AppIcon name="add" color={colors.primaryPressed} size={22} />
+        </View>
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Gửi tin nhắn"
+        disabled={!canSend}
         onPress={submit}
-        style={styles.sendButton}
-      />
+        style={[styles.sendCircle, !canSend && styles.sendCircleDisabled]}
+      >
+        {canSend ? (
+          <Image
+            source={brandAssets.pinkButtonGradient}
+            style={StyleSheet.absoluteFill}
+            resizeMode="stretch"
+          />
+        ) : null}
+        <AppIcon name="send" color="#FFFFFF" size={20} />
+      </Pressable>
     </View>
   );
 
@@ -303,49 +312,51 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
       scroll={false}
       keyboardAware
       safeTop
-      footer={
-        <View style={[styles.composerShell, { backgroundColor: palette.composer, borderTopColor: palette.border }]}>
-          {composer}
-        </View>
-      }
-      contentStyle={{ ...styles.screen, backgroundColor: palette.background }}
+      footer={<View style={styles.composerShell}>{composer}</View>}
+      contentStyle={styles.screen}
     >
-      <View style={[styles.chatHeader, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
+      <View style={styles.chatHeader}>
         <IconButton
           icon="back"
           label="Quay lại kết nối"
-          tone={darkAppearance ? 'onPrimary' : 'default'}
           onPress={() => navigation.goBack()}
+          style={styles.backBtn}
         />
-        {recipient ? <ConversationProfile profileId={recipient.id} presentation="avatar" /> : null}
+        <View style={styles.avatarOnlineWrap}>
+          {recipient ? <ConversationProfile profileId={recipient.id} presentation="avatar" /> : null}
+          <View style={styles.headerOnlineDot} />
+        </View>
         <View style={styles.headerCopy}>
-          <AppText numberOfLines={1} style={[styles.headerName, { color: palette.text }]}>
+          <AppText numberOfLines={1} style={styles.headerName}>
             {recipient?.displayName ?? 'Trò chuyện'}
           </AppText>
-          <AppText variant="caption" style={{ color: darkAppearance ? '#77E6B7' : colors.success }}>
-            Đã kết nối
-          </AppText>
+          <View style={styles.statusRow}>
+            <View style={styles.statusDotInline} />
+            <AppText variant="caption" style={styles.statusText}>
+              Đang hoạt động
+            </AppText>
+          </View>
         </View>
-        <IconButton
-          icon="phone"
-          label="Gọi thoại"
-          tone={darkAppearance ? 'onPrimary' : 'primary'}
-          disabled={!enabled || startingCall}
-          onPress={() => void startCall('audio')}
-        />
-        <IconButton
-          icon="video"
-          label="Gọi video"
-          tone={darkAppearance ? 'onPrimary' : 'primary'}
-          disabled={!enabled || startingCall}
-          onPress={() => void startCall('video')}
-        />
-        <IconButton
-          icon="moon"
-          label={darkAppearance ? 'Dùng giao diện sáng' : 'Dùng giao diện tối'}
-          tone={darkAppearance ? 'onPrimary' : 'primary'}
-          onPress={() => setDarkAppearance((value) => !value)}
-        />
+        <View style={styles.headerActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Gọi thoại"
+            disabled={!enabled || startingCall}
+            onPress={() => void startCall('audio')}
+            style={styles.callIconCircle}
+          >
+            <AppIcon name="phone" color={colors.primaryPressed} size={19} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Gọi video"
+            disabled={!enabled || startingCall}
+            onPress={() => void startCall('video')}
+            style={styles.callIconCircle}
+          >
+            <AppIcon name="video" color={colors.primaryPressed} size={20} />
+          </Pressable>
+        </View>
       </View>
 
       {error ? (
@@ -355,7 +366,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
       ) : null}
 
       <FlatList
-        style={[styles.messageList, { backgroundColor: palette.background }]}
+        style={styles.messageList}
         contentContainerStyle={styles.messageContent}
         data={messages}
         inverted
@@ -368,56 +379,64 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
         viewabilityConfig={viewability}
         onViewableItemsChanged={visibleCallback}
         ListEmptyComponent={
-          <AppText tone="muted" style={[styles.empty, { color: palette.muted }]}>
-            {loading ? 'Đang tải…' : 'Hãy bắt đầu bằng một lời chào dễ thương nhé!'}
+          <AppText tone="muted" style={styles.empty}>
+            {loading ? 'Đang tải…' : 'Hãy bắt đầu bằng một lời chào dễ thương nhé! 💕'}
           </AppText>
         }
         renderItem={({ item, index }) => {
           const mine = item.senderId === user?.id;
-          const date = new Date(item.sentAt).toLocaleDateString();
+          const date = new Date(item.sentAt).toLocaleDateString('vi-VN');
           const prior = messages[index + 1];
+          const timeText = new Date(item.sentAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          const statusSuffix = mine
+            ? item.delivery === 'sending'
+              ? ' · Đang gửi'
+              : item.delivery === 'failed'
+                ? ' · Gửi lỗi'
+                : item.readAt
+                  ? ' · Đã xem'
+                  : ' · Đã gửi'
+            : '';
+
           return (
-            <View>
-              {!prior || new Date(prior.sentAt).toLocaleDateString() !== date ? (
-                <AppText variant="caption" tone="muted" style={[styles.day, { color: palette.muted }]}>
-                  {date}
-                </AppText>
+            <View style={styles.messageGroup}>
+              {!prior || new Date(prior.sentAt).toLocaleDateString('vi-VN') !== date ? (
+                <View style={styles.dayPill}>
+                  <AppText variant="caption" tone="muted" style={styles.dayText}>
+                    {date}
+                  </AppText>
+                </View>
               ) : null}
-              <View
-                style={[
-                  styles.bubble,
-                  mine ? styles.mine : styles.theirs,
-                  { backgroundColor: mine ? colors.primary : palette.incoming },
-                ]}
-              >
-                <AppText style={[styles.content, { color: mine ? colors.onPrimary : palette.text }]}>
-                  {item.content}
-                </AppText>
-                <AppText
-                  variant="caption"
-                  tone="muted"
-                  style={[styles.caption, { color: mine ? colors.onPrimary : palette.muted, opacity: mine ? 0.85 : 1 }]}
-                >
-                  {new Date(item.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{' '}
-                  {mine
-                    ? item.delivery === 'sending'
-                      ? ' · Đang gửi'
-                      : item.delivery === 'failed'
-                        ? ' · Gửi lỗi'
-                        : item.readAt
-                          ? ' · Đã đọc'
-                          : ' · Đã gửi'
-                    : ''}
-                </AppText>
-                {item.delivery === 'failed' ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => void send(item)}
-                    style={{ minHeight: 40, justifyContent: 'center' }}
-                  >
-                    <Text style={{ color: '#FFF', fontFamily: fonts.bold }}>Gửi lại</Text>
-                  </Pressable>
-                ) : null}
+
+              <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
+                <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
+                  {mine ? (
+                    <Image
+                      source={brandAssets.pinkButtonGradient}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode="stretch"
+                    />
+                  ) : null}
+                  <AppText style={[styles.content, { color: mine ? '#FFFFFF' : colors.ink }]}>
+                    {item.content}
+                  </AppText>
+                  {item.delivery === 'failed' ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => void send(item)}
+                      style={styles.retryBtn}
+                    >
+                      <Text style={styles.retryText}>Gửi lại</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+                <Text style={[styles.timestampOutside, mine ? styles.timeRight : styles.timeLeft]}>
+                  {timeText}
+                  {statusSuffix}
+                </Text>
               </View>
             </View>
           );
@@ -428,56 +447,242 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
 }
 
 const styles = StyleSheet.create({
-  screen: { padding: 0, gap: 0 },
+  screen: {
+    padding: 0,
+    gap: 0,
+    backgroundColor: '#FFF7F9',
+  },
   chatHeader: {
-    minHeight: 74,
-    paddingHorizontal: spacing.xs,
+    minHeight: 68,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
+    borderBottomColor: '#F6E0E9',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 8,
   },
-  headerCopy: { flex: 1, minWidth: 0, gap: 1, marginLeft: 2 },
-  headerName: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 24 },
-  messageList: { flex: 1 },
-  messageContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.lg, gap: spacing.xs, flexGrow: 1 },
+  backBtn: {
+    marginRight: -4,
+  },
+  avatarOnlineWrap: {
+    position: 'relative',
+  },
+  headerOnlineDot: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: colors.online,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  headerName: {
+    fontFamily: fonts.bold,
+    fontSize: 17,
+    lineHeight: 22,
+    color: colors.ink,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  statusDotInline: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.online,
+  },
+  statusText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    color: colors.inkMuted,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 4,
+  },
+  callIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF0F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messageList: {
+    flex: 1,
+    backgroundColor: '#FFF7F9',
+  },
+  messageContent: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: 8,
+    flexGrow: 1,
+  },
+  messageGroup: {
+    gap: 4,
+  },
+  dayPill: {
+    alignSelf: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+    backgroundColor: '#F9E4ED',
+    marginVertical: 8,
+  },
+  dayText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    color: colors.inkMuted,
+  },
+  bubbleRow: {
+    maxWidth: '80%',
+    gap: 3,
+  },
+  bubbleRowMine: {
+    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
+  },
+  bubbleRowTheirs: {
+    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
+  },
   bubble: {
-    maxWidth: '82%',
     paddingHorizontal: 16,
     paddingVertical: 11,
-    borderRadius: 22,
-    marginVertical: 3,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  mine: { alignSelf: 'flex-end', borderBottomRightRadius: 6 },
+  mine: {
+    borderBottomRightRadius: 6,
+    backgroundColor: colors.primary,
+    shadowColor: '#E6386F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   theirs: {
-    alignSelf: 'flex-start',
     borderBottomLeftRadius: 6,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(242, 215, 227, 0.5)',
+    borderColor: '#F5DCE6',
+    shadowColor: '#D67094',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  content: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 22 },
-  caption: { fontFamily: fonts.regular, fontSize: 11, marginTop: 3 },
-  day: { textAlign: 'center', marginVertical: 10 },
-  error: { color: colors.danger, paddingHorizontal: spacing.md, paddingTop: spacing.xs },
-  empty: { padding: spacing.lg, textAlign: 'center' },
-  composerShell: { borderTopWidth: 1 },
+  content: {
+    fontFamily: fonts.regular,
+    fontSize: 15.5,
+    lineHeight: 22,
+  },
+  timestampOutside: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.inkMuted,
+    paddingHorizontal: 4,
+  },
+  timeRight: {
+    textAlign: 'right',
+  },
+  timeLeft: {
+    textAlign: 'left',
+  },
+  retryBtn: {
+    marginTop: 4,
+    paddingVertical: 2,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    textDecorationLine: 'underline',
+  },
+  error: {
+    color: colors.danger,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+  },
+  empty: {
+    padding: spacing.lg,
+    textAlign: 'center',
+  },
+  composerShell: {
+    backgroundColor: '#FFF7F9',
+    borderTopWidth: 1,
+    borderTopColor: '#F6E0E9',
+  },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: spacing.sm,
+    gap: 10,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: 10,
+  },
+  inputCapsule: {
+    flex: 1,
+    minHeight: 46,
+    maxHeight: 110,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3D6E2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    shadowColor: '#D67094',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  capsuleIcon: {
+    width: 30,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   composerInput: {
     flex: 1,
-    minHeight: 48,
-    maxHeight: 110,
-    borderRadius: radii.pill,
+    minHeight: 42,
+    maxHeight: 100,
     fontFamily: fonts.regular,
     fontSize: 15,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
+    color: colors.ink,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
     textAlignVertical: 'center',
   },
-  sendButton: { backgroundColor: colors.primary, width: 48, height: 48 },
+  sendCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#E6386F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  sendCircleDisabled: {
+    backgroundColor: '#F2CEDD',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
 });

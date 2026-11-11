@@ -36,10 +36,22 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<MainTabParamList>();
 
 const tabIcons = {
-  Discover: { ios: 'safari.fill', android: 'explore', web: 'explore' },
-  Saved: { ios: 'bookmark.fill', android: 'bookmark', web: 'bookmark' },
-  Matches: { ios: 'heart.fill', android: 'favorite', web: 'favorite' },
-  Profile: { ios: 'person.fill', android: 'person', web: 'person' },
+  Discover: {
+    active: { ios: 'heart.fill', android: 'favorite', web: 'favorite' },
+    inactive: { ios: 'heart', android: 'favorite_border', web: 'favorite_border' },
+  },
+  Saved: {
+    active: { ios: 'bookmark.fill', android: 'bookmark', web: 'bookmark' },
+    inactive: { ios: 'bookmark', android: 'bookmark_border', web: 'bookmark_border' },
+  },
+  Matches: {
+    active: { ios: 'bubble.left.fill', android: 'chat_bubble', web: 'chat_bubble' },
+    inactive: { ios: 'bubble.left', android: 'chat_bubble_outline', web: 'chat_bubble_outline' },
+  },
+  Profile: {
+    active: { ios: 'person.fill', android: 'person', web: 'person' },
+    inactive: { ios: 'person', android: 'person_outline', web: 'person_outline' },
+  },
 } as const;
 
 function MainTabs() {
@@ -51,27 +63,35 @@ function MainTabs() {
         headerStyle: { backgroundColor: colors.surface },
         tabBarActiveTintColor: colors.primaryPressed,
         tabBarInactiveTintColor: colors.inkMuted,
-        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 15 },
+        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 15, marginTop: 2 },
         tabBarStyle: {
           minHeight: 68,
-          paddingTop: 6,
-          paddingBottom: 8,
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          paddingTop: 8,
+          paddingBottom: 10,
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#F7E1EA',
           borderTopWidth: 1,
+          shadowColor: '#D67094',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          elevation: 8,
         },
-        tabBarIcon: ({ color, size, focused }) => (
-          <View
-            style={{
-              width: 52,
-              height: 32,
-              borderRadius: 16,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: focused ? colors.primarySoft : 'transparent',
-            }}
-          >
-            <AppIcon name={tabIcons[route.name]} color={color} size={focused ? 22 : size} />
+        tabBarIcon: ({ color, focused }) => (
+          <View style={{ alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+            <AppIcon
+              name={focused ? tabIcons[route.name].active : tabIcons[route.name].inactive}
+              color={color}
+              size={23}
+            />
+            <View
+              style={{
+                width: focused ? 18 : 0,
+                height: 3,
+                borderRadius: 99,
+                backgroundColor: focused ? colors.primary : 'transparent',
+              }}
+            />
           </View>
         ),
       })}
@@ -89,7 +109,7 @@ function MainTabs() {
       <Tabs.Screen
         name="Matches"
         component={MatchesScreen}
-        options={{ title: 'Kết nối', headerShown: false }}
+        options={{ title: 'Tin nhắn', headerShown: false }}
       />
       <Tabs.Screen
         name="Profile"

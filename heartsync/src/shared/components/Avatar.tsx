@@ -52,3 +52,4 @@ const styles = StyleSheet.create({
   },
   initials: { ...type.label, color: colors.primaryPressed },
 });
+

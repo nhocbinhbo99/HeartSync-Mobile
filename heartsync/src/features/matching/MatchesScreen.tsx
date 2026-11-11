@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -14,9 +14,9 @@ import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
-import { colors, fonts, radii, spacing, type } from '../../shared/theme/tokens';
+import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
 import type { IncomingCall, MatchSummary, ProfilePublic } from '../../shared/types/domain.types';
-import { getFallbackAvatar } from '../../shared/utils/avatarHelper';
+import { brandAssets, getFallbackAvatar } from '../../shared/utils/avatarHelper';
 import { feedback } from '../../shared/motion/feedback';
 
 type Props = CompositeScreenProps<
@@ -28,19 +28,22 @@ type MatchFilter = 'all' | 'chats' | 'new';
 
 function connectedAt(createdAt: string) {
   const timestamp = new Date(createdAt).getTime();
-  if (Number.isNaN(timestamp)) return 'Đã kết nối';
+  if (Number.isNaN(timestamp)) return 'Hôm nay';
+  const date = new Date(timestamp);
   const elapsedHours = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60));
-  if (elapsedHours < 1) return 'Vừa kết nối';
-  if (elapsedHours < 24) return `${elapsedHours} giờ trước`;
+  if (elapsedHours < 24) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
   const elapsedDays = Math.floor(elapsedHours / 24);
   if (elapsedDays === 1) return 'Hôm qua';
-  return `${elapsedDays} ngày trước`;
+  if (elapsedDays < 7) return `Thứ ${((date.getDay() + 6) % 7) + 2}`;
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 }
 
 function MatchAvatar({
   profile,
   photoUrl,
-  size = 64,
+  size = 58,
 }: {
   profile: ProfilePublic;
   photoUrl?: string;
@@ -50,7 +53,7 @@ function MatchAvatar({
     <Avatar
       label={`Ảnh hồ sơ của ${profile.displayName}`}
       uri={photoUrl}
-      fallbackSource={getFallbackAvatar(profile.id, profile.gender)}
+      fallbackSource={getFallbackAvatar(profile.id, profile.gender, profile.displayName)}
       size={size}
     />
   );
@@ -87,14 +90,17 @@ export function MatchesScreen({ navigation }: Props) {
     let active = true;
     void Promise.all(
       matches.map(async (match) => {
-        const photo = match.otherProfile.photos.find((item) => item.isPrimary) ?? match.otherProfile.photos[0];
+        const photo =
+          match.otherProfile.photos.find((item) => item.isPrimary) ?? match.otherProfile.photos[0];
         if (!photo) return [match.id, null] as const;
         const result = await services.profile.createPhotoUrl(photo.storagePath);
         return [match.id, result.ok ? result.data : null] as const;
       }),
     ).then((entries) => {
       if (!active) return;
-      setPhotoUrls(Object.fromEntries(entries.filter((entry): entry is [string, string] => entry[1] !== null)));
+      setPhotoUrls(
+        Object.fromEntries(entries.filter((entry): entry is [string, string] => entry[1] !== null)),
+      );
     });
     return () => {
       active = false;
@@ -116,11 +122,10 @@ export function MatchesScreen({ navigation }: Props) {
     <View style={styles.header}>
       <View style={styles.headerTop}>
         <AppText accessibilityRole="header" style={styles.pageTitle}>
-          Tin nhắn & Kết nối
+          Tin nhắn
         </AppText>
-        <View style={styles.matchCount}>
-          <AppIcon name="heart" color={colors.primaryPressed} size={15} />
-          <Text style={styles.matchCountText}>{matches.length}</Text>
+        <View style={styles.searchCircle}>
+          <AppIcon name="search" color={colors.ink} size={20} />
         </View>
       </View>
       <View style={styles.filterTabs}>
@@ -143,6 +148,13 @@ export function MatchesScreen({ navigation }: Props) {
               }}
               style={[styles.filterPill, active && styles.filterPillActive]}
             >
+              {active ? (
+                <Image
+                  source={brandAssets.pinkButtonGradient}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="stretch"
+                />
+              ) : null}
               <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>
                 {tab.label}
               </Text>
@@ -201,8 +213,8 @@ export function MatchesScreen({ navigation }: Props) {
 
   const newMatches = matches.filter((match) => match.lastMessagePreview === null);
   const conversations = matches.filter((match) => match.lastMessagePreview !== null);
-  const showNewMatches = (filter === 'all' || filter === 'new') && newMatches.length > 0;
-  const showConversations = (filter === 'all' || filter === 'chats') && conversations.length > 0;
+  const visibleRows =
+    filter === 'all' ? matches : filter === 'chats' ? conversations : newMatches;
   const openChat = (matchId: string) => navigation.navigate('Chat', { matchId });
 
   return (
@@ -223,196 +235,225 @@ export function MatchesScreen({ navigation }: Props) {
         />
       ) : null}
 
-      {showNewMatches ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHeading}>
-            <Text accessibilityRole="header" style={styles.sectionTitle}>
-              Match mới
-            </Text>
-            <Text style={styles.sectionBody}>Đừng ngại gửi lời chào nhé</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newMatches}>
-            {newMatches.map((match) => (
-              <AnimatedPressable
-                key={match.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
-                onPress={() => openChat(match.id)}
-                style={styles.matchTile}
-              >
-                <View>
-                  <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={72} />
-                  <View style={styles.matchBadge}>
-                    <AppIcon name="heart" color={colors.onPrimary} size={13} />
-                  </View>
-                </View>
-                <Text numberOfLines={1} style={styles.matchName}>
-                  {match.otherProfile.displayName}
-                </Text>
-                <Text numberOfLines={1} style={styles.matchTime}>
-                  {connectedAt(match.createdAt)}
-                </Text>
-              </AnimatedPressable>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {showConversations ? (
-        <View style={styles.section}>
-          <Text accessibilityRole="header" style={styles.sectionTitle}>
-            Cuộc trò chuyện
-          </Text>
-          <View style={styles.conversationList}>
-            {conversations.map((match) => (
-              <AnimatedPressable
-                key={match.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
-                onPress={() => openChat(match.id)}
-                style={styles.conversationRow}
-              >
-                <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={58} />
-                <View style={styles.conversationContent}>
-                  <View style={styles.conversationTopLine}>
-                    <Text numberOfLines={1} style={styles.conversationName}>
-                      {match.otherProfile.displayName}
-                    </Text>
-                    <Text style={styles.conversationTime}>{connectedAt(match.createdAt)}</Text>
-                  </View>
-                  <Text numberOfLines={1} style={styles.preview}>
-                    {match.lastMessagePreview}
-                  </Text>
-                </View>
-                <AppIcon name="forward" color={colors.inkMuted} size={18} />
-              </AnimatedPressable>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {filter === 'chats' && conversations.length === 0 && newMatches.length > 0 ? (
-        <AnimatedPressable
-          accessibilityRole="button"
-          accessibilityLabel={`Bắt đầu trò chuyện với ${newMatches[0].otherProfile.displayName}`}
-          onPress={() => openChat(newMatches[0].id)}
-          style={styles.firstMessageCard}
+      {filter === 'all' && newMatches.length > 0 && conversations.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.newMatchesStrip}
         >
-          <View style={styles.firstMessageIcon}>
-            <AppIcon name="send" color={colors.primaryPressed} size={22} />
-          </View>
-          <View style={styles.firstMessageContent}>
-            <Text style={styles.firstMessageTitle}>Mở lời cùng {newMatches[0].otherProfile.displayName}</Text>
-            <Text style={styles.firstMessageBody}>Chưa có tin nhắn nào. Hãy gửi lời chào đầu tiên!</Text>
-          </View>
-          <AppIcon name="forward" color={colors.primaryPressed} size={20} />
-        </AnimatedPressable>
+          {newMatches.map((match) => (
+            <AnimatedPressable
+              key={`strip-${match.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
+              onPress={() => openChat(match.id)}
+              style={styles.matchTile}
+            >
+              <View style={styles.avatarWrap}>
+                <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={64} />
+                <View style={styles.heartMiniBadge}>
+                  <AppIcon name="heart" color={colors.onPrimary} size={11} />
+                </View>
+              </View>
+              <Text numberOfLines={1} style={styles.matchName}>
+                {match.otherProfile.displayName}
+              </Text>
+            </AnimatedPressable>
+          ))}
+        </ScrollView>
       ) : null}
+
+      <View style={styles.conversationList}>
+        {visibleRows.map((match) => {
+          const isNew = match.lastMessagePreview === null;
+          return (
+            <AnimatedPressable
+              key={match.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
+              onPress={() => openChat(match.id)}
+              style={styles.conversationRow}
+            >
+              <View style={styles.avatarWrap}>
+                <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={60} />
+                <View style={isNew ? styles.heartMiniBadge : styles.onlineDot}>
+                  {isNew ? <AppIcon name="heart" color={colors.onPrimary} size={11} /> : null}
+                </View>
+              </View>
+
+              <View style={styles.conversationContent}>
+                <View style={styles.conversationTopLine}>
+                  <Text numberOfLines={1} style={styles.conversationName}>
+                    {match.otherProfile.displayName}
+                  </Text>
+                  <Text style={styles.conversationTime}>{connectedAt(match.createdAt)}</Text>
+                </View>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.preview, isNew && styles.previewNewMatch]}
+                >
+                  {match.lastMessagePreview ?? 'Hai bạn vừa kết nối! Gửi lời chào ngay nhé 💕'}
+                </Text>
+              </View>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { gap: spacing.lg, paddingTop: spacing.xs },
-  header: { gap: spacing.sm },
-  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  pageTitle: { fontFamily: fonts.extrabold, fontSize: 28, lineHeight: 34, color: colors.ink },
-  filterTabs: { flexDirection: 'row', gap: spacing.xs },
-  filterPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
+  screen: {
+    gap: spacing.md,
+    paddingTop: 4,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: '#FFF7F9',
+  },
+  header: { gap: spacing.md },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pageTitle: {
+    fontFamily: fonts.extrabold,
+    fontSize: 28,
+    lineHeight: 34,
+    color: colors.ink,
+  },
+  searchCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#F5D6E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#D67094',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  filterPill: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1,
+    borderColor: '#F3D0DF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   filterPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    borderWidth: 0,
+    shadowColor: '#E6386F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 3,
   },
   filterPillText: {
     fontFamily: fonts.semibold,
-    fontSize: 13,
-    color: colors.inkMuted,
+    fontSize: 14,
+    color: colors.ink,
   },
   filterPillTextActive: {
     fontFamily: fonts.bold,
-    color: colors.onPrimary,
+    color: '#FFFFFF',
   },
-  section: { gap: spacing.md },
-  sectionHeading: { gap: 2 },
-  sectionTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.ink },
-  sectionBody: { ...type.caption, color: colors.inkMuted },
-  matchCount: {
-    minWidth: 44,
-    height: 30,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
-    flexDirection: 'row',
+  newMatchesStrip: {
+    gap: spacing.md,
+    paddingVertical: 4,
+  },
+  matchTile: {
+    width: 74,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xxs,
+    gap: 6,
   },
-  matchCountText: { fontFamily: fonts.bold, fontSize: 14, color: colors.primaryPressed },
-  newMatches: { gap: spacing.md, paddingRight: spacing.lg },
-  matchTile: { width: 82, alignItems: 'center', gap: 6 },
-  matchBadge: {
+  avatarWrap: {
+    position: 'relative',
+  },
+  heartMiniBadge: {
     position: 'absolute',
     right: -2,
     bottom: -2,
-    width: 24,
-    height: 24,
-    borderRadius: radii.pill,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.surface,
+    borderColor: '#FFFFFF',
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  matchName: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', width: '100%' },
-  matchTime: { fontFamily: fonts.regular, fontSize: 11, color: colors.inkMuted, textAlign: 'center', width: '100%' },
+  onlineDot: {
+    position: 'absolute',
+    right: 1,
+    bottom: 1,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    backgroundColor: colors.online,
+  },
+  matchName: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.ink,
+    textAlign: 'center',
+    width: '100%',
+  },
   conversationList: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
+    gap: 2,
   },
   conversationRow: {
-    minHeight: 82,
+    minHeight: 80,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    gap: 14,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderBottomColor: '#F6E0E9',
   },
-  conversationContent: { flex: 1, minWidth: 0, gap: 4 },
-  conversationTopLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.sm },
-  conversationName: { fontFamily: fonts.bold, fontSize: 17, color: colors.ink, flex: 1 },
-  conversationTime: { ...type.caption, color: colors.inkMuted },
-  preview: { ...type.body, fontSize: 14, color: colors.inkMuted },
-  firstMessageCard: {
+  conversationContent: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  conversationTopLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surface,
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
-  firstMessageIcon: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
+  conversationName: {
+    fontFamily: fonts.bold,
+    fontSize: 17,
+    color: colors.ink,
+    flex: 1,
   },
-  firstMessageContent: { flex: 1, gap: 2 },
-  firstMessageTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.ink },
-  firstMessageBody: { ...type.caption, color: colors.inkMuted },
+  conversationTime: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    color: colors.inkMuted,
+  },
+  preview: {
+    fontFamily: fonts.regular,
+    fontSize: 14.5,
+    lineHeight: 20,
+    color: colors.inkMuted,
+  },
+  previewNewMatch: {
+    fontFamily: fonts.semibold,
+    color: colors.primaryPressed,
+  },
 });

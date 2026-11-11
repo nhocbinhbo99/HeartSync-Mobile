@@ -39,3 +39,4 @@ const styles = StyleSheet.create({
   },
   message: { flex: 1 },
 });
+

@@ -18,7 +18,12 @@ import { optionLabel, LANGUAGE_OPTIONS } from '../../shared/domain/profileOption
 import { colors, fonts, radii, spacing, type } from '../../shared/theme/tokens';
 import type { ProfilePublic } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
-import { getProfileImageSource } from '../../shared/utils/avatarHelper';
+import {
+  brandAssets,
+  formatNaturalBio,
+  formatNaturalOccupation,
+  getProfileImageSource,
+} from '../../shared/utils/avatarHelper';
 import { ProfileEditor } from './ProfileEditor';
 
 export function EditProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'EditProfile'>) {
@@ -164,10 +169,11 @@ export function OtherProfileScreen({
       <View style={styles.heroWrap}>
         <Image
           accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`}
-          source={getProfileImageSource(photoUrl, profile.id, profile.gender)}
+          source={getProfileImageSource(photoUrl, profile.id, profile.gender, profile.displayName)}
           style={styles.heroImage}
           resizeMode="cover"
         />
+        <Image source={brandAssets.cardScrimGradient} style={styles.heroScrimImage} resizeMode="stretch" />
         <View style={styles.heroTopActions}>
           <IconButton
             icon="back"
@@ -185,11 +191,16 @@ export function OtherProfileScreen({
           />
         </View>
         <View style={styles.heroDetails}>
-          <AppText accessibilityRole="header" tone="onPrimary" style={styles.heroName}>
-            {profile.displayName}, {profile.age}
-          </AppText>
+          <View style={styles.heroNameRow}>
+            <AppText accessibilityRole="header" tone="onPrimary" style={styles.heroName}>
+              {profile.displayName}, {profile.age}
+            </AppText>
+            <View style={styles.verifiedBadge}>
+              <AppIcon name="check" color="#FFFFFF" size={12} />
+            </View>
+          </View>
           <AppText tone="onPrimary" style={styles.heroMeta}>
-            {profile.occupation || 'Hồ sơ công khai'}
+            {formatNaturalOccupation(profile.occupation) || 'Thành viên HeartSync'}
             {profile.publicLocation ? ` · ${profile.publicLocation}` : ''}
           </AppText>
         </View>
@@ -201,7 +212,7 @@ export function OtherProfileScreen({
             Một chút về {profile.displayName}
           </AppText>
           <AppText tone="muted" style={styles.detailBody}>
-            {profile.bio || 'Người này chưa thêm phần giới thiệu.'}
+            {formatNaturalBio(profile.bio, profile.displayName)}
           </AppText>
         </View>
 
@@ -411,6 +422,14 @@ const styles = StyleSheet.create({
   otherProfileScreen: { padding: 0, gap: spacing.md },
   heroWrap: { position: 'relative' },
   heroImage: { width: '100%', aspectRatio: 0.88, backgroundColor: colors.surfaceMuted },
+  heroScrimImage: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    left: 0,
+    height: '45%',
+    width: '100%',
+  },
   heroTopActions: {
     position: 'absolute',
     top: spacing.md,
@@ -425,12 +444,24 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(32, 12, 24, 0.72)',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     gap: 4,
   },
+  heroNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   heroName: { fontFamily: fonts.extrabold, fontSize: 28, lineHeight: 34, color: colors.onPrimary },
+  verifiedBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.verified,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   heroMeta: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, opacity: 0.92 },
   profileBody: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.lg },
   profileSection: { gap: spacing.xs },

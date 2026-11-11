@@ -48,10 +48,11 @@ it('keeps the sign-in hierarchy, safety copy, and route actions accessible', asy
     <AuthScreen navigation={navigation as never} route={{ key: 'sign-in', name: 'SignIn' } as never} mode="sign-in" />,
   );
 
-  expect(screen.getByRole('header', { name: 'Mừng bạn trở lại.' })).toBeTruthy();
+  expect(screen.getByRole('header', { name: 'Chào mừng trở lại! 👋' })).toBeTruthy();
   expect(screen.getByText('Kết nối chỉ được tạo khi cả hai cùng đồng ý.')).toBeTruthy();
-  fireEvent.press(screen.getByText('Tạo tài khoản'));
-  fireEvent.press(screen.getByText('Quên mật khẩu'));
+  fireEvent.press(screen.getByLabelText('Tạo tài khoản'));
+  fireEvent.press(screen.getByLabelText('Quên mật khẩu'));
   expect(navigation.navigate).toHaveBeenCalledWith('SignUp');
   expect(navigation.navigate).toHaveBeenCalledWith('ForgotPassword');
 });
+

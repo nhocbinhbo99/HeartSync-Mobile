@@ -403,3 +403,4 @@ const styles = StyleSheet.create({
   settingCopy: { flex: 1, gap: 2 },
   version: { textAlign: 'center', marginTop: spacing.sm, paddingBottom: spacing.md },
 });
+
