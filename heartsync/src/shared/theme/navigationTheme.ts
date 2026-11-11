@@ -3,6 +3,14 @@ import { colors } from './tokens';
 
 export const navigationTheme: Theme = {
   ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, primary: colors.primary, background: colors.background,
-    card: colors.surface, text: colors.ink, border: colors.border, notification: colors.danger },
+  dark: false,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.primary,
+    background: colors.background,
+    card: colors.surface,
+    text: colors.ink,
+    border: colors.border,
+    notification: colors.danger,
+  },
 };

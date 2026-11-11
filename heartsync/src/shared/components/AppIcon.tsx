@@ -23,6 +23,7 @@ const symbols = {
   filter: { ios: 'slider.horizontal.3', android: 'tune', web: 'tune' },
   forward: { ios: 'chevron.right', android: 'arrow_forward', web: 'arrow_forward' },
   heart: { ios: 'heart.fill', android: 'favorite', web: 'favorite' },
+  heartOutline: { ios: 'heart', android: 'favorite_border', web: 'favorite_border' },
   location: { ios: 'location.fill', android: 'location_on', web: 'location_on' },
   locationOff: { ios: 'location.slash', android: 'location_off', web: 'location_off' },
   lock: { ios: 'lock.fill', android: 'lock', web: 'lock' },
@@ -30,11 +31,15 @@ const symbols = {
   microphone: { ios: 'mic.fill', android: 'mic', web: 'mic' },
   microphoneOff: { ios: 'mic.slash.fill', android: 'mic_off', web: 'mic_off' },
   more: { ios: 'ellipsis', android: 'more_vert', web: 'more_vert' },
+  moon: { ios: 'moon.fill', android: 'dark_mode', web: 'dark_mode' },
   minus: { ios: 'minus', android: 'remove', web: 'remove' },
   person: { ios: 'person.fill', android: 'person', web: 'person' },
   photoAdd: { ios: 'photo.badge.plus', android: 'add_a_photo', web: 'add_a_photo' },
+  phone: { ios: 'phone.fill', android: 'call', web: 'call' },
   refresh: { ios: 'arrow.clockwise', android: 'refresh', web: 'refresh' },
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
+  send: { ios: 'paperplane.fill', android: 'send', web: 'send' },
+  settings: { ios: 'gearshape.fill', android: 'settings', web: 'settings' },
   shield: { ios: 'checkmark.shield.fill', android: 'shield', web: 'shield' },
   sparkle: { ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' },
   star: { ios: 'star.fill', android: 'star', web: 'star' },
@@ -44,9 +49,17 @@ const symbols = {
 } as const;
 
 export type AppIconName = keyof typeof symbols;
-type AppIconProps = { name: AppIconName | object; color: string; size?: number; weight?: ComponentProps<typeof SymbolView>['weight'] };
+type AppIconProps = {
+  name: AppIconName | object;
+  color: string;
+  size?: number;
+  weight?: ComponentProps<typeof SymbolView>['weight'];
+};
+
 export function AppIcon({ name, color, size = 24 }: AppIconProps) {
   const semanticSymbols = symbols as Record<AppIconName, unknown>;
-  const symbol = (typeof name === 'string' && name in semanticSymbols ? semanticSymbols[name as AppIconName] : name) as NativeSymbol;
+  const symbol = (
+    typeof name === 'string' && name in semanticSymbols ? semanticSymbols[name as AppIconName] : name
+  ) as NativeSymbol;
   return <SymbolView name={symbol} size={size} tintColor={color} />;
 }

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { feedback } from '../motion/feedback';
-import { colors, radii, spacing, type } from '../theme/tokens';
+import { colors, fonts, radii, spacing } from '../theme/tokens';
 import { AnimatedPressable } from './AnimatedPressable';
 
 type RangeProps = {
@@ -245,10 +245,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   label: {
-    ...type.label,
+    fontFamily: fonts.bold,
     fontSize: 16,
     color: colors.ink,
-    fontWeight: '700',
   },
   badge: {
     paddingHorizontal: spacing.sm,
@@ -257,9 +256,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
   },
   badgeText: {
-    ...type.caption,
+    fontFamily: fonts.bold,
+    fontSize: 13,
     color: colors.primaryPressed,
-    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   presetRow: {
@@ -281,14 +280,13 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   presetText: {
-    ...type.caption,
+    fontFamily: fonts.regular,
     fontSize: 12,
     color: colors.inkMuted,
-    fontWeight: '500',
   },
   presetTextActive: {
+    fontFamily: fonts.bold,
     color: colors.primaryPressed,
-    fontWeight: '700',
   },
   sliderContainer: {
     height: 44,

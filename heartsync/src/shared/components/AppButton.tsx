@@ -96,7 +96,6 @@ const styles = StyleSheet.create({
   label: {
     ...type.label,
     fontSize: 15,
-    fontWeight: '700',
   },
   disabled: {
     backgroundColor: colors.disabled,
