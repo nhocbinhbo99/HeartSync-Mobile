@@ -28,7 +28,7 @@ replace any real backend state with fixtures.
 | Profile setup | `ProfileSetup` | Missing | DONE | Static review; Android device review pending | `be8d86a` | Reuses private profile editor. |
 | Discover | `Discover` | Missing | TODO | Pending | — | Candidate DTO stays public-only. |
 | Filters | `Filters` | Missing | TODO | Pending | — | Keep explicit location consent. |
-| Other profile | `OtherProfile` | Missing | DONE | Static review; Android device review pending | This commit | No DOB or exact coordinates. |
+| Other profile | `OtherProfile` | Missing | DONE | Static review; Android device review pending | `8a43257` | No DOB or exact coordinates. |
 | Like / pass / match | `Discover`, `MatchFound` | Missing | TODO | Pending | — | Match screen only after server-confirmed ID. |
 | Saved profiles | `Saved` | Missing | TODO | Pending | — | Optimistic removal must retain rollback. |
 | Matches list | `Matches` | Missing | TODO | Pending | — | Show only active server-authorized matches. |
@@ -38,7 +38,7 @@ replace any real backend state with fixtures.
 | Video call | `VideoCall` | Missing | TODO | Pending | — | Camera/mic permission state remains real. |
 | My profile | `Profile` | Missing | DONE | Static review; Android device review pending | `4690e5a` | Keep private/public separation. |
 | Edit profile | `EditProfile` | Missing | DONE | Static review; Android device review pending | `d586b1b` | Keep storage/photo lifecycle. |
-| Safety | `Safety` | Missing | TODO | Pending | — | Block/report contracts stay unchanged. |
+| Safety | `Safety` | Missing | DONE | Static review; Android device review pending | This commit | Block/report contracts stay unchanged. |
 
 ## QA constraints
 

@@ -106,6 +106,7 @@ export function SafetyScreen({ navigation }: NativeStackScreenProps<RootStackPar
   return <Screen>
     <View style={styles.safetyHeader}><View style={styles.safetyHero}><AppIcon name="shield" color={colors.primaryPressed} size={25} /></View><View style={styles.safetyCopy}><AppText accessibilityRole="header" variant="title">An toàn & quyền riêng tư</AppText><AppText tone="muted">Thông tin nào được hiển thị và cách HeartSync bảo vệ bạn.</AppText></View></View>
     <View style={styles.safetyList}>
+      <SectionHeader title="Quyền riêng tư của bạn" description="Những dữ liệu này luôn được xử lý theo ngữ cảnh bạn chọn." />
       <SafetyItem icon="lock" title="Dữ liệu riêng tư" description="Email, ngày sinh và tọa độ chính xác không xuất hiện trong Khám phá hoặc hồ sơ công khai." />
       <SafetyItem icon="locationOff" title="Vị trí theo lựa chọn của bạn" description="Bạn chỉ dùng tọa độ để lọc khoảng cách. Khi tắt, phạm vi sẽ trở thành không giới hạn." />
       <SafetyItem icon="shield" title="Kiểm soát tương tác" description="Chặn một người sẽ ngăn các tương tác mới theo chính sách được máy chủ xác nhận." />
@@ -115,7 +116,7 @@ export function SafetyScreen({ navigation }: NativeStackScreenProps<RootStackPar
 }
 
 function SafetyItem({ icon, title, description }: { icon: AppIconName; title: string; description: string }) {
-  return <View style={styles.safetyItem}><View style={styles.safetyItemIcon}><AppIcon name={icon} color={colors.primaryPressed} size={21} /></View><View style={styles.safetyItemCopy}><Text style={styles.safetyItemTitle}>{title}</Text><Text style={styles.safetyItemDescription}>{description}</Text></View></View>;
+  return <View style={styles.safetyItem}><View style={styles.safetyItemIcon}><AppIcon name={icon} color={colors.primaryPressed} size={21} /></View><View style={styles.safetyItemCopy}><AppText variant="label">{title}</AppText><AppText variant="caption" tone="muted">{description}</AppText></View></View>;
 }
 
 const styles = StyleSheet.create({
@@ -124,5 +125,5 @@ const styles = StyleSheet.create({
   saveButton: { position: 'absolute', top: spacing.sm, right: spacing.sm, backgroundColor: colors.surface }, heading: { gap: spacing.xxs },
   details: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border }, detailRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm }, detailLabel: { width: 96 }, detailValue: { flex: 1 },
   section: { gap: spacing.sm }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }, error: { borderWidth: 1, borderColor: colors.danger, borderRadius: radii.md, padding: spacing.sm, flexDirection: 'row', gap: spacing.xs }, errorText: { ...type.caption, color: colors.danger, flex: 1 },
-  safetyHeader: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }, safetyHero: { width: 56, height: 56, borderRadius: radii.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }, safetyCopy: { flex: 1, gap: spacing.xxs }, safetyList: { borderTopWidth: 1, borderTopColor: colors.border }, safetyItem: { minHeight: 100, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border }, safetyItemIcon: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' }, safetyItemCopy: { flex: 1, gap: spacing.xxs }, safetyItemTitle: { ...type.label, color: colors.ink }, safetyItemDescription: { ...type.body, color: colors.inkMuted },
+  safetyHeader: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }, safetyHero: { width: 48, height: 48, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border }, safetyCopy: { flex: 1, gap: spacing.xxs }, safetyList: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg, gap: spacing.xs }, safetyItem: { minHeight: 88, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border }, safetyItemIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }, safetyItemCopy: { flex: 1, gap: spacing.xxs },
 });
