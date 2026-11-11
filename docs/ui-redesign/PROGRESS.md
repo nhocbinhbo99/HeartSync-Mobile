@@ -29,7 +29,7 @@ replace any real backend state with fixtures.
 | Discover | `Discover` | Missing | TODO | Pending | — | Candidate DTO stays public-only. |
 | Filters | `Filters` | Missing | TODO | Pending | — | Keep explicit location consent. |
 | Other profile | `OtherProfile` | Missing | DONE | Static review; Android device review pending | `8a43257` | No DOB or exact coordinates. |
-| Like / pass / match | `Discover`, `MatchFound` | Missing | TODO | Pending | — | Match screen only after server-confirmed ID. |
+| Like / pass / match | `Discover`, `MatchFound` | Missing | IN PROGRESS | Static review; Android device review pending | This commit | Match confirmation is complete; Discover controls preserve atomic server RPC. |
 | Saved profiles | `Saved` | Missing | TODO | Pending | — | Optimistic removal must retain rollback. |
 | Matches list | `Matches` | Missing | TODO | Pending | — | Show only active server-authorized matches. |
 | Conversation | `Chat` | Missing | TODO | Pending | — | Keep Realtime cleanup and message dedupe. |
