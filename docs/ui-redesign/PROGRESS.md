@@ -36,8 +36,8 @@ replace any real backend state with fixtures.
 | Incoming call | `IncomingCallOverlay` | Missing | TODO | Pending | — | Keep call authorization state explicit. |
 | Voice call | `AudioCall` | Missing | TODO | Pending | — | Connected is a real media event only. |
 | Video call | `VideoCall` | Missing | TODO | Pending | — | Camera/mic permission state remains real. |
-| My profile | `Profile` | Missing | DONE | Static review; Android device review pending | This commit | Keep private/public separation. |
-| Edit profile | `EditProfile` | Missing | TODO | Pending | — | Keep storage/photo lifecycle. |
+| My profile | `Profile` | Missing | DONE | Static review; Android device review pending | `4690e5a` | Keep private/public separation. |
+| Edit profile | `EditProfile` | Missing | DONE | Static review; Android device review pending | This commit | Keep storage/photo lifecycle. |
 | Safety | `Safety` | Missing | TODO | Pending | — | Block/report contracts stay unchanged. |
 
 ## QA constraints
