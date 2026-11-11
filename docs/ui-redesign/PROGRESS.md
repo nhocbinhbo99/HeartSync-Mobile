@@ -27,10 +27,10 @@ replace any real backend state with fixtures.
 | Update password | `UpdatePassword` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Preserve authenticated recovery state. |
 | Profile setup | `ProfileSetup` | Missing | DONE | Static review; Android device review pending | `be8d86a` | Reuses private profile editor. |
 | Discover | `Discover` | Missing | DONE | Static review; Android device review pending | `1bc7358` | Candidate DTO stays public-only. |
-| Filters | `Filters` | Missing | DONE | Static review; Android device review pending | This commit | Keep explicit location consent. |
+| Filters | `Filters` | Missing | DONE | Static review; Android device review pending | `e257dd9` | Keep explicit location consent. |
 | Other profile | `OtherProfile` | Missing | DONE | Static review; Android device review pending | `8a43257` | No DOB or exact coordinates. |
 | Like / pass / match | `Discover`, `MatchFound` | Missing | DONE | Static review; Android device review pending | `1bc7358` and `e7e695f` | Match confirmation and Discover controls preserve atomic server RPC. |
-| Saved profiles | `Saved` | Missing | TODO | Pending | — | Optimistic removal must retain rollback. |
+| Saved profiles | `Saved` | Missing | DONE | Static review; Android device review pending | This commit | Optimistic removal must retain rollback. |
 | Matches list | `Matches` | Missing | TODO | Pending | — | Show only active server-authorized matches. |
 | Conversation | `Chat` | Missing | TODO | Pending | — | Keep Realtime cleanup and message dedupe. |
 | Incoming call | `IncomingCallOverlay` | Missing | TODO | Pending | — | Keep call authorization state explicit. |
