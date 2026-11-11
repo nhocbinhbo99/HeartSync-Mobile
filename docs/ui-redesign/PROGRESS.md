@@ -33,9 +33,9 @@ replace any real backend state with fixtures.
 | Saved profiles | `Saved` | Missing | DONE | Static review; Android device review pending | `09b6c80` | Optimistic removal must retain rollback. |
 | Matches list | `Matches` | Missing | DONE | Static review; Android device review pending | `2efe9ae` | Show only active server-authorized matches. |
 | Conversation | `Chat` | Missing | DONE | Static review; Android device review pending | `f04e94c` | Keep Realtime cleanup and message dedupe. |
-| Incoming call | `IncomingCallOverlay` | Missing | DONE | Static review; Android device review pending | This commit | Keep call authorization state explicit. |
-| Voice call | `AudioCall` | Missing | TODO | Pending | — | Connected is a real media event only. |
-| Video call | `VideoCall` | Missing | TODO | Pending | — | Camera/mic permission state remains real. |
+| Incoming call | `IncomingCallOverlay` | Missing | DONE | Static review; Android device review pending | `498f17a` | Keep call authorization state explicit. |
+| Voice call | `AudioCall` | Missing | DONE | Static review; Android device review pending | This commit | Connected is a real media event only. |
+| Video call | `VideoCall` | Missing | DONE | Static review; Android device review pending | This commit | Camera/mic permission state remains real. |
 | My profile | `Profile` | Missing | DONE | Static review; Android device review pending | `4690e5a` | Keep private/public separation. |
 | Edit profile | `EditProfile` | Missing | DONE | Static review; Android device review pending | `d586b1b` | Keep storage/photo lifecycle. |
 | Safety | `Safety` | Missing | DONE | Static review; Android device review pending | `ff1e162` | Block/report contracts stay unchanged. |

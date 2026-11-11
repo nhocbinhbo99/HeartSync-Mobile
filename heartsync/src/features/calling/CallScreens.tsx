@@ -8,6 +8,7 @@ import { CallVideoView } from "../../shared/components/CallVideoView";
 import { useAppServices } from "../../services/AppServicesProvider";
 import type { CallGateway } from "../../services/contracts";
 import { AppButton } from "../../shared/components/AppButton";
+import { AppText } from "../../shared/components/AppText";
 import { IconButton } from "../../shared/components/IconButton";
 import { Screen } from "../../shared/components/Screen";
 import { StatePanel } from "../../shared/components/StatePanel";
@@ -325,15 +326,15 @@ function CallSession({
           {tracks.remote ? <CallVideoView track={tracks.remote} style={styles.remoteVideo} zOrder={0} />
             : participant ? <ConversationProfile profileId={participant} presentation="callHero" /> : <View style={styles.remoteCameraFallback} />}
           {!tracks.remote ? <View pointerEvents="none" style={styles.remoteCameraOffMessage}>
-            <Text style={styles.remoteCameraOffTitle}>Camera đã tắt</Text>
-            <Text style={styles.remoteCameraOffDescription}>Bạn vẫn đang kết nối âm thanh với người kia</Text>
+            <AppText variant="title" tone="onPrimary" style={styles.remoteCameraOffTitle}>Camera đã tắt</AppText>
+            <AppText tone="onPrimary" style={styles.remoteCameraOffDescription}>Bạn vẫn đang kết nối âm thanh với người kia</AppText>
           </View> : null}
           {tracks.local ? <CallVideoView track={tracks.local} style={styles.fullScreenLocalVideo} mirror={tracks.mirrorLocal} zOrder={1} />
             : user ? <View style={styles.fullScreenLocalAvatar}><ConversationProfile profileId={user.id} presentation="callTile" /></View>
               : <Text style={styles.fullScreenLocalPlaceholder}>{cameraEnabled ? "Đang mở camera…" : "Camera đã tắt"}</Text>}
           <View style={styles.callTopBar} pointerEvents="none">
-            <Text style={styles.callTopTitle}>Cuộc gọi video</Text>
-            <Text style={styles.callTopTime}>{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</Text>
+            <AppText variant="subtitle" tone="onPrimary">Cuộc gọi video</AppText>
+            <AppText variant="caption" tone="onPrimary">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</AppText>
           </View>
           <View style={styles.callControls}>
             <IconButton icon={muted ? "microphoneOff" : "microphone"} label={muted ? "Bật micro" : "Tắt micro"} tone="onPrimary" style={muted ? styles.callControlMuted : styles.callControl} onPress={() => {
@@ -355,7 +356,7 @@ function CallSession({
             }} />
             <IconButton icon="callEnd" label="Kết thúc cuộc gọi" tone="onPrimary" style={styles.endCallControl} onPress={() => void end()} />
           </View>
-          {error ? <Text accessibilityLiveRegion="polite" style={styles.fullScreenError}>{error}</Text> : null}
+          {error ? <AppText accessibilityLiveRegion="polite" variant="caption" tone="onPrimary" style={styles.fullScreenError}>{error}</AppText> : null}
         </View>
       </Screen>
     );
@@ -366,15 +367,15 @@ function CallSession({
           {participant ? <ConversationProfile profileId={participant} presentation="callHero" /> : <View style={styles.waitingFallback} />}
           {previewTrack ? <CallVideoView track={previewTrack} preview mirror style={styles.waitingLocalVideo} zOrder={1} /> : null}
           <View pointerEvents="none" style={styles.waitingMeta}>
-            <Text accessibilityRole="header" style={styles.waitingTitle}>{waitingLabel}</Text>
-            <Text accessibilityLiveRegion="polite" style={styles.waitingDescription}>{waitingDescription}</Text>
+            <AppText accessibilityRole="header" variant="title" tone="onPrimary">{waitingLabel}</AppText>
+            <AppText accessibilityLiveRegion="polite" tone="onPrimary" style={styles.waitingDescription}>{waitingDescription}</AppText>
           </View>
         </View>
       ) : null}
       {!waitingForParticipant && participant ? <ConversationProfile profileId={participant} /> : null}
-      {!waitingForParticipant ? <Text accessibilityRole="header" style={styles.title}>
+      {!waitingForParticipant ? <AppText accessibilityRole="header" variant="title">
         {callType === "video" ? "Cuộc gọi video" : "Cuộc gọi thoại"}
-      </Text> : null}
+      </AppText> : null}
       {callType === "video" && !waitingForParticipant ? (
         <View style={styles.videoArea}>
           {tracks.remote ? <CallVideoView track={tracks.remote} style={styles.remoteVideo} zOrder={0} />
@@ -412,9 +413,9 @@ function CallSession({
         </>
       ) : null}
       {error ? (
-        <Text accessibilityLiveRegion="polite" style={styles.error}>
+        <AppText accessibilityLiveRegion="polite" variant="caption" tone="danger" style={styles.error}>
           {error}
-        </Text>
+        </AppText>
       ) : null}
       {incoming && status === "ringing" ? (
         <>
@@ -470,13 +471,11 @@ function CallSession({
 }
 
 const styles = StyleSheet.create({
-  title: { ...type.title, color: colors.ink },
-  error: { ...type.caption, color: colors.danger },
+  error: {},
   waitingSurface: { flex: 1, minHeight: 480, backgroundColor: colors.ink, borderRadius: 22, overflow: "hidden" },
   waitingFallback: { flex: 1, backgroundColor: colors.primarySoft },
   waitingLocalVideo: { position: "absolute", top: 20, right: 16, width: 116, height: 164, borderRadius: 16, borderWidth: 1, borderColor: colors.onPrimary, backgroundColor: colors.ink },
   waitingMeta: { position: "absolute", left: 24, right: 24, bottom: 36, alignItems: "center", gap: 4 },
-  waitingTitle: { ...type.title, color: colors.onPrimary },
   waitingDescription: { ...type.body, color: colors.onPrimary, textAlign: "center" },
   videoContent: { padding: 12, gap: 8 },
   fullScreenContent: { padding: 0, gap: 0, backgroundColor: colors.ink },
@@ -489,8 +488,6 @@ const styles = StyleSheet.create({
   fullScreenLocalAvatar: { position: "absolute", top: 18, right: 16, width: 108, height: 152, borderRadius: 14, borderWidth: 1, borderColor: colors.border, overflow: "hidden" },
   fullScreenLocalPlaceholder: { position: "absolute", top: 18, right: 16, width: 108, height: 152, padding: 12, borderRadius: 14, backgroundColor: colors.inkMuted, color: colors.onPrimary, textAlign: "center", textAlignVertical: "center" },
   callTopBar: { position: "absolute", top: 20, left: 20, right: 140, gap: 2 },
-  callTopTitle: { ...type.subtitle, color: colors.onPrimary },
-  callTopTime: { ...type.caption, color: colors.onPrimary },
   callControls: { position: "absolute", left: 0, right: 0, bottom: 30, flexDirection: "row", justifyContent: "center", gap: 12 },
   callControl: { backgroundColor: "rgba(16,42,51,0.72)", width: 56, height: 56 },
   callControlMuted: { backgroundColor: colors.inkMuted, width: 56, height: 56 },
