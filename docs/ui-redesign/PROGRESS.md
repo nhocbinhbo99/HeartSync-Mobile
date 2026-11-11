@@ -34,8 +34,8 @@ replace any real backend state with fixtures.
 | Matches list | `Matches` | Missing | DONE | Static review; Android device review pending | `2efe9ae` | Show only active server-authorized matches. |
 | Conversation | `Chat` | Missing | DONE | Static review; Android device review pending | `f04e94c` | Keep Realtime cleanup and message dedupe. |
 | Incoming call | `IncomingCallOverlay` | Missing | DONE | Static review; Android device review pending | `498f17a` | Keep call authorization state explicit. |
-| Voice call | `AudioCall` | Missing | DONE | Static review; Android device review pending | This commit | Connected is a real media event only. |
-| Video call | `VideoCall` | Missing | DONE | Static review; Android device review pending | This commit | Camera/mic permission state remains real. |
+| Voice call | `AudioCall` | Missing | DONE | Static review; Android device review pending | `9a7cd96` | Connected is a real media event only. |
+| Video call | `VideoCall` | Missing | DONE | Static review; Android device review pending | `9a7cd96` | Camera/mic permission state remains real. |
 | My profile | `Profile` | Missing | DONE | Static review; Android device review pending | `4690e5a` | Keep private/public separation. |
 | Edit profile | `EditProfile` | Missing | DONE | Static review; Android device review pending | `d586b1b` | Keep storage/photo lifecycle. |
 | Safety | `Safety` | Missing | DONE | Static review; Android device review pending | `ff1e162` | Block/report contracts stay unchanged. |
