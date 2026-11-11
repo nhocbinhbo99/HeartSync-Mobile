@@ -112,6 +112,6 @@ export function IncomingCallOverlay({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: "center", backgroundColor: "rgba(16,42,51,0.72)", padding: spacing.lg },
+  backdrop: { flex: 1, justifyContent: "center", backgroundColor: "rgba(54,17,42,0.72)", padding: spacing.lg },
   sheet: { padding: spacing.lg, gap: spacing.md, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
 });

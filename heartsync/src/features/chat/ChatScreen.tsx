@@ -5,6 +5,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
@@ -14,9 +15,8 @@ import { ConversationProfile } from "../../shared/components/ConversationProfile
 import { useAuth } from "../auth/AuthProvider";
 import { useAppServices } from "../../services/AppServicesProvider";
 import { dedupeMessages } from "../../shared/domain/messages";
-import { AppButton } from "../../shared/components/AppButton";
+import { IconButton } from "../../shared/components/IconButton";
 import { AppText } from "../../shared/components/AppText";
-import { AppTextField } from "../../shared/components/AppTextField";
 import { Screen } from "../../shared/components/Screen";
 import type { RootStackParamList } from "../../navigation/types";
 import { colors, radii, spacing } from "../../shared/theme/tokens";
@@ -48,18 +48,19 @@ function Conversation({
   useEffect(() => {
     current.current = messages;
   }, [messages]);
-  const [recipient, setRecipient] = useState("");
+  const [recipient, setRecipient] = useState<{ id: string; displayName: string } | null>(null);
   useEffect(() => {
     let live = true;
     if (services && matchId)
       void services.chat.getRecipient(matchId).then((r) => {
-        if (live && r.ok) setRecipient(r.data.id);
+        if (live && r.ok) setRecipient({ id: r.data.id, displayName: r.data.displayName });
       });
     return () => {
       live = false;
     };
   }, [services, matchId]);
   const [text, setText] = useState("");
+  const [darkAppearance, setDarkAppearance] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -256,22 +257,37 @@ function Conversation({
   };
   if (!matchId || !services)
     return (
-      <Screen>
+      <Screen safeTop>
         <AppText>Chưa thể mở cuộc trò chuyện.</AppText>
       </Screen>
     );
+  const palette = darkAppearance
+    ? { background: '#351020', surface: '#642743', incoming: '#4A3E45', text: '#FFF7F9', muted: '#E5CAD5', border: '#7B3A58', composer: '#642743', input: '#4A3E45' }
+    : { background: colors.background, surface: colors.surface, incoming: colors.surface, text: colors.ink, muted: colors.inkMuted, border: colors.border, composer: colors.surface, input: colors.surfaceMuted };
+  const composer = <View style={styles.composer}>
+    <TextInput accessibilityLabel="Tin nhắn" value={text} onChangeText={setText} multiline maxLength={4000}
+      placeholder="Nhắn gì đó thật tự nhiên…" placeholderTextColor={colors.inkMuted} editable={enabled}
+      style={[styles.composerInput, { backgroundColor: palette.input, color: palette.text }]} />
+    <IconButton icon="send" label="Gửi tin nhắn" tone="onPrimary" disabled={!text.trim() || !enabled} onPress={submit} style={styles.sendButton} />
+  </View>;
   return (
-    <Screen scroll={false} keyboardAware>
-      {recipient ? <ConversationProfile profileId={recipient} /> : null}
-      <View style={styles.callActions}><AppButton label="Gọi thoại" variant="secondary" disabled={!enabled || startingCall} onPress={() => void startCall("audio")} style={styles.callAction} />
-        <AppButton label="Gọi video" variant="secondary" disabled={!enabled || startingCall} onPress={() => void startCall("video")} style={styles.callAction} /></View>
+    <Screen scroll={false} keyboardAware safeTop footer={<View style={[styles.composerShell, { backgroundColor: palette.composer, borderTopColor: palette.border }]}>{composer}</View>} contentStyle={{ ...styles.screen, backgroundColor: palette.background }}>
+      <View style={[styles.chatHeader, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
+        <IconButton icon="back" label="Quay lại kết nối" tone={darkAppearance ? "onPrimary" : "default"} onPress={() => navigation.goBack()} />
+        {recipient ? <ConversationProfile profileId={recipient.id} presentation="avatar" /> : null}
+        <View style={styles.headerCopy}><AppText numberOfLines={1} variant="title" style={{ color: palette.text }}>{recipient?.displayName ?? "Trò chuyện"}</AppText><AppText variant="caption" tone="success">Đã kết nối</AppText></View>
+        <IconButton icon="phone" label="Gọi thoại" tone={darkAppearance ? "onPrimary" : "primary"} disabled={!enabled || startingCall} onPress={() => void startCall("audio")} />
+        <IconButton icon="video" label="Gọi video" tone={darkAppearance ? "onPrimary" : "primary"} disabled={!enabled || startingCall} onPress={() => void startCall("video")} />
+        <IconButton icon="moon" label={darkAppearance ? "Dùng giao diện sáng" : "Dùng giao diện tối"} tone={darkAppearance ? "onPrimary" : "primary"} onPress={() => setDarkAppearance((value) => !value)} />
+      </View>
       {error ? (
         <AppText accessibilityLiveRegion="polite" variant="caption" tone="danger" style={styles.error}>
           {error}
         </AppText>
       ) : null}
       <FlatList
-        style={{ flex: 1 }}
+        style={[styles.messageList, { backgroundColor: palette.background }]}
+        contentContainerStyle={styles.messageContent}
         data={messages}
         inverted
         keyExtractor={(m) => m.id}
@@ -286,7 +302,7 @@ function Conversation({
         viewabilityConfig={viewability}
         onViewableItemsChanged={visibleCallback}
         ListEmptyComponent={
-          <AppText tone="muted" style={styles.empty}>
+          <AppText tone="muted" style={[styles.empty, { color: palette.muted }]}>
             {loading ? "Đang tải…" : "Hãy bắt đầu bằng một lời chào."}
           </AppText>
         }
@@ -298,11 +314,11 @@ function Conversation({
             <View>
               {!prior ||
               new Date(prior.sentAt).toLocaleDateString() !== date ? (
-                <AppText variant="caption" tone="muted" style={styles.day}>{date}</AppText>
+                <AppText variant="caption" tone="muted" style={[styles.day, { color: palette.muted }]}>{date}</AppText>
               ) : null}
-              <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
-                <AppText style={styles.content}>{item.content}</AppText>
-                <AppText variant="caption" tone="muted" style={styles.caption}>
+              <View style={[styles.bubble, mine ? styles.mine : styles.theirs, { backgroundColor: mine ? colors.primary : palette.incoming }]}>
+                <AppText style={[styles.content, { color: mine ? colors.onPrimary : palette.text }]}>{item.content}</AppText>
+                <AppText variant="caption" tone="muted" style={[styles.caption, { color: mine ? colors.onPrimary : palette.muted, opacity: mine ? 0.8 : 1 }]}>
                   {new Date(item.sentAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -331,36 +347,31 @@ function Conversation({
           );
         }}
       />
-      <AppTextField
-        label="Tin nhắn"
-        value={text}
-        onChangeText={setText}
-        multiline
-        maxLength={4000}
-        placeholder="Viết tin nhắn…"
-      />
-      <AppButton
-        label="Gửi"
-        disabled={!text.trim() || !enabled}
-        onPress={submit}
-      />
     </Screen>
   );
 }
 const styles = StyleSheet.create({
+  screen: { padding: 0, gap: 0 },
+  chatHeader: { minHeight: 76, paddingHorizontal: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  headerCopy: { flex: 1, minWidth: 0, gap: 2 },
+  messageList: { flex: 1, backgroundColor: colors.background },
+  messageContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.lg, gap: spacing.xs, flexGrow: 1 },
   bubble: {
     maxWidth: "85%",
-    padding: spacing.sm,
-    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
     marginVertical: 4,
   },
-  mine: { alignSelf: "flex-end", backgroundColor: colors.primarySoft },
+  mine: { alignSelf: "flex-end", backgroundColor: colors.primary },
   theirs: { alignSelf: "flex-start", backgroundColor: colors.surface },
   content: { color: colors.ink, fontSize: 16 },
   caption: { color: colors.inkMuted, fontSize: 12, marginTop: 4 },
   day: { textAlign: "center", color: colors.inkMuted, marginVertical: 10 },
-  error: { color: colors.danger },
-  callActions: { flexDirection: "row", gap: spacing.sm },
-  callAction: { flex: 1 },
+  error: { color: colors.danger, paddingHorizontal: spacing.md, paddingTop: spacing.xs },
   empty: { padding: spacing.lg, textAlign: "center" },
+  composerShell: { borderTopWidth: 1 },
+  composer: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md },
+  composerInput: { flex: 1, minHeight: 52, maxHeight: 120, backgroundColor: colors.surfaceMuted, borderRadius: radii.pill, color: colors.ink, fontSize: 16, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, textAlignVertical: "center" },
+  sendButton: { backgroundColor: colors.primary, width: 52, height: 52 },
 });

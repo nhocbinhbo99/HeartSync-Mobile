@@ -85,7 +85,7 @@ function MainTabs() {
       <Tabs.Screen
         name="Matches"
         component={MatchesScreen}
-        options={{ title: "Kết nối" }}
+        options={{ title: "Kết nối", headerShown: false }}
       />
       <Tabs.Screen
         name="Profile"
@@ -195,17 +195,17 @@ export function RootNavigator() {
             <Stack.Screen
               name="Chat"
               component={ChatScreen}
-              options={{ title: "Trò chuyện" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="AudioCall"
               component={AudioCallScreen}
-              options={{ title: "Cuộc gọi thoại" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="VideoCall"
               component={VideoCallScreen}
-              options={{ title: "Cuộc gọi video" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="MatchFound"

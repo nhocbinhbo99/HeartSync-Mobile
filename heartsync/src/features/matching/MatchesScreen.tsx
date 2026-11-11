@@ -7,6 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../auth/AuthProvider';
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppIcon } from '../../shared/components/AppIcon';
+import { AppText } from '../../shared/components/AppText';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { Avatar } from '../../shared/components/Avatar';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
@@ -87,19 +88,21 @@ export function MatchesScreen({ navigation }: Props) {
     return () => subscription.unsubscribe();
   }, [services, user]);
 
-  if (!services) return <Screen><StatePanel title="Chưa thể tải kết nối" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
-  if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tải kết nối" description="Chỉ mutual like do máy chủ xác nhận mới có ở đây." /></Screen>;
-  if (error) return <Screen><AsyncStatePanel state="error" title="Không thể tải kết nối" description={error} actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
-  if (matches.length === 0) return <Screen><StatePanel title="Chưa có kết nối" description="Khi cả hai cùng thích, người đó sẽ xuất hiện ở đây." /></Screen>;
+  const header = <ConnectionsHeader />;
+  if (!services) return <Screen safeTop>{header}<StatePanel title="Chưa thể tải kết nối" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
+  if (loading) return <Screen safeTop>{header}<AsyncStatePanel state="loading" title="Đang tải kết nối" description="Chỉ mutual like do máy chủ xác nhận mới có ở đây." /></Screen>;
+  if (error) return <Screen safeTop>{header}<AsyncStatePanel state="error" title="Không thể tải kết nối" description={error} actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
+  if (matches.length === 0) return <Screen safeTop>{header}<StatePanel title="Chưa có kết nối" description="Khi cả hai cùng thích, người đó sẽ xuất hiện ở đây." /></Screen>;
 
   const newMatches = matches.filter((match) => match.lastMessagePreview === null);
   const conversations = matches.filter((match) => match.lastMessagePreview !== null);
   const openChat = (matchId: string) => navigation.navigate('Chat', { matchId });
 
-  return <Screen contentStyle={styles.screen}>
+  return <Screen safeTop contentStyle={styles.screen}>
+    {header}
     {incoming ? <StatePanel title="Cuộc gọi thoại đến" description="Người bạn kết nối đang gọi. Mic chỉ được bật sau khi bạn chấp nhận." actionLabel="Mở cuộc gọi" onAction={() => navigation.navigate('AudioCall', { matchId: incoming.matchId, callId: incoming.id, incoming: true })} /> : null}
     {newMatches.length ? <View style={styles.section}>
-      <View style={styles.sectionHeading}><View><Text accessibilityRole="header" style={styles.sectionTitle}>Kết nối mới</Text><Text style={styles.sectionBody}>Cả hai đã cùng bày tỏ sự quan tâm.</Text></View><View style={styles.matchCount}><AppIcon name={icons.heart} color={colors.primaryPressed} size={15} /><Text style={styles.matchCountText}>{newMatches.length}</Text></View></View>
+      <View style={styles.sectionHeading}><View><Text accessibilityRole="header" style={styles.sectionTitle}>Match mới</Text><Text style={styles.sectionBody}>Bắt đầu với người đã thích bạn.</Text></View><View style={styles.matchCount}><AppIcon name={icons.heart} color={colors.primaryPressed} size={15} /><Text style={styles.matchCountText}>{newMatches.length}</Text></View></View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newMatches}>
         {newMatches.map((match) => <AnimatedPressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
           onPress={() => openChat(match.id)} style={styles.matchTile}>
@@ -111,7 +114,7 @@ export function MatchesScreen({ navigation }: Props) {
     </View> : null}
 
     {conversations.length ? <View style={styles.section}>
-      <Text accessibilityRole="header" style={styles.sectionTitle}>Trò chuyện</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>Tin nhắn</Text>
       <View style={styles.conversationList}>
         {conversations.map((match) => <AnimatedPressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
           onPress={() => openChat(match.id)} style={styles.conversationRow}>
@@ -131,8 +134,13 @@ export function MatchesScreen({ navigation }: Props) {
   </Screen>;
 }
 
+function ConnectionsHeader() {
+  return <View style={styles.header}><AppText accessibilityRole="header" variant="heading">Kết nối</AppText><AppText tone="muted">Bắt đầu với người đã thích bạn.</AppText></View>;
+}
+
 const styles = StyleSheet.create({
-  screen: { gap: spacing.xl, paddingTop: spacing.lg },
+  screen: { gap: spacing.xl, paddingTop: spacing.sm },
+  header: { gap: spacing.xxs },
   section: { gap: spacing.md },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   sectionTitle: { ...type.title, color: colors.ink },

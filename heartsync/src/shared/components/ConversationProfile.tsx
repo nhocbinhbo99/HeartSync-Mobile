@@ -62,6 +62,6 @@ const styles = StyleSheet.create({
   callHero: { flex: 1, alignSelf: "stretch", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   callHeroBackdrop: { ...StyleSheet.absoluteFill, opacity: 0.66, transform: [{ scale: 1.12 }] },
   callHeroFallback: { ...StyleSheet.absoluteFill, backgroundColor: colors.primarySoft },
-  callHeroScrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(16,42,51,0.48)" },
+  callHeroScrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(54,17,42,0.52)" },
   callHeroContent: { alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
 });

@@ -312,7 +312,7 @@ function CallSession({
   const fullScreenVideo = callType === "video" && status === "connected";
   if (!services)
     return (
-      <Screen>
+      <Screen safeTop>
         <StatePanel
           title="Không thể mở cuộc gọi"
           description="Cấu hình dịch vụ đang thiếu."
@@ -321,7 +321,7 @@ function CallSession({
     );
   if (fullScreenVideo)
     return (
-      <Screen scroll={false} contentStyle={styles.fullScreenContent}>
+      <Screen scroll={false} safeTop contentStyle={styles.fullScreenContent}>
         <View style={styles.fullScreenVideo}>
           {tracks.remote ? <CallVideoView track={tracks.remote} style={styles.remoteVideo} zOrder={0} />
             : participant ? <ConversationProfile profileId={participant} presentation="callHero" /> : <View style={styles.remoteCameraFallback} />}
@@ -361,7 +361,7 @@ function CallSession({
       </Screen>
     );
   return (
-    <Screen scroll={callType !== "video"} contentStyle={callType === "video" ? styles.videoContent : undefined}>
+    <Screen scroll={callType !== "video"} safeTop contentStyle={callType === "video" ? styles.videoContent : undefined}>
       {waitingForParticipant ? (
         <View style={styles.waitingSurface}>
           {participant ? <ConversationProfile profileId={participant} presentation="callHero" /> : <View style={styles.waitingFallback} />}
@@ -472,15 +472,15 @@ function CallSession({
 
 const styles = StyleSheet.create({
   error: {},
-  waitingSurface: { flex: 1, minHeight: 480, backgroundColor: colors.ink, borderRadius: 22, overflow: "hidden" },
+  waitingSurface: { flex: 1, minHeight: 480, backgroundColor: colors.callBackdrop, borderRadius: 22, overflow: "hidden" },
   waitingFallback: { flex: 1, backgroundColor: colors.primarySoft },
-  waitingLocalVideo: { position: "absolute", top: 20, right: 16, width: 116, height: 164, borderRadius: 16, borderWidth: 1, borderColor: colors.onPrimary, backgroundColor: colors.ink },
+  waitingLocalVideo: { position: "absolute", top: 20, right: 16, width: 116, height: 164, borderRadius: 16, borderWidth: 1, borderColor: colors.onPrimary, backgroundColor: colors.callBackdrop },
   waitingMeta: { position: "absolute", left: 24, right: 24, bottom: 36, alignItems: "center", gap: 4 },
   waitingDescription: { ...type.body, color: colors.onPrimary, textAlign: "center" },
   videoContent: { padding: 12, gap: 8 },
-  fullScreenContent: { padding: 0, gap: 0, backgroundColor: colors.ink },
-  fullScreenVideo: { flex: 1, backgroundColor: colors.ink, justifyContent: "center", overflow: "hidden" },
-  remoteCameraFallback: { flex: 1, backgroundColor: colors.ink },
+  fullScreenContent: { padding: 0, gap: 0, backgroundColor: colors.callBackdrop },
+  fullScreenVideo: { flex: 1, backgroundColor: colors.callBackdrop, justifyContent: "center", overflow: "hidden" },
+  remoteCameraFallback: { flex: 1, backgroundColor: colors.callBackdrop },
   remoteCameraOffMessage: { position: "absolute", left: 28, right: 28, bottom: 128, alignItems: "center", gap: 4 },
   remoteCameraOffTitle: { ...type.title, color: colors.onPrimary },
   remoteCameraOffDescription: { ...type.body, color: colors.onPrimary, textAlign: "center" },
@@ -489,11 +489,11 @@ const styles = StyleSheet.create({
   fullScreenLocalPlaceholder: { position: "absolute", top: 18, right: 16, width: 108, height: 152, padding: 12, borderRadius: 14, backgroundColor: colors.inkMuted, color: colors.onPrimary, textAlign: "center", textAlignVertical: "center" },
   callTopBar: { position: "absolute", top: 20, left: 20, right: 140, gap: 2 },
   callControls: { position: "absolute", left: 0, right: 0, bottom: 30, flexDirection: "row", justifyContent: "center", gap: 12 },
-  callControl: { backgroundColor: "rgba(16,42,51,0.72)", width: 56, height: 56 },
+  callControl: { backgroundColor: "rgba(54,17,42,0.72)", width: 56, height: 56 },
   callControlMuted: { backgroundColor: colors.inkMuted, width: 56, height: 56 },
   endCallControl: { backgroundColor: colors.danger, width: 56, height: 56 },
   fullScreenError: { position: "absolute", left: 24, right: 24, bottom: 100, ...type.caption, color: colors.onPrimary, textAlign: "center" },
-  videoArea: { flex: 1, minHeight: 180, backgroundColor: colors.ink, borderRadius: 22, overflow: "hidden", justifyContent: "center" },
+  videoArea: { flex: 1, minHeight: 180, backgroundColor: colors.callBackdrop, borderRadius: 22, overflow: "hidden", justifyContent: "center" },
   remoteVideo: { width: "100%", height: "100%" },
   videoPlaceholder: { color: colors.onPrimary, textAlign: "center" },
   localVideo: { position: "absolute", bottom: 12, right: 12, width: 100, height: 140, borderRadius: 12 },

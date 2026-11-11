@@ -46,11 +46,11 @@ backend action and never presents a false confirmation.
 | 07 | `07_filters_sheet.png` | `Filters` | IMPLEMENTED — device QA pending |
 | 08 | `08_match_found.png` | `MatchFound` | IMPLEMENTED — device QA pending |
 | 09 | `09_saved.png` | `Saved` | IMPLEMENTED — device QA pending |
-| 10 | `10_connections.png` | `Matches` | REWORK |
-| 11 | `11_chat.png` | `Chat` | REWORK |
-| 12 | `12_audio_ringing.png` | `IncomingCallOverlay` / `AudioCall` | REWORK |
-| 13 | `13_audio_active.png` | `AudioCall` | REWORK |
-| 14 | `14_video_call.png` | `VideoCall` | REWORK |
+| 10 | `10_connections.png` | `Matches` | IMPLEMENTED — device QA pending |
+| 11 | `11_chat.png` | `Chat` | IMPLEMENTED — device QA pending |
+| 12 | `12_audio_ringing.png` | `IncomingCallOverlay` / `AudioCall` | IMPLEMENTED — device QA pending |
+| 13 | `13_audio_active.png` | `AudioCall` | IMPLEMENTED — device QA pending |
+| 14 | `14_video_call.png` | `VideoCall` | IMPLEMENTED — device QA pending |
 | 15 | `15_my_profile.png` | `Profile` | IMPLEMENTED — device QA pending |
 | 16 | `16_edit_profile.png` | `EditProfile` | IMPLEMENTED — device QA pending |
 | 17 | `17_interests.png` | `Interests` | IMPLEMENTED — device QA pending |
@@ -58,7 +58,7 @@ backend action and never presents a false confirmation.
 | 19 | `19_report.png` | `Report` | IMPLEMENTED — service pending |
 | 20 | `20_empty_discover.png` | `Discover` empty state | IMPLEMENTED — device QA pending |
 | 21 | `21_settings.png` | `Settings` | IMPLEMENTED — device QA pending |
-| 22 | `22_dark_chat.png` | Chat appearance treatment | BUILD |
+| 22 | `22_dark_chat.png` | `Chat` appearance treatment | IMPLEMENTED — device QA pending |
 
 ## Foundation status
 
