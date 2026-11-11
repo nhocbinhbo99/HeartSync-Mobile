@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { AppState, Modal, Text, View } from "react-native";
+import { AppState, Modal, StyleSheet, View } from "react-native";
 import { ConversationProfile } from "../../shared/components/ConversationProfile";
 import { useAuth } from "../auth/AuthProvider";
 import { useAppServices } from "../../services/AppServicesProvider";
 import { AppButton } from "../../shared/components/AppButton";
+import { AppText } from "../../shared/components/AppText";
 import type { IncomingCall } from "../../shared/types/domain.types";
-import { colors } from "../../shared/theme/tokens";
+import { colors, radii, spacing } from "../../shared/theme/tokens";
 
 export function IncomingCallOverlay({
   onOpen,
@@ -71,26 +72,12 @@ export function IncomingCallOverlay({
         void services.calls.rejectCall(call.id);
       }}
     >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          backgroundColor: "#0008",
-          padding: 24,
-        }}
-      >
-        <View
-          style={{
-            padding: 24,
-            gap: 16,
-            borderRadius: 22,
-            backgroundColor: colors.surface,
-          }}
-        >
+      <View style={styles.backdrop}>
+        <View style={styles.sheet}>
           <ConversationProfile profileId={call.callerId} />
-          <Text>{name || "Cuộc gọi đến"}</Text>
-          <Text>{call.type === "video" ? "Đang gọi video cho bạn" : "Đang gọi thoại cho bạn"}</Text>
-          {error ? <Text>{error}</Text> : null}
+          <AppText accessibilityRole="header" variant="title">{name || "Cuộc gọi đến"}</AppText>
+          <AppText tone="muted">{call.type === "video" ? "Đang gọi video cho bạn" : "Đang gọi thoại cho bạn"}</AppText>
+          {error ? <AppText accessibilityLiveRegion="polite" variant="caption" tone="danger">{error}</AppText> : null}
           <AppButton
             label="Chấp nhận"
             disabled={busy}
@@ -123,3 +110,8 @@ export function IncomingCallOverlay({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, justifyContent: "center", backgroundColor: "rgba(16,42,51,0.72)", padding: spacing.lg },
+  sheet: { padding: spacing.lg, gap: spacing.md, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+});
