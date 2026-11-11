@@ -23,9 +23,9 @@ type AuthRoute = 'SignIn' | 'SignUp' | 'ForgotPassword';
 type Props = NativeStackScreenProps<RootStackParamList, AuthRoute> & { mode: 'sign-in' | 'sign-up' | 'forgot-password' };
 
 const copy = {
-  'sign-in': { title: 'Chào mừng trở lại', body: 'Tiếp tục những kết nối bạn đã chọn.', submit: 'Đăng nhập' },
-  'sign-up': { title: 'Bắt đầu cùng HeartSync', body: 'Chỉ vài thông tin để tạo một không gian kết nối an toàn.', submit: 'Tạo tài khoản' },
-  'forgot-password': { title: 'Khôi phục tài khoản', body: 'Nhập email để nhận liên kết đặt lại mật khẩu.', submit: 'Gửi liên kết' },
+  'sign-in': { title: 'Chào mừng trở lại', body: 'Đăng nhập để tiếp tục những kết nối ngọt ngào.', submit: 'Đăng nhập' },
+  'sign-up': { title: 'Bắt đầu cùng HeartSync', body: 'Chỉ vài bước để tạo không gian kết nối lãng mạn.', submit: 'Tạo tài khoản' },
+  'forgot-password': { title: 'Khôi phục mật khẩu', body: 'Nhập email để nhận liên kết đặt lại mật khẩu.', submit: 'Gửi liên kết' },
 } as const;
 
 function PasswordAccessory({ visible, onPress }: { visible: boolean; onPress: () => void }) {
@@ -93,19 +93,27 @@ export function AuthScreen({ navigation, mode }: Props) {
         : await requestPasswordReset(email.trim());
     setBusy(false);
     if (result.ok) {
+      if (mode === 'sign-in') {
+        // Vào thẳng app mượt mà, không hiển thị dialog/notice hoàn tất gây chậm trễ
+        feedback('selection');
+        return;
+      }
       const message = result.notice ?? 'Thao tác đã hoàn tất.';
       setNotice(message);
       snackbar.show({ message, tone: 'success' });
     } else {
       setActionError(result.message);
       snackbar.show({ message: result.message, tone: 'error' });
+      feedback('error');
     }
   };
 
   const submitLabel = isSignUp && step === 1 ? 'Tiếp tục' : details.submit;
   return <Screen keyboardAware safeTop={mode === 'sign-in'} contentStyle={styles.page}>
     <View style={styles.hero}>
-      <View style={styles.brandMark}><AppIcon name="shield" color={colors.primaryPressed} size={24} /></View>
+      <View style={styles.brandMark}>
+        <AppIcon name="heart" color={colors.primary} size={28} />
+      </View>
       <Text accessibilityRole="header" style={styles.title}>{details.title}</Text>
       <Text style={styles.body}>{details.body}</Text>
       {isSignUp ? <StepIndicator step={step} /> : null}
@@ -136,16 +144,16 @@ export function AuthScreen({ navigation, mode }: Props) {
       </AnimatedSection>}
       {actionError || bootstrapError ? <FeedbackBanner tone="error" message={actionError ?? bootstrapError ?? ''} /> : null}
       {notice ? <FeedbackBanner tone="success" message={notice} /> : null}
-      <AppButton disabled={busy} loading={busy} label={busy ? 'Đang xử lý' : submitLabel}
+      <AppButton disabled={busy} loading={busy} label={busy ? 'Đang vào...' : submitLabel}
         trailingIcon={isSignUp && step === 1 ? 'forward' : 'check'} onPress={() => void submit()} />
       {isSignUp && step === 2 ? <AppButton label="Quay lại bước trước" variant="quiet" leadingIcon="back" disabled={busy} onPress={() => setStep(1)} /> : null}
       {mode === 'sign-in' ? <View style={styles.secondaryActions}>
-        <AppButton label="Quên mật khẩu" variant="quiet" onPress={() => navigation.navigate('ForgotPassword')} />
-        <AppButton label="Tạo tài khoản" variant="secondary" trailingIcon="forward" onPress={() => navigation.navigate('SignUp')} />
+        <AppButton label="Quên mật khẩu?" variant="quiet" onPress={() => navigation.navigate('ForgotPassword')} />
+        <AppButton label="Tạo tài khoản mới" variant="secondary" trailingIcon="forward" onPress={() => navigation.navigate('SignUp')} />
       </View> : !isSignUp || step === 1 ? <AppButton label="Quay lại đăng nhập" variant="quiet" leadingIcon="back"
         onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.replace('SignIn')} /> : null}
     </View>
-    {mode === 'sign-in' ? <View style={styles.trustNote}><AppIcon name="lock" color={colors.primaryPressed} size={18} /><Text style={styles.trustText}>Kết nối chỉ được tạo khi cả hai cùng đồng ý.</Text></View> : null}
+    {mode === 'sign-in' ? <View style={styles.trustNote}><AppIcon name="lock" color={colors.primary} size={18} /><Text style={styles.trustText}>HeartSync bảo vệ quyền riêng tư và kết nối an toàn của bạn.</Text></View> : null}
   </Screen>;
 }
 
@@ -159,19 +167,31 @@ function FeedbackBanner({ tone, message }: { tone: 'success' | 'error'; message:
 
 const styles = StyleSheet.create({
   page: { justifyContent: 'center', paddingVertical: spacing.xl },
-  hero: { gap: spacing.xs, marginBottom: spacing.lg },
-  brandMark: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },
-  title: { ...type.display, color: colors.ink },
-  body: { ...type.body, color: colors.inkMuted },
+  hero: { gap: spacing.xs, marginBottom: spacing.lg, alignItems: 'center', textAlign: 'center' },
+  brandMark: { width: 56, height: 56, borderRadius: radii.pill, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },
+  title: { ...type.display, color: colors.ink, textAlign: 'center' },
+  body: { ...type.body, color: colors.inkMuted, textAlign: 'center' },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm },
   stepSegment: { height: 4, flex: 1, backgroundColor: colors.border, borderRadius: radii.pill },
   stepActive: { backgroundColor: colors.primary },
   stepLabel: { ...type.caption, color: colors.inkMuted, marginLeft: spacing.xs },
-  form: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.md },
+  form: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    gap: spacing.md,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
   formGroup: { gap: spacing.md },
-  secondaryActions: { gap: spacing.xs },
+  secondaryActions: { gap: spacing.xs, marginTop: spacing.xs },
   feedback: { borderWidth: 1, borderRadius: radii.md, padding: spacing.sm, gap: spacing.xs, flexDirection: 'row', alignItems: 'flex-start' },
   feedbackText: { ...type.caption, flex: 1 },
-  trustNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.md, paddingHorizontal: spacing.sm },
-  trustText: { ...type.caption, color: colors.inkMuted, flex: 1 },
+  trustNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, marginTop: spacing.lg, paddingHorizontal: spacing.sm },
+  trustText: { ...type.caption, color: colors.inkMuted },
 });
