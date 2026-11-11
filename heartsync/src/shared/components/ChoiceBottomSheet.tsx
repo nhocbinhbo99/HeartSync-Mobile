@@ -105,7 +105,7 @@ export function ChoiceBottomSheet({ visible, title, options, selectedValues, mul
 
 const styles = StyleSheet.create({
   layer: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(16,42,51,0.48)' },
+  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(59,16,36,0.48)' },
   backdropPressable: { flex: 1 },
   sheet: { maxHeight: '88%', minHeight: 320, backgroundColor: colors.surface, borderTopLeftRadius: radii.lg,
     borderTopRightRadius: radii.lg, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.md },

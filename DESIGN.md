@@ -1,142 +1,118 @@
 ---
 name: HeartSync
-description: An Android-first system that makes connection state explicit and trustworthy.
+description: A warm, clear dating experience that makes real connection feel safe and approachable.
 colors:
-  background: "#F6FAFB"
+  background: "#FFF7F9"
   surface: "#FFFFFF"
-  surface-muted: "#EAF3F5"
-  ink: "#102A33"
-  ink-muted: "#587079"
-  border: "#CFE0E4"
-  primary: "#007E8C"
-  primary-pressed: "#006674"
-  primary-soft: "#DDF8FB"
-  on-primary: "#FFFFFF"
-  success: "#168760"
-  warning: "#A96900"
-  danger: "#C5364D"
-  disabled: "#E3EAEC"
+  surface-muted: "#FFF0F4"
+  ink: "#3B1024"
+  ink-muted: "#816776"
+  border: "#F2D7E3"
+  primary: "#FF4D7D"
+  primary-pressed: "#E6386F"
+  primary-soft: "#FFD6E1"
+  success: "#159967"
+  danger: "#D93A4F"
+  call-backdrop: "#36112A"
 typography:
-  display: { fontSize: "32px", fontWeight: 700, lineHeight: 1.219 }
-  title: { fontSize: "22px", fontWeight: 700, lineHeight: 1.318 }
-  subtitle: { fontSize: "17px", fontWeight: 600, lineHeight: 1.412 }
+  display: { fontSize: "32px", fontWeight: 700, lineHeight: 1.188 }
+  heading: { fontSize: "28px", fontWeight: 700, lineHeight: 1.214 }
+  title: { fontSize: "22px", fontWeight: 600, lineHeight: 1.273 }
   body: { fontSize: "16px", fontWeight: 400, lineHeight: 1.5 }
-  label: { fontSize: "14px", fontWeight: 600, lineHeight: 1.429 }
-  caption: { fontSize: "13px", fontWeight: 400, lineHeight: 1.385 }
-rounded: { md: "14px", lg: "22px", pill: "999px" }
-spacing: { xs: "8px", sm: "12px", md: "16px", lg: "24px" }
-components:
-  button-primary: { backgroundColor: "{colors.primary}", textColor: "{colors.on-primary}", rounded: "{rounded.md}", padding: "12px 16px", height: "48px" }
-  button-secondary: { backgroundColor: "{colors.surface}", textColor: "{colors.primary-pressed}", rounded: "{rounded.md}", padding: "12px 16px", height: "48px" }
-  button-quiet: { backgroundColor: "transparent", textColor: "{colors.primary-pressed}", rounded: "{rounded.md}", padding: "12px 16px", height: "48px" }
-  button-danger: { backgroundColor: "{colors.surface}", textColor: "{colors.danger}", rounded: "{rounded.md}", padding: "12px 16px", height: "48px" }
-  text-input: { backgroundColor: "{colors.background}", textColor: "{colors.ink}", rounded: "{rounded.md}", padding: "0 16px", height: "52px" }
-  icon-button: { backgroundColor: "transparent", textColor: "{colors.ink-muted}", rounded: "{rounded.pill}", size: "48px" }
-  choice-field: { backgroundColor: "{colors.background}", textColor: "{colors.ink}", rounded: "{rounded.md}", padding: "0 16px", height: "52px" }
-  snackbar: { backgroundColor: "{colors.ink}", textColor: "{colors.on-primary}", rounded: "{rounded.md}", padding: "8px 16px", height: "56px" }
-  state-panel: { backgroundColor: "{colors.surface}", textColor: "{colors.ink}", rounded: "{rounded.lg}", padding: "24px" }
-  bottom-tabs: { backgroundColor: "{colors.surface}", textColor: "{colors.ink-muted}", height: "66px" }
-  sync-line: { backgroundColor: "{colors.surface-muted}", rounded: "{rounded.pill}", height: "4px" }
+  label: { fontSize: "16px", fontWeight: 600, lineHeight: 1.25 }
+rounded: { field: "14px", button: "14px", card: "20px", pill: "999px" }
+spacing: { xxs: "4px", xs: "8px", sm: "12px", md: "16px", lg: "24px", xl: "32px", xxl: "40px" }
 ---
 
-# Design System: HeartSync
+# HeartSync Design System — Pink Romance
 
-## Overview
+## Source of truth
 
-**Creative North Star: “The Verified Connection.”** HeartSync uses restrained cyan signals on cool, quiet surfaces. The interface names empty, unavailable, error, and development states instead of filling space with fake profiles or simulated success.
+The current visual source is the user-provided `UI_UX_Design/` package, in
+particular its `DESIGN_SYSTEM.md`, 22 screen PNGs and preview boards. Its
+static mockups guide visual hierarchy and interaction intent; the typed route
+graph, service contracts and real server state remain the source of truth for
+application behaviour.
 
-The Material 3 refresh uses semantic platform-mapped icons, intentional haptic feedback, and short state transitions rather than textual affordances. Insets, keyboard behavior, large fonts, TalkBack, tablet/landscape layout, and perceived color remain pending Android-device review.
+## Visual direction
 
-**Key Characteristics:**
+HeartSync is bright, warm and calm. Portrait photography is the focus on
+Discovery; white surfaces, light-pink borders and restrained heart motifs frame
+real content elsewhere. One primary pink action per task is enough. Do not
+invent verified, online, unread, distance, call-duration or match signals when
+the application has not received that data from its backend.
 
-- Cool white and mist surfaces with one disciplined cyan accent.
-- Dark, readable text and explicit state copy.
-- Flat bordered containers instead of decorative card grids.
-- Native stack and four-destination bottom navigation.
-- Minimum 48 dp interactive targets.
-- Motion reinforces a completed choice or a changed state; it never delays a task.
+Use `#FF6D9B → #DC2B67` only for one primary hero or CTA treatment on a screen,
+never behind small form or chat text. Avoid decorative blur, repeated nested
+cards and arbitrary icon clusters. App icons use the existing single, semantic
+icon system—not Unicode or emoji substitutes.
 
-## Colors
+## Tokens and type
 
-The palette uses cyan sparingly while cool neutrals carry most screen area.
+The runtime tokens in `heartsync/src/shared/theme/tokens.ts` implement the
+palette in this document. The default typeface is Inter where it is configured,
+with the system typeface as a resilient fallback. Type scale: display 32/38,
+heading 28/34, title 22/28, subtitle 18/24, body 16/24, button/label 16/20 and
+caption 12/16. Important copy must not be smaller than 12sp and must tolerate
+system font scaling.
 
-**The Confirmed Signal Rule.** Cyan is reserved for a real action, selection, readiness, or confirmed state; it is not ambient decoration.
+Screen gutters are 20–24dp. Use the 4/8/12/16/24/32/40 spacing scale. Inputs
+are at least 52dp high; primary buttons are 52–56dp high; all practical touch
+targets are at least 48dp. Inputs use 12–14dp corners; cards use 16–24dp;
+chips use a pill shape.
 
-**The Semantic State Rule.** Error states combine danger color with explanatory text, never color alone.
+## Navigation and screens
 
-**The Confirmed Feedback Rule.** Success green and warning amber only explain a completed or recoverable state; cyan remains the primary action and selection signal.
+Before sign-in, guide people through Welcome, optional Onboarding, Login,
+Register and password recovery. After sign-in, the four core destinations are
+Khám phá, Đã lưu, Kết nối and Hồ sơ. Contextual routes contain profile details,
+filters, a confirmed match, chat, calls, edit profile, interests, settings,
+safety and report flows. Filters are a bottom sheet; chat keeps its composer
+visible above the keyboard; detail screens use native-stack Back behavior.
 
-## Typography
+The detailed implementation map, reference image names and honest delivery
+status are maintained in `docs/ui-redesign/PROGRESS.md`.
 
-The system uses the React Native system typeface. Display is 32/39, title 22/29, subtitle 17/24, body 16/24, label 14/20, and caption 13/18.
+## Real-state rules
 
-**The Direct Hierarchy Rule.** Use a direct title and supporting body copy; do not manufacture hierarchy with repeated uppercase kickers.
+- Screens call repository or gateway contracts; they do not call Supabase,
+  Realtime or LiveKit directly.
+- Public profile UI never renders date of birth, precise location, email or
+  credentials. Age and public location come only from public DTOs.
+- A matched reveal appears only for a server-confirmed `matched` result with a
+  non-empty `matchId`; the client never creates a match.
+- Saved state, unread counts, call state and report feedback are backed by
+  their real contracts. Missing capability is a clear unavailable state, not a
+  mock success state.
+- Camera, microphone and location permissions are requested only in the action
+  that needs them.
 
-## Layout
+## Component contracts
 
-Portrait phone screens use a single scrollable column with 24 dp outer padding and 16 dp default vertical gaps. Forms use flat sections divided by whitespace and 1 dp rules rather than nested cards. Signed-in destinations use a four-item bottom navigation; details use native-stack navigation and system Back. Saved uses a native `FlatList` with pull-to-refresh and pagination; persistent save actions sit in the thumb-safe lower edge.
+Shared components cover the visual vocabulary: `AppButton`, `IconButton`,
+`AppTextField`, `SelectedChip`, `Avatar`, `ChoiceBottomSheet`,
+`AsyncStatePanel`, `Snackbar`, message bubbles, call controls and profile photo
+grid. A component earns extraction only when it represents a reusable semantic
+pattern. Every icon-only action has a spoken label; selected controls have a
+non-colour indicator; form errors identify the problem and recovery.
 
-**The Native Orientation Rule.** Navigation and Back behavior remain platform-native; branded surfaces must not replace orientation controls.
+## States, motion and accessibility
 
-## Elevation & Depth
+Every screen needs loading, empty, error, disabled and populated states as
+applicable. Error copy is concise and actionable; raw provider errors never
+reach users. Text contrast meets WCAG AA (4.5:1 normal text; 3:1 large text).
 
-Depth comes from white surface contrast and 1 dp cool borders. No ambient shadow token is defined; a bottom sheet earns elevation only while it is modal.
+Motion is short and purposeful: screen entry 180–240ms, message arrival
+120–180ms, swipe spring 220–350ms, match reveal 400–650ms, and bottom-sheet
+open/close 220–300ms. Honour system reduced-motion settings. Haptics occur
+only when a meaningful selection, threshold swipe or server-confirmed action
+completes.
 
-**The Flat-by-Default Rule.** Do not add shadows unless a future interaction requires real elevation and a deliberate token is added.
+## Device QA
 
-## Shapes
-
-Interactive controls use 14 dp corners; state panels and image frames use 22 dp. Pill geometry is reserved for continuous tracks, image badges, and icon actions.
-
-## Components
-
-### Buttons and fields
-
-Buttons have a minimum 48 dp target. Primary is filled cyan; secondary and danger are outlined; quiet has no visible container. `AppButton` supports a leading/trailing semantic icon and loading state without changing its existing API. Disabled buttons use a pale neutral surface and dark label while the native disabled state removes interaction. Text fields are at least 52 dp high, label their input accessibly, and expose an error message through a live region.
-
-Icon-only actions use `IconButton`: every icon has a spoken label, a 48 dp target, Android ripple, and no adjacent text that merely describes the symbol. Choice fields show the selected value and a chevron; date fields pair a calendar with a lock when the value is private. Chips remove a selection through a close icon, never a text “Bỏ” control.
-
-### Sheets, selection, and feedback
-
-`ChoiceBottomSheet` has a drag handle, a close icon, optional search and clear affordances, native radio/check semantics, and a sticky multi-select footer with selection count. Selected rows use the cyan signal plus a check icon, not color alone.
-
-`SnackbarProvider` reports successful saves, errors, and undoable removal near the bottom edge. A snackbar is transient feedback, not confirmation of an unverified server operation. Destructive or discard decisions use a Material-style dialog with warning icon and clear action hierarchy.
-
-### Motion and haptics
-
-Press feedback scales to 0.98 over 90–120 ms with Android ripple. Selection/chip/switch changes use 120–180 ms transitions; conditional fields use 180–240 ms; sheets use a 300–360 ms spring with an independent backdrop fade. Reanimated follows `ReduceMotion.System`; haptics occur only for a meaningful selection, toggle, successful save, error, or image drag/drop.
-
-### Images and saved profiles
-
-Profile photos use a two-column grid, a primary-star badge, per-image loading/error state, long-press drag ordering, and an overflow action menu. Saved cards foreground the person and have a bookmark action with optimistic removal, undo, rollback on server failure, pull-to-refresh, and paginated loading.
-
-### State panels
-
-`AsyncStatePanel` is the shared loading/empty/error contract. Loading uses reduced-motion-aware skeleton blocks; empty/error panels use an icon, direct title, explanation, and an optional safe recovery action. Public profile surfaces never render email, date of birth, or exact coordinates.
-
-### Navigation
-
-Primary destinations are Khám phá, Đã lưu, Kết nối, and Hồ sơ. Detail screens use native-stack headers and Android system Back. A session-aware route gate exposes the main shell only after Supabase reports an authenticated session; missing configuration has its own setup-required state.
-
-### Sync Line
-
-The 4 dp Sync Line is reserved for real loading, selection, or readiness state. It must never display fabricated progress; Q01 does not place it on the auth screen.
-
-## Do's and Don'ts
-
-### Do:
-
-- **Do** keep actions and explanations together within thumb reach.
-- **Do** preserve 48 dp minimum touch targets and native Back behavior.
-- **Do** use explicit empty, unavailable, error, and development copy.
-- **Do** prefer borders and tonal layering before introducing shadows.
-- **Do** provide a label for every icon-only action and respect system Reduce Motion.
-- **Do** pair an optimistic action with a visible recovery path when the server can reject it.
-
-### Don't:
-
-- **Don't** claim authentication, profiles, matches, realtime activity, or calls before server confirmation.
-- **Don't** repeat uppercase kickers or use-case identifiers as the primary production hierarchy; the Q01 placeholder labels are temporary traceability aids.
-- **Don't** use cyan as ambient decoration or display fabricated Sync Line progress.
-- **Don't** treat device behavior as approved until Android smoke and accessibility tests are recorded.
-- **Don't** replace Material affordances with text labels such as “Mở”, “Bỏ”, “Tăng”, or “Giảm” when a familiar icon is clearer.
+Validate at 360–430dp widths, with Android navigation bar, safe areas, large
+font scale and keyboard shown. The provided PNGs are concept references—not a
+reason to hardcode device dimensions, copy their illustrative identity badges,
+or include their model photographs as application data. Record real-device
+comparison and accessibility evidence in the progress log before calling a
+screen visually complete.

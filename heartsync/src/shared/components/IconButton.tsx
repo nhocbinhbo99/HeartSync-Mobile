@@ -24,7 +24,7 @@ const tones = {
 export function IconButton({ icon, label, onPress, disabled = false, tone = 'default', size = 22, style }: Props) {
   const color = disabled ? colors.inkMuted : tones[tone];
   return <AnimatedPressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}
-    disabled={disabled} onPress={onPress} hitSlop={8} rippleColor="rgba(0,102,116,0.12)" style={[styles.button, style]}>
+    disabled={disabled} onPress={onPress} hitSlop={8} rippleColor="rgba(230,56,111,0.12)" style={[styles.button, style]}>
     <AppIcon name={icon} color={color} size={size} />
   </AnimatedPressable>;
 }

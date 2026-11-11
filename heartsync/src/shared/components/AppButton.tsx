@@ -21,7 +21,7 @@ export function AppButton({ label, onPress, variant = 'primary', disabled = fals
   return (
     <AnimatedPressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: isDisabled, busy: loading }} disabled={isDisabled} disabledOpacity={1} onPress={onPress}
-      rippleColor={variant === 'primary' ? 'rgba(255,255,255,0.18)' : 'rgba(0,102,116,0.12)'} style={[styles.base,
+      rippleColor={variant === 'primary' ? 'rgba(255,255,255,0.22)' : 'rgba(230,56,111,0.12)'} style={[styles.base,
         { backgroundColor: palette.background, borderColor: palette.border }, isDisabled ? styles.disabled : undefined, style]}>
       {loading ? <ActivityIndicator color={contentColor} /> : leadingIcon ? <AppIcon name={leadingIcon} color={contentColor} size={20} /> : icon}
       <Text style={[styles.label, { color: contentColor }]}>{label}</Text>
