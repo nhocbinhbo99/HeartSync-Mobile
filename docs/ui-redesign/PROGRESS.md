@@ -30,8 +30,8 @@ replace any real backend state with fixtures.
 | Filters | `Filters` | Missing | DONE | Static review; Android device review pending | `e257dd9` | Keep explicit location consent. |
 | Other profile | `OtherProfile` | Missing | DONE | Static review; Android device review pending | `8a43257` | No DOB or exact coordinates. |
 | Like / pass / match | `Discover`, `MatchFound` | Missing | DONE | Static review; Android device review pending | `1bc7358` and `e7e695f` | Match confirmation and Discover controls preserve atomic server RPC. |
-| Saved profiles | `Saved` | Missing | DONE | Static review; Android device review pending | This commit | Optimistic removal must retain rollback. |
-| Matches list | `Matches` | Missing | TODO | Pending | — | Show only active server-authorized matches. |
+| Saved profiles | `Saved` | Missing | DONE | Static review; Android device review pending | `09b6c80` | Optimistic removal must retain rollback. |
+| Matches list | `Matches` | Missing | DONE | Static review; Android device review pending | This commit | Show only active server-authorized matches. |
 | Conversation | `Chat` | Missing | TODO | Pending | — | Keep Realtime cleanup and message dedupe. |
 | Incoming call | `IncomingCallOverlay` | Missing | TODO | Pending | — | Keep call authorization state explicit. |
 | Voice call | `AudioCall` | Missing | TODO | Pending | — | Connected is a real media event only. |

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,6 +7,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../auth/AuthProvider';
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppIcon } from '../../shared/components/AppIcon';
+import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
+import { Avatar } from '../../shared/components/Avatar';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
@@ -23,10 +25,6 @@ const icons = {
   call: { ios: 'phone.fill', android: 'call', web: 'call' },
 } as const;
 
-function initialFor(name: string) {
-  return name.trim().slice(0, 1).toLocaleUpperCase('vi-VN') || '?';
-}
-
 function connectedAt(createdAt: string) {
   const timestamp = new Date(createdAt).getTime();
   if (Number.isNaN(timestamp)) return 'Đã kết nối';
@@ -39,11 +37,7 @@ function connectedAt(createdAt: string) {
 }
 
 function MatchAvatar({ profile, photoUrl, size = 64 }: { profile: ProfilePublic; photoUrl?: string; size?: number }) {
-  return <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
-    {photoUrl
-      ? <Image source={{ uri: photoUrl }} accessibilityLabel={`Ảnh hồ sơ của ${profile.displayName}`} style={styles.avatarImage} />
-      : <Text style={[styles.avatarInitial, { fontSize: Math.max(18, size * 0.36) }]}>{initialFor(profile.displayName)}</Text>}
-  </View>;
+  return <Avatar label={`Ảnh hồ sơ của ${profile.displayName}`} uri={photoUrl} size={size} />;
 }
 
 export function MatchesScreen({ navigation }: Props) {
@@ -107,33 +101,33 @@ export function MatchesScreen({ navigation }: Props) {
     {newMatches.length ? <View style={styles.section}>
       <View style={styles.sectionHeading}><View><Text accessibilityRole="header" style={styles.sectionTitle}>Kết nối mới</Text><Text style={styles.sectionBody}>Cả hai đã cùng bày tỏ sự quan tâm.</Text></View><View style={styles.matchCount}><AppIcon name={icons.heart} color={colors.primaryPressed} size={15} /><Text style={styles.matchCountText}>{newMatches.length}</Text></View></View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newMatches}>
-        {newMatches.map((match) => <Pressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
-          onPress={() => openChat(match.id)} style={({ pressed }) => [styles.matchTile, pressed && styles.pressed]}>
+        {newMatches.map((match) => <AnimatedPressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
+          onPress={() => openChat(match.id)} style={styles.matchTile}>
           <View><MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={74} /><View style={styles.matchBadge}><AppIcon name={icons.heart} color={colors.onPrimary} size={13} /></View></View>
           <Text numberOfLines={1} style={styles.matchName}>{match.otherProfile.displayName}</Text>
           <Text numberOfLines={1} style={styles.matchTime}>{connectedAt(match.createdAt)}</Text>
-        </Pressable>)}
+        </AnimatedPressable>)}
       </ScrollView>
     </View> : null}
 
     {conversations.length ? <View style={styles.section}>
       <Text accessibilityRole="header" style={styles.sectionTitle}>Trò chuyện</Text>
       <View style={styles.conversationList}>
-        {conversations.map((match) => <Pressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
-          onPress={() => openChat(match.id)} style={({ pressed }) => [styles.conversationRow, pressed && styles.pressed]}>
+        {conversations.map((match) => <AnimatedPressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
+          onPress={() => openChat(match.id)} style={styles.conversationRow}>
           <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} />
           <View style={styles.conversationContent}><View style={styles.conversationTopLine}><Text numberOfLines={1} style={styles.conversationName}>{match.otherProfile.displayName}</Text><Text style={styles.conversationTime}>{connectedAt(match.createdAt)}</Text></View><Text numberOfLines={2} style={styles.preview}>{match.lastMessagePreview}</Text></View>
           <AppIcon name={icons.chat} color={colors.primaryPressed} size={20} />
-        </Pressable>)}
+        </AnimatedPressable>)}
       </View>
     </View> : null}
 
-    {newMatches.length && conversations.length === 0 ? <Pressable accessibilityRole="button" accessibilityLabel={`Bắt đầu trò chuyện với ${newMatches[0].otherProfile.displayName}`}
-      onPress={() => openChat(newMatches[0].id)} style={({ pressed }) => [styles.firstMessageCard, pressed && styles.pressed]}>
+    {newMatches.length && conversations.length === 0 ? <AnimatedPressable accessibilityRole="button" accessibilityLabel={`Bắt đầu trò chuyện với ${newMatches[0].otherProfile.displayName}`}
+      onPress={() => openChat(newMatches[0].id)} style={styles.firstMessageCard}>
       <View style={styles.firstMessageIcon}><AppIcon name={icons.chat} color={colors.primaryPressed} size={22} /></View>
       <View style={styles.firstMessageContent}><Text style={styles.firstMessageTitle}>Mở lời cùng {newMatches[0].otherProfile.displayName}</Text><Text style={styles.firstMessageBody}>Một lời chào ngắn là đủ để bắt đầu.</Text></View>
       <AppIcon name={icons.chat} color={colors.primaryPressed} size={20} />
-    </Pressable> : null}
+    </AnimatedPressable> : null}
   </Screen>;
 }
 
@@ -147,9 +141,6 @@ const styles = StyleSheet.create({
   matchCountText: { ...type.label, color: colors.primaryPressed },
   newMatches: { gap: spacing.md, paddingRight: spacing.lg },
   matchTile: { width: 88, alignItems: 'center', gap: spacing.xs },
-  avatar: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.border },
-  avatarImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  avatarInitial: { ...type.subtitle, color: colors.primaryPressed, fontWeight: '700' },
   matchBadge: { position: 'absolute', right: -2, bottom: -2, width: 25, height: 25, borderRadius: radii.pill, borderWidth: 2, borderColor: colors.surface, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   matchName: { ...type.label, color: colors.ink, textAlign: 'center', width: '100%' },
   matchTime: { ...type.caption, color: colors.inkMuted, textAlign: 'center', width: '100%' },
@@ -165,5 +156,4 @@ const styles = StyleSheet.create({
   firstMessageContent: { flex: 1, gap: spacing.xxs },
   firstMessageTitle: { ...type.subtitle, color: colors.ink },
   firstMessageBody: { ...type.caption, color: colors.inkMuted },
-  pressed: { opacity: 0.72 },
 });
