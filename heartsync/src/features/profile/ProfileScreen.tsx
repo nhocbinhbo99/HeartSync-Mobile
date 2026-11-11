@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   Image,
   ScrollView,
@@ -23,6 +23,7 @@ import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { useAppServices } from '../../services/AppServicesProvider';
+import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
 import type { AsyncViewState } from '../../shared/types/ui';
 import type { ProfilePublic } from '../../shared/types/domain.types';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
@@ -47,38 +48,39 @@ export function ProfileScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const { width } = useWindowDimensions();
   const photoWidth = Math.max(0, width - spacing.lg * 2);
+  const hasLoadedRef = useRef(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!services) return;
-    setState('loading');
-    setError('');
+    if (!hasLoadedRef.current && !silent) setState('loading');
+    if (!silent) setError('');
     const result = await services.profile.getMine();
     if (!result.ok) {
       if (result.error.code === 'not_found') {
         setProfile(undefined);
+        hasLoadedRef.current = true;
         setState('empty');
         return;
       }
-      setError(result.error.message);
-      setState('error');
+      if (!hasLoadedRef.current) {
+        setError(result.error.message);
+        setState('error');
+      }
       return;
     }
+    const sortedPhotos = [...result.data.public.photos].sort((a, b) => a.sortOrder - b.sortOrder);
+    const paths = sortedPhotos.map((p) => p.storagePath);
+    const urlMap = await resolvePhotoUrls(services.profile, paths);
+    const urls = paths.map((path) => urlMap[path] ?? getCachedPhotoUrl(path)).filter((url): url is string => Boolean(url));
+    hasLoadedRef.current = true;
     setProfile(result.data.public);
-    const urls = await Promise.all(
-      result.data.public.photos
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(async (photo) => {
-          const signed = await services.profile.createPhotoUrl(photo.storagePath);
-          return signed.ok ? signed.data : undefined;
-        }),
-    );
-    setPhotoUrls(urls.filter((url): url is string => Boolean(url)));
+    setPhotoUrls(urls);
     setState('empty');
   }, [services]);
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      void load(hasLoadedRef.current);
     }, [load]),
   );
 
@@ -154,6 +156,7 @@ export function ProfileScreen({ navigation }: Props) {
               <Image
                 accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`}
                 source={avatarSource}
+                fadeDuration={0}
                 style={styles.avatarImage}
               />
               <View style={styles.onlineDot} />

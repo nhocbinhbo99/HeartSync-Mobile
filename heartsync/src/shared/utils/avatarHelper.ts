@@ -20,7 +20,7 @@ const maleAvatars: ImageSourcePropType[] = [
 export const brandAssets = {
   logoPink: require('../../../assets/images/heartsync-logo.png') as ImageSourcePropType,
   logoWhite: require('../../../assets/images/heartsync-logo-white.png') as ImageSourcePropType,
-  splashSunsetBg: require('../../../assets/images/splash-sunset-bg.png') as ImageSourcePropType,
+  splashSunsetBg: require('../../../assets/images/splash-sunset-bg.jpg') as ImageSourcePropType,
   cardScrimGradient: require('../../../assets/images/card-scrim-gradient.png') as ImageSourcePropType,
   pinkButtonGradient: require('../../../assets/images/pink-button-gradient.png') as ImageSourcePropType,
   onboardingCouple: require('../../../assets/images/onboarding-couple.png') as ImageSourcePropType,

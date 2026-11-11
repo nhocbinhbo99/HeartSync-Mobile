@@ -3,6 +3,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
+import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
 import { AnimatedSection } from '../../shared/components/AnimatedSection';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
@@ -46,16 +47,13 @@ export function MatchFoundScreen({
         const myPath = (
           mine.data.public.photos.find((photo) => photo.isPrimary) ?? mine.data.public.photos[0]
         )?.storagePath;
-        const [otherUrl, myUrl] = await Promise.all([
-          otherPath ? services.profile.createPhotoUrl(otherPath) : Promise.resolve(undefined),
-          myPath ? services.profile.createPhotoUrl(myPath) : Promise.resolve(undefined),
-        ]);
+        const urlMap = await resolvePhotoUrls(services.profile, [otherPath, myPath]);
         if (!live) return;
         setPeople({
           other: match.otherProfile,
           mine: mine.data.public,
-          otherPhoto: otherUrl?.ok ? otherUrl.data : undefined,
-          myPhoto: myUrl?.ok ? myUrl.data : undefined,
+          otherPhoto: otherPath ? (urlMap[otherPath] ?? getCachedPhotoUrl(otherPath)) : undefined,
+          myPhoto: myPath ? (urlMap[myPath] ?? getCachedPhotoUrl(myPath)) : undefined,
         });
       },
     );

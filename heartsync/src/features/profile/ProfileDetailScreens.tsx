@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
+import { getCachedPhotoUrl, getCachedPublicProfile } from '../../services/photoCache';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon, type AppIconName } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
@@ -37,8 +38,11 @@ export function OtherProfileScreen({
   const services = useAppServices();
   const snackbar = useSnackbar();
   const profileId = route.params?.profileId;
-  const [profile, setProfile] = useState<ProfilePublic>();
-  const [photoUrl, setPhotoUrl] = useState<string>();
+  const cachedProfile = getCachedPublicProfile(profileId);
+  const cachedPrimaryPath =
+    cachedProfile?.photos.find((photo) => photo.isPrimary)?.storagePath ?? cachedProfile?.photos[0]?.storagePath;
+  const [profile, setProfile] = useState<ProfilePublic | undefined>(cachedProfile);
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(() => getCachedPhotoUrl(cachedPrimaryPath));
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [liking, setLiking] = useState(false);
@@ -170,6 +174,7 @@ export function OtherProfileScreen({
         <Image
           accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`}
           source={getProfileImageSource(photoUrl, profile.id, profile.gender, profile.displayName)}
+          fadeDuration={0}
           style={styles.heroImage}
           resizeMode="cover"
         />

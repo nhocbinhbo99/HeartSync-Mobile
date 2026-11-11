@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 
 import { colors, type } from '../theme/tokens';
@@ -20,12 +21,19 @@ function initials(label: string) {
 }
 
 export function Avatar({ label, uri, fallbackSource, size = 48 }: Props) {
+  const [failedUri, setFailedUri] = useState<string>();
   const frame = { width: size, height: size, borderRadius: size / 2 };
-  const source = uri ? { uri } : fallbackSource;
+  const activeUri = uri && failedUri !== uri ? uri : undefined;
+  const source = activeUri ? { uri: activeUri } : fallbackSource;
+
   if (source) {
     return (
       <Image
         source={source}
+        fadeDuration={0}
+        onError={() => {
+          if (activeUri) setFailedUri(activeUri);
+        }}
         accessibilityLabel={label}
         accessibilityRole="image"
         accessibilityIgnoresInvertColors
@@ -52,4 +60,3 @@ const styles = StyleSheet.create({
   },
   initials: { ...type.label, color: colors.primaryPressed },
 });
-

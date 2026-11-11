@@ -6,6 +6,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { useAppServices } from '../../services/AppServicesProvider';
+import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
@@ -37,7 +38,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const [candidates, setCandidates] = useState<ProfilePublic[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<{ storagePath: string; url: string } | null>(null);
+  const [, setPhotoUrlTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -45,6 +46,12 @@ export function DiscoverScreen({ navigation }: Props) {
   const [swipeError, setSwipeError] = useState('');
   const [busy, setBusy] = useState(false);
   const requestRef = useRef(0);
+  const candidatesRef = useRef<ProfilePublic[]>([]);
+  const lastFiltersSigRef = useRef<string>('');
+
+  useEffect(() => {
+    candidatesRef.current = candidates;
+  }, [candidates]);
 
   const [swipeX] = useState(() => new Animated.Value(0));
   const [swipeY] = useState(() => new Animated.Value(0));
@@ -65,27 +72,36 @@ export function DiscoverScreen({ navigation }: Props) {
   );
 
   const load = useCallback(
-    async (nextCursor?: string) => {
+    async (nextCursor?: string, onlyIfNeeded = false) => {
       if (!services) return;
       const request = ++requestRef.current;
+      const isInitialEmpty = !nextCursor && candidatesRef.current.length === 0;
       if (nextCursor) {
         setLoadingMore(true);
         setPageError('');
-      } else {
-        setLoading(true);
-        setCandidates([]);
-        setCursor(null);
+      } else if (isInitialEmpty || !onlyIfNeeded) {
+        if (isInitialEmpty) setLoading(true);
         setLoadError('');
       }
       try {
         const preferences = await services.preferences.get();
+        if (request !== requestRef.current) return;
         if (!preferences.ok) {
-          if (request === requestRef.current) {
-            if (nextCursor) setPageError(preferences.error.message);
-            else setLoadError(preferences.error.message);
-          }
+          if (nextCursor) setPageError(preferences.error.message);
+          else if (isInitialEmpty) setLoadError(preferences.error.message);
           return;
         }
+        const filtersSig = JSON.stringify(preferences.data);
+        if (onlyIfNeeded && !nextCursor && candidatesRef.current.length > 0 && lastFiltersSigRef.current === filtersSig) {
+          setLoading(false);
+          return;
+        }
+        lastFiltersSigRef.current = filtersSig;
+        if (!nextCursor && isInitialEmpty) {
+          setCandidates([]);
+          setCursor(null);
+        }
+
         const result = await services.discovery.getCandidates(preferences.data, nextCursor);
         if (request !== requestRef.current) return;
         if (!result.ok) {
@@ -93,6 +109,12 @@ export function DiscoverScreen({ navigation }: Props) {
           else setLoadError(result.error.message);
           return;
         }
+        const upcomingPaths = result.data.items
+          .slice(0, 4)
+          .map((item) => (item.photos.find((p) => p.isPrimary) ?? item.photos[0])?.storagePath);
+        await resolvePhotoUrls(services.profile, upcomingPaths);
+        if (request !== requestRef.current) return;
+
         setCandidates((current) =>
           nextCursor
             ? [
@@ -119,7 +141,7 @@ export function DiscoverScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      void load(undefined, true);
       return () => {
         requestRef.current += 1;
       };
@@ -129,21 +151,29 @@ export function DiscoverScreen({ navigation }: Props) {
   const candidate = candidates[0];
   const nextCandidate = candidates[1];
   const photo = candidate?.photos.find((item) => item.isPrimary) ?? candidate?.photos[0];
+  const nextPhoto = nextCandidate?.photos.find((item) => item.isPrimary) ?? nextCandidate?.photos[0];
   const photoPath = photo?.storagePath;
-  const visiblePhotoUrl =
-    photoUrl && photoPath && photoUrl.storagePath === photoPath ? photoUrl.url : null;
+  const visiblePhotoUrl = getCachedPhotoUrl(photoPath) ?? null;
+  const nextPhotoUrl = getCachedPhotoUrl(nextPhoto?.storagePath) ?? null;
 
   useEffect(() => {
+    if (!services || candidates.length === 0) return;
     let active = true;
-    if (photoPath && services) {
-      void services.profile.createPhotoUrl(photoPath).then((result) => {
-        if (active && result.ok) setPhotoUrl({ storagePath: photoPath, url: result.data });
-      });
-    }
+    const paths = candidates
+      .slice(0, 4)
+      .map((item) => (item.photos.find((p) => p.isPrimary) ?? item.photos[0])?.storagePath);
+    const hasUncached = paths.some((path) => path && !getCachedPhotoUrl(path));
+    if (!hasUncached) return undefined;
+
+    void resolvePhotoUrls(services.profile, paths).then((resolved) => {
+      if (active && Object.keys(resolved).length > 0) {
+        setPhotoUrlTick((n) => n + 1);
+      }
+    });
     return () => {
       active = false;
     };
-  }, [photoPath, services]);
+  }, [candidates, services]);
 
   useEffect(() => {
     if (!loading && !loadingMore && candidates.length > 0 && candidates.length <= 2 && cursor) {
@@ -355,11 +385,12 @@ export function DiscoverScreen({ navigation }: Props) {
           >
             <Image
               source={getProfileImageSource(
-                undefined,
+                nextPhotoUrl,
                 nextCandidate.id,
                 nextCandidate.gender,
                 nextCandidate.displayName,
               )}
+              fadeDuration={0}
               style={styles.photo}
             />
             <Image
@@ -390,6 +421,7 @@ export function DiscoverScreen({ navigation }: Props) {
                 candidate.gender,
                 candidate.displayName,
               )}
+              fadeDuration={0}
               style={styles.photo}
               accessibilityLabel={`Ảnh đại diện của ${candidate.displayName}`}
             />

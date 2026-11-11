@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuth } from '../auth/AuthProvider';
 import { useAppServices } from '../../services/AppServicesProvider';
+import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
@@ -40,6 +41,26 @@ function connectedAt(createdAt: string) {
   return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 }
 
+function primaryPhotoPath(profile: ProfilePublic): string | undefined {
+  return (profile.photos.find((item) => item.isPrimary) ?? profile.photos[0])?.storagePath;
+}
+
+function areMatchesEqual(a: MatchSummary[], b: MatchSummary[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (
+      a[i].id !== b[i].id ||
+      a[i].lastMessagePreview !== b[i].lastMessagePreview ||
+      a[i].lastMessageAt !== b[i].lastMessageAt ||
+      a[i].unreadCount !== b[i].unreadCount ||
+      primaryPhotoPath(a[i].otherProfile) !== primaryPhotoPath(b[i].otherProfile)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function MatchAvatar({
   profile,
   photoUrl,
@@ -49,11 +70,13 @@ function MatchAvatar({
   photoUrl?: string;
   size?: number;
 }) {
+  const path = primaryPhotoPath(profile);
+  const resolved = photoUrl ?? getCachedPhotoUrl(path);
   return (
     <Avatar
       label={`Ảnh hồ sơ của ${profile.displayName}`}
-      uri={photoUrl}
-      fallbackSource={getFallbackAvatar(profile.id, profile.gender, profile.displayName)}
+      uri={resolved}
+      fallbackSource={path ? undefined : getFallbackAvatar(profile.id, profile.gender, profile.displayName)}
       size={size}
     />
   );
@@ -62,61 +85,84 @@ function MatchAvatar({
 export function MatchesScreen({ navigation }: Props) {
   const services = useAppServices();
   const { user } = useAuth();
+  const userId = user?.id;
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [photoUrls, setPhotoUrls] = useState<PhotoUrls>({});
   const [incoming, setIncoming] = useState<IncomingCall>();
   const [filter, setFilter] = useState<MatchFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const hasLoadedRef = useRef(false);
+  const requestIdRef = useRef(0);
 
-  const load = useCallback(async () => {
-    if (!services) return;
-    setLoading(true);
-    setError('');
-    const result = await services.matches.listMatches();
-    setLoading(false);
-    if (result.ok) setMatches(result.data.items);
-    else setError(result.error.message);
-  }, [services]);
+  const load = useCallback(
+    async (silent = false) => {
+      if (!services) return;
+      const requestId = ++requestIdRef.current;
+      if (!hasLoadedRef.current && !silent) setLoading(true);
+      if (!silent) setError('');
+      const result = await services.matches.listMatches();
+      if (requestId !== requestIdRef.current) return;
+      if (!result.ok) {
+        if (!hasLoadedRef.current) setLoading(false);
+        setError(result.error.message);
+        return;
+      }
+      const nextMatches = result.data.items;
+      const paths = nextMatches.map((m) => primaryPhotoPath(m.otherProfile));
+      const resolvedMap = await resolvePhotoUrls(services.profile, paths);
+      if (requestId !== requestIdRef.current) return;
+
+      const nextPhotos: PhotoUrls = {};
+      for (const match of nextMatches) {
+        const path = primaryPhotoPath(match.otherProfile);
+        if (path && resolvedMap[path]) {
+          nextPhotos[match.id] = resolvedMap[path];
+        }
+      }
+
+      hasLoadedRef.current = true;
+      setLoading(false);
+      setPhotoUrls((prev) => {
+        const prevKeys = Object.keys(prev);
+        const nextKeys = Object.keys(nextPhotos);
+        if (prevKeys.length === nextKeys.length && nextKeys.every((k) => prev[k] === nextPhotos[k])) {
+          return prev;
+        }
+        return nextPhotos;
+      });
+      setMatches((prev) => (areMatchesEqual(prev, nextMatches) ? prev : nextMatches));
+    },
+    [services],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      void load(hasLoadedRef.current);
     }, [load]),
   );
 
   useEffect(() => {
-    if (!services || matches.length === 0) return;
-    let active = true;
-    void Promise.all(
-      matches.map(async (match) => {
-        const photo =
-          match.otherProfile.photos.find((item) => item.isPrimary) ?? match.otherProfile.photos[0];
-        if (!photo) return [match.id, null] as const;
-        const result = await services.profile.createPhotoUrl(photo.storagePath);
-        return [match.id, result.ok ? result.data : null] as const;
-      }),
-    ).then((entries) => {
-      if (!active) return;
-      setPhotoUrls(
-        Object.fromEntries(entries.filter((entry): entry is [string, string] => entry[1] !== null)),
-      );
+    if (!services || !userId) return;
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    const inboxSub = services.chat.subscribeInbox(() => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        void load(true);
+      }, 450);
     });
-    return () => {
-      active = false;
-    };
-  }, [matches, services]);
-
-  useEffect(() => {
-    if (!services || !user) return;
-    const subscription = services.calls.subscribeIncoming(
+    const callSub = services.calls.subscribeIncoming(
       (call) => {
-        if (call.status === 'ringing' && call.calleeId === user.id) setIncoming(call);
+        if (call.status === 'ringing' && call.calleeId === userId) setIncoming(call);
       },
       (nextError) => setError(nextError.message),
     );
-    return () => subscription.unsubscribe();
-  }, [services, user]);
+    return () => {
+      clearTimeout(debounceTimer);
+      inboxSub.unsubscribe();
+      callSub.unsubscribe();
+    };
+  }, [load, services, userId]);
 
   const header = (
     <View style={styles.header}>

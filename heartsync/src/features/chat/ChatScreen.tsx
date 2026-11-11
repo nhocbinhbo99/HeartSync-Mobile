@@ -22,7 +22,8 @@ import { AppText } from '../../shared/components/AppText';
 import { Screen } from '../../shared/components/Screen';
 import type { RootStackParamList } from '../../navigation/types';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
-import type { ChatMessage } from '../../shared/types/domain.types';
+import type { ChatMessage, ProfilePublic } from '../../shared/types/domain.types';
+import { getCachedPublicProfile } from '../../services/photoCache';
 import { brandAssets } from '../../shared/utils/avatarHelper';
 import { AiIcebreakerAssistant } from '../ai/AiIcebreakerAssistant';
 
@@ -49,12 +50,12 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
   useEffect(() => {
     current.current = messages;
   }, [messages]);
-  const [recipient, setRecipient] = useState<{ id: string; displayName: string } | null>(null);
+  const [recipient, setRecipient] = useState<ProfilePublic | null>(null);
   useEffect(() => {
     let live = true;
     if (services && matchId) {
       void services.chat.getRecipient(matchId).then((r) => {
-        if (live && r.ok) setRecipient({ id: r.data.id, displayName: r.data.displayName });
+        if (live && r.ok) setRecipient(r.data);
       });
     }
     return () => {
@@ -73,15 +74,29 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
   const visible = useRef<string[]>([]);
 
   const merge = useCallback((items: ChatMessage[]) => {
-    if (!alive.current) return;
-    setMessages((old) =>
-      dedupeMessages([...old, ...items])
+    if (!alive.current || items.length === 0) return;
+    setMessages((old) => {
+      const next = dedupeMessages([...old, ...items])
         .map((m) => ({
           ...m,
           delivery: m.id.startsWith('local:') ? old.find((o) => o.id === m.id)?.delivery : undefined,
         }))
-        .sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt) || b.id.localeCompare(a.id)),
-    );
+        .sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt) || b.id.localeCompare(a.id));
+
+      if (
+        next.length === old.length &&
+        next.every(
+          (m, idx) =>
+            m.id === old[idx].id &&
+            m.readAt === old[idx].readAt &&
+            m.content === old[idx].content &&
+            m.delivery === old[idx].delivery,
+        )
+      ) {
+        return old;
+      }
+      return next;
+    });
   }, []);
 
   const markVisible = useCallback(() => {
@@ -147,7 +162,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
     const initial = setTimeout(() => void refresh(), 0);
     const timer = setInterval(() => {
       if (appActive.current) void refresh();
-    }, 5000);
+    }, 15_000);
     const state = AppState.addEventListener('change', (s) => {
       appActive.current = s === 'active';
       if (s === 'active') {
@@ -336,7 +351,13 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
           style={styles.backBtn}
         />
         <View style={styles.avatarOnlineWrap}>
-          {recipient ? <ConversationProfile profileId={recipient.id} presentation="avatar" /> : null}
+          {recipient ? (
+            <ConversationProfile
+              profileId={recipient.id}
+              profile={getCachedPublicProfile(recipient.id) ?? recipient}
+              presentation="avatar"
+            />
+          ) : null}
           <View style={styles.headerOnlineDot} />
         </View>
         <View style={styles.headerCopy}>

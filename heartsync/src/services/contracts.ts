@@ -56,6 +56,7 @@ export interface ProfileRepository {
   reorderPhotos(photoIds: string[]): Promise<Result<ProfilePhoto[]>>;
   setPrimaryPhoto(photoId: string): Promise<Result<void>>;
   createPhotoUrl(storagePath: string): Promise<Result<string>>;
+  createPhotoUrls?(storagePaths: string[]): Promise<Record<string, string>>;
 }
 
 export interface PreferencesRepository {

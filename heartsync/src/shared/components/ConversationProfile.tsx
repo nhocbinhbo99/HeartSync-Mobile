@@ -1,46 +1,72 @@
 import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+
 import { useAppServices } from '../../services/AppServicesProvider';
-import type { ProfilePublic } from '../types/domain.types';
+import { getCachedPhotoUrl, getCachedPublicProfile } from '../../services/photoCache';
 import { colors, fonts } from '../theme/tokens';
+import type { ProfilePublic } from '../types/domain.types';
 import { getProfileImageSource } from '../utils/avatarHelper';
 
 export function ConversationProfile({
   profileId,
+  profile: initialProfile,
   presentation = 'inline',
 }: {
   profileId: string;
+  profile?: ProfilePublic;
   presentation?: 'inline' | 'hero' | 'callHero' | 'callTile' | 'avatar';
 }) {
   const services = useAppServices();
-  const [profile, setProfile] = useState<ProfilePublic>();
-  const [url, setUrl] = useState('');
+  const [loadedProfile, setLoadedProfile] = useState<ProfilePublic>();
+  const profile =
+    initialProfile ??
+    (loadedProfile?.id === profileId ? loadedProfile : undefined) ??
+    getCachedPublicProfile(profileId);
+  const primaryPath =
+    profile?.photos.find((p) => p.isPrimary)?.storagePath ?? profile?.photos[0]?.storagePath;
+
+  const [fetchedUrl, setFetchedUrl] = useState<{ path: string; url: string }>();
+  const resolvedUrl =
+    getCachedPhotoUrl(primaryPath) ??
+    (fetchedUrl && fetchedUrl.path === primaryPath ? fetchedUrl.url : '');
 
   useEffect(() => {
+    if (initialProfile || getCachedPublicProfile(profileId) || !services) return undefined;
     let live = true;
-    void services?.profile.getPublic(profileId).then(async (r) => {
-      if (!live || !r.ok) return;
-      setProfile(r.data);
-      const primary = r.data.photos.find((p) => p.isPrimary) ?? r.data.photos[0];
-      if (primary) {
-        const result = await services.profile.createPhotoUrl(primary.storagePath);
-        if (live && result.ok) setUrl(result.data);
-      }
+    void services.profile.getPublic(profileId).then((r) => {
+      if (live && r.ok) setLoadedProfile(r.data);
     });
     return () => {
       live = false;
     };
-  }, [services, profileId]);
+  }, [initialProfile, profileId, services]);
+
+  useEffect(() => {
+    if (!services || !primaryPath || getCachedPhotoUrl(primaryPath)) return undefined;
+    let live = true;
+    void services.profile.createPhotoUrl(primaryPath).then((result) => {
+      if (live && result.ok) setFetchedUrl({ path: primaryPath, url: result.data });
+    });
+    return () => {
+      live = false;
+    };
+  }, [primaryPath, services]);
 
   const avatarOnly = presentation === 'avatar' || presentation === 'callTile';
   const hero = presentation === 'hero' || presentation === 'callHero';
   const avatarSize = hero ? 116 : presentation === 'callTile' ? 64 : avatarOnly ? 46 : 48;
-  const imageSource = getProfileImageSource(url, profileId, profile?.gender);
+  const imageSource = getProfileImageSource(
+    resolvedUrl || undefined,
+    profileId,
+    profile?.gender,
+    profile?.displayName,
+  );
 
   const content = (
     <View style={{ flexDirection: hero ? 'column' : 'row', alignItems: 'center', gap: hero ? 14 : 10 }}>
       <Image
         source={imageSource}
+        fadeDuration={0}
         style={{
           width: avatarSize,
           height: avatarSize,

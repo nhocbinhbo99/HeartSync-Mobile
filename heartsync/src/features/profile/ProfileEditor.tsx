@@ -6,6 +6,7 @@ import type { User } from '@supabase/supabase-js';
 import { useNavigation, type NavigationAction, type NavigationProp } from '@react-navigation/native';
 
 import { useAppServices } from '../../services/AppServicesProvider';
+import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
 import { AnimatedSection } from '../../shared/components/AnimatedSection';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AppButton } from '../../shared/components/AppButton';
@@ -158,14 +159,21 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
   const loadPhotoUrls = useCallback(
     async (photos: ProfilePhoto[]) => {
       if (!services) return;
-      setPhotoItems(photos.map((photo) => ({ ...photo, loading: true })));
-      const resolved = await Promise.all(
-        photos.map(async (photo): Promise<PhotoGridItem> => {
-          const result = await services.profile.createPhotoUrl(photo.storagePath);
-          return result.ok ? { ...photo, url: result.data } : { ...photo, error: true };
+      const withCached = photos.map((photo): PhotoGridItem => {
+        const cached = getCachedPhotoUrl(photo.storagePath);
+        return cached ? { ...photo, url: cached } : { ...photo, loading: true };
+      });
+      setPhotoItems(withCached);
+      const urlMap = await resolvePhotoUrls(
+        services.profile,
+        photos.map((photo) => photo.storagePath),
+      );
+      setPhotoItems(
+        photos.map((photo): PhotoGridItem => {
+          const url = urlMap[photo.storagePath] ?? getCachedPhotoUrl(photo.storagePath);
+          return url ? { ...photo, url } : { ...photo, error: true };
         }),
       );
-      setPhotoItems(resolved);
     },
     [services],
   );
@@ -279,7 +287,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 5],
-      quality: 0.8,
+      quality: 0.65,
     });
     if (picked.canceled || !picked.assets[0]) return;
     setPhotoBusy(true);

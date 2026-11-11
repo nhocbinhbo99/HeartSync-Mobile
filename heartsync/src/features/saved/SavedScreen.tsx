@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -6,6 +6,7 @@ import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
+import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
@@ -35,37 +36,42 @@ export function SavedScreen({ navigation }: Props) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [removingId, setRemovingId] = useState<string>();
   const [error, setError] = useState('');
+  const hasLoadedRef = useRef(false);
 
   const withPhotoUrls = useCallback(
-    async (profiles: ProfilePublic[]) => {
+    async (profiles: ProfilePublic[]): Promise<SavedItem[]> => {
       if (!services) return [];
-      return Promise.all(
-        profiles.map(async (profile): Promise<SavedItem> => {
-          const primary = profile.photos.find((photo) => photo.isPrimary) ?? profile.photos[0];
-          if (!primary) return { profile };
-          const result = await services.profile.createPhotoUrl(primary.storagePath);
-          return result.ok ? { profile, photoUrl: result.data } : { profile };
-        }),
+      const paths = profiles.map(
+        (profile) => (profile.photos.find((photo) => photo.isPrimary) ?? profile.photos[0])?.storagePath,
       );
+      const urlMap = await resolvePhotoUrls(services.profile, paths);
+      return profiles.map((profile, idx) => {
+        const path = paths[idx];
+        return {
+          profile,
+          photoUrl: path ? (urlMap[path] ?? getCachedPhotoUrl(path)) : undefined,
+        };
+      });
     },
     [services],
   );
 
   const load = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, silent = false) => {
       if (!services) return;
       if (isRefresh) setRefreshing(true);
-      else setLoading(true);
-      setError('');
+      else if (!hasLoadedRef.current && !silent) setLoading(true);
+      if (!silent) setError('');
       const result = await services.saved.list();
       if (!result.ok) {
         if (isRefresh) setRefreshing(false);
         else setLoading(false);
-        setError(result.error.message);
+        if (!hasLoadedRef.current || !silent) setError(result.error.message);
         return;
       }
       setItems(await withPhotoUrls(result.data.items));
       setNextCursor(result.data.nextCursor);
+      hasLoadedRef.current = true;
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     },
@@ -74,7 +80,7 @@ export function SavedScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      void load(false, hasLoadedRef.current);
     }, [load]),
   );
 
@@ -258,6 +264,7 @@ function SavedCard({
         <Image
           accessibilityLabel={`Ảnh của ${profile.displayName}`}
           source={getProfileImageSource(photoUrl, profile.id, profile.gender, profile.displayName)}
+          fadeDuration={0}
           style={styles.avatar}
         />
         <Image

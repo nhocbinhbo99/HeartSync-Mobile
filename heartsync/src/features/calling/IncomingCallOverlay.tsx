@@ -11,19 +11,20 @@ import { colors, radii, spacing } from '../../shared/theme/tokens';
 export function IncomingCallOverlay({ onOpen }: { onOpen(call: IncomingCall): void }) {
   const services = useAppServices();
   const { user } = useAuth();
+  const userId = user?.id;
   const [call, setCall] = useState<IncomingCall | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!services || !user) return;
+    if (!services || !userId) return;
     let live = true;
     const refresh = async () => {
       const result = await services.calls.listActive();
       if (!live) return;
       if (result.ok) {
-        setCall(result.data.find((c) => c.calleeId === user.id && c.status === 'ringing') ?? null);
+        setCall(result.data.find((c) => c.calleeId === userId && c.status === 'ringing') ?? null);
       }
     };
     const sub = services.calls.subscribeIncoming(
@@ -35,7 +36,7 @@ export function IncomingCallOverlay({ onOpen }: { onOpen(call: IncomingCall): vo
     void refresh();
     const timer = setInterval(() => {
       if (AppState.currentState === 'active') void refresh();
-    }, 5000);
+    }, 20_000);
     const state = AppState.addEventListener('change', (s) => {
       if (s === 'active') void refresh();
     });
@@ -45,7 +46,7 @@ export function IncomingCallOverlay({ onOpen }: { onOpen(call: IncomingCall): vo
       clearInterval(timer);
       state.remove();
     };
-  }, [services, user]);
+  }, [services, userId]);
 
   useEffect(() => {
     let live = true;

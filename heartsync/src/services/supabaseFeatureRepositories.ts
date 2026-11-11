@@ -18,8 +18,19 @@ import type {
   MessageSubscription,
 } from './contracts';
 import { mapServiceError } from './errors';
+import { setCachedPublicProfile } from './photoCache';
 import { parseProfilePublic, recordValue } from './profileMapper';
 import type { AppSupabaseClient } from './supabase';
+
+async function currentUserId(client: AppSupabaseClient): Promise<string | null> {
+  const getSession = client.auth?.getSession;
+  if (typeof getSession === 'function') {
+    const { data } = await getSession.call(client.auth);
+    if (data.session?.user?.id) return data.session.user.id;
+  }
+  const { data, error } = await client.auth.getUser();
+  return !error && data.user ? data.user.id : null;
+}
 
 let subscriptionId = 0;
 
@@ -120,6 +131,9 @@ if (!Array.isArray(data)) return invalid();
     const rows = data;
     const profiles = rows.map((row) => parseProfilePublic(recordValue(row)?.profile));
     if (profiles.some((profile) => profile === null)) return invalid();
+    for (const profile of profiles) {
+      if (profile) setCachedPublicProfile(profile);
+    }
     const lastCursor = recordValue(rows.at(-1))?.cursor_created_at;
     return { ok: true, data: { items: profiles as ProfilePublic[], nextCursor: typeof lastCursor === 'string' && rows.length === 20 ? lastCursor : null } };
   }
@@ -127,19 +141,15 @@ if (!Array.isArray(data)) return invalid();
 
 export class SupabaseChatRepository implements ChatRepository {
   async getRecipient(matchId: string): Promise<Result<ProfilePublic>> {
-    const { data: auth, error: authError } = await this.client.auth.getUser();
-    if (authError || !auth.user)
-      return { ok: false, error: mapServiceError({ status: 401 }) };
+    const uid = await currentUserId(this.client);
+    if (!uid) return { ok: false, error: mapServiceError({ status: 401 }) };
     const { data: match, error } = await this.client
       .from("matches")
       .select("user_low_id,user_high_id")
       .eq("id", matchId)
       .single();
     if (error || !match) return { ok: false, error: mapServiceError(error) };
-    const id =
-      match.user_low_id === auth.user.id
-        ? match.user_high_id
-        : match.user_low_id;
+    const id = match.user_low_id === uid ? match.user_high_id : match.user_low_id;
     const { data, error: profileError } = await this.client.rpc(
       "get_public_profile",
       { p_profile_id: id },
@@ -147,7 +157,11 @@ export class SupabaseChatRepository implements ChatRepository {
     if (profileError)
       return { ok: false, error: mapServiceError(profileError) };
     const profile = parseProfilePublic(data);
-    return profile ? { ok: true, data: profile } : invalid();
+    if (profile) {
+      setCachedPublicProfile(profile);
+      return { ok: true, data: profile };
+    }
+    return invalid();
   }
   subscribeInbox(onChange: () => void): MessageSubscription {
     const channel = this.client
@@ -224,12 +238,11 @@ export class SupabaseChatRepository implements ChatRepository {
     clientMessageId: string;
     content: string;
   }): Promise<Result<ChatMessage>> {
-    const { data: identity, error: authError } =
-      await this.client.auth.getUser();
-    if (authError || !identity.user)
+    const uid = await currentUserId(this.client);
+    if (!uid)
       return {
         ok: false,
-        error: mapServiceError(authError ?? { status: 401 }),
+        error: mapServiceError({ status: 401 }),
       };
     const { data, error } = await this.client.rpc("send_chat_message", {
       p_match_id: input.matchId,

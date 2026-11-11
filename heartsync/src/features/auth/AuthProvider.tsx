@@ -1,9 +1,10 @@
 import { AppState } from 'react-native';
 import * as Linking from 'expo-linking';
 import type { PropsWithChildren } from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 
+import { clearAllAppCaches } from '../../services/photoCache';
 import { getSupabaseClient, type AppSupabaseClient } from '../../services/supabase';
 import { supabaseConfig } from '../../services/supabaseConfig';
 import { AUTH_CALLBACK_URL, PASSWORD_RECOVERY_URL, extractAuthCallback } from './deepLink';
@@ -38,29 +39,45 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
   const [session, setSession] = useState<Session | null>(null);
   const [recoveryPending, setRecoveryPending] = useState(false);
   const [bootstrapError, setBootstrapError] = useState<string>();
+  const resolvedUserRef = useRef<{ userId: string | null; status: AuthStatus }>({ userId: null, status: 'loading' });
 
-  const resolveProfileStatus = useCallback(async (activeSession: Session | null) => {
+  const resolveProfileStatus = useCallback(async (activeSession: Session | null, force = false) => {
+    const nextUserId = activeSession?.user?.id ?? null;
+    if (resolvedUserRef.current.userId && resolvedUserRef.current.userId !== nextUserId) {
+      clearAllAppCaches();
+    }
     setSession(activeSession);
     if (!client || !activeSession) {
-      setStatus(client ? 'unauthenticated' : 'setup_required');
+      const nextStatus: AuthStatus = client ? 'unauthenticated' : 'setup_required';
+      resolvedUserRef.current = { userId: null, status: nextStatus };
+      setStatus(nextStatus);
+      return;
+    }
+    if (!force && resolvedUserRef.current.userId === nextUserId && resolvedUserRef.current.status === 'authenticated') {
       return;
     }
     const { data, error } = await client.from('profiles').select('profile_completed_at')
       .eq('id', activeSession.user.id).maybeSingle();
     if (error) {
       setBootstrapError('Không thể kiểm tra trạng thái hồ sơ. Vui lòng thử lại.');
+      resolvedUserRef.current = { userId: nextUserId, status: 'profile_required' };
       setStatus('profile_required');
       return;
     }
     setBootstrapError(undefined);
-    setStatus(data?.profile_completed_at ? 'authenticated' : 'profile_required');
+    const nextStatus: AuthStatus = data?.profile_completed_at ? 'authenticated' : 'profile_required';
+    resolvedUserRef.current = { userId: nextUserId, status: nextStatus };
+    setStatus(nextStatus);
   }, [client]);
 
   useEffect(() => {
     if (!client) return;
     let mounted = true;
+    let initialResolved = false;
+
     void client.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
+      if (!mounted || initialResolved) return;
+      initialResolved = true;
       if (error) setBootstrapError(toSafeAuthMessage(error));
       void resolveProfileStatus(data.session);
     }).catch(() => {
@@ -71,9 +88,16 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
 
     const { data: authListener } = client.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
-      void resolveProfileStatus(nextSession);
+      if (event === 'INITIAL_SESSION') {
+        if (initialResolved) return;
+        initialResolved = true;
+      }
+      if (event === 'SIGNED_OUT') {
+        clearAllAppCaches();
+        setRecoveryPending(false);
+      }
       if (event === 'PASSWORD_RECOVERY') setRecoveryPending(true);
-      if (event === 'SIGNED_OUT') setRecoveryPending(false);
+      void resolveProfileStatus(nextSession, event === 'SIGNED_IN' || event === 'USER_UPDATED');
     });
 
     const handleUrl = async (url: string | null) => {
@@ -140,7 +164,7 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
   }, [client]);
 
   const refreshProfileStatus = useCallback(async () => {
-    await resolveProfileStatus(session);
+    await resolveProfileStatus(session, true);
   }, [resolveProfileStatus, session]);
 
   const completeOnboarding = useCallback(async (): Promise<AuthActionResult> => {
@@ -152,7 +176,7 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
     } });
     if (error) return { ok: false, message: toSafeAuthMessage(error) };
     const { data } = await client.auth.getSession();
-    await resolveProfileStatus(data.session);
+    await resolveProfileStatus(data.session, true);
     return { ok: true };
   }, [client, resolveProfileStatus]);
 

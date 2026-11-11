@@ -12,6 +12,15 @@ import type {
 } from '../shared/types/domain.types';
 import type { PreferencesRepository, ProfileRepository, SavedProfilesRepository } from './contracts';
 import { mapServiceError } from './errors';
+import {
+  getCachedPhotoUrl,
+  getCachedPublicProfile,
+  getInFlightPhotoUrl,
+  invalidatePhotoUrl,
+  setCachedPhotoUrl,
+  setCachedPublicProfile,
+  setInFlightPhotoUrl,
+} from './photoCache';
 import { parseProfilePhoto, parseProfilePublic, profileFromRows, recordValue } from './profileMapper';
 import type { AppSupabaseClient } from './supabase';
 
@@ -24,6 +33,13 @@ const DEFAULT_FILTERS: DiscoveryFilters = {
 };
 
 async function userId(client: AppSupabaseClient): Promise<Result<string>> {
+  const getSession = client.auth?.getSession;
+  if (typeof getSession === 'function') {
+    const { data } = await getSession.call(client.auth);
+    if (data.session?.user?.id) {
+      return { ok: true, data: data.session.user.id };
+    }
+  }
   const { data, error } = await client.auth.getUser();
   return error || !data.user
     ? { ok: false, error: mapServiceError(error ?? { status: 401 }) }
@@ -99,12 +115,16 @@ export class SupabaseProfileRepository implements ProfileRepository {
   }
 
   async getPublic(profileId: string): Promise<Result<ProfilePublic>> {
+    const cached = getCachedPublicProfile(profileId);
+    if (cached) return { ok: true, data: cached };
     const { data, error } = await this.client.rpc('get_public_profile', { p_profile_id: profileId });
     if (error) return { ok: false, error: mapServiceError(error) };
     const profile = parseProfilePublic(data);
-    return profile
-      ? { ok: true, data: profile }
-      : { ok: false, error: { code: 'conflict', message: 'Máy chủ trả về hồ sơ không hợp lệ.', retryable: false } };
+    if (profile) {
+      setCachedPublicProfile(profile);
+      return { ok: true, data: profile };
+    }
+    return { ok: false, error: { code: 'conflict', message: 'Máy chủ trả về hồ sơ không hợp lệ.', retryable: false } };
   }
 
   async listInterests(): Promise<Result<InterestOption[]>> {
@@ -199,6 +219,7 @@ export class SupabaseProfileRepository implements ProfileRepository {
   async deletePhoto(photo: ProfilePhoto): Promise<Result<void>> {
     const metadata = await this.client.from('profile_photos').delete().eq('id', photo.id);
     if (metadata.error) return { ok: false, error: mapServiceError(metadata.error) };
+    invalidatePhotoUrl(photo.storagePath);
     const file = await this.client.storage.from('profile-photos').remove([photo.storagePath]);
     return file.error ? { ok: false, error: mapServiceError(file.error) } : { ok: true, data: undefined };
   }
@@ -221,10 +242,73 @@ export class SupabaseProfileRepository implements ProfileRepository {
   }
 
   async createPhotoUrl(storagePath: string): Promise<Result<string>> {
-    const { data, error } = await this.client.storage.from('profile-photos').createSignedUrl(storagePath, 60 * 60);
-    return error || !data?.signedUrl
-      ? { ok: false, error: mapServiceError(error ?? { status: 404 }) }
-      : { ok: true, data: data.signedUrl };
+    const cached = getCachedPhotoUrl(storagePath);
+    if (cached) return { ok: true, data: cached };
+
+    const pending = getInFlightPhotoUrl(storagePath);
+    if (pending) return pending;
+
+    const promise = (async (): Promise<Result<string>> => {
+      const { data, error } = await this.client.storage.from('profile-photos').createSignedUrl(storagePath, 60 * 60);
+      if (error || !data?.signedUrl) {
+        return { ok: false, error: mapServiceError(error ?? { status: 404 }) };
+      }
+      setCachedPhotoUrl(storagePath, data.signedUrl);
+      return { ok: true, data: data.signedUrl };
+    })();
+
+    setInFlightPhotoUrl(storagePath, promise);
+    return promise;
+  }
+
+  async createPhotoUrls(storagePaths: string[]): Promise<Record<string, string>> {
+    const resolved: Record<string, string> = {};
+    const uncached: string[] = [];
+    for (const path of storagePaths) {
+      if (!path || resolved[path]) continue;
+      const cached = getCachedPhotoUrl(path);
+      if (cached) resolved[path] = cached;
+      else if (!uncached.includes(path)) uncached.push(path);
+    }
+    if (uncached.length === 0) return resolved;
+
+    const bucket = this.client.storage.from('profile-photos') as {
+      createSignedUrls?: (
+        paths: string[],
+        expiresIn: number,
+      ) => Promise<{ data: { path: string | null; signedUrl: string; error?: string | null }[] | null; error: unknown }>;
+    };
+
+    if (uncached.length > 1 && typeof bucket.createSignedUrls === 'function') {
+      try {
+        const { data, error } = await bucket.createSignedUrls(uncached, 60 * 60);
+        if (!error && Array.isArray(data)) {
+          for (const item of data) {
+            if (item?.path && item.signedUrl) {
+              setCachedPhotoUrl(item.path, item.signedUrl);
+              resolved[item.path] = item.signedUrl;
+            }
+          }
+          if (uncached.every((p) => Boolean(resolved[p]))) {
+            return resolved;
+          }
+        }
+      } catch {
+        // Fall back to individual URL resolution below
+      }
+    }
+
+    const remaining = uncached.filter((p) => !resolved[p]);
+    const entries = await Promise.all(
+      remaining.map(async (path) => {
+        const result = await this.createPhotoUrl(path);
+        return result.ok ? ([path, result.data] as const) : null;
+      }),
+    );
+    for (const entry of entries) {
+      if (entry) resolved[entry[0]] = entry[1];
+    }
+    return resolved;
   }
 }
 
