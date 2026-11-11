@@ -306,7 +306,10 @@ export class SupabaseSavedProfilesRepository implements SavedProfilesRepository 
     const identity = await userId(this.client);
     if (!identity.ok) return identity;
     if (saved) {
-      const { error } = await this.client.from('saved_profiles').upsert({ owner_id: identity.data, target_id: targetProfileId });
+      const { error } = await this.client.from('saved_profiles').upsert(
+        { owner_id: identity.data, target_id: targetProfileId },
+        { onConflict: 'owner_id,target_id', ignoreDuplicates: true },
+      );
       return error ? { ok: false, error: mapServiceError(error) } : { ok: true, data: undefined };
     }
     const { error } = await this.client.from('saved_profiles').delete()

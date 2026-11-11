@@ -30,6 +30,9 @@ export function apiError(
 /** Maps transport/server details to stable UX-safe codes without exposing raw SQL or provider messages. */
 export function mapServiceError(value: unknown): ApiError {
   if (!isRecord(value)) return apiError("network");
+  if (typeof __DEV__ !== "undefined" && __DEV__ && (typeof process === "undefined" || !process.env.JEST_WORKER_ID)) {
+    console.warn("[HeartSync ServiceError]", value);
+  }
 
   const code = typeof value.code === "string" ? value.code.toUpperCase() : "";
   const status = typeof value.status === "number" ? value.status : Number.NaN;
