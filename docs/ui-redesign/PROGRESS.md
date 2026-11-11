@@ -39,11 +39,11 @@ no screen below is visually complete until a device comparison is recorded.
 | 02 | `02_onboarding.png` | `Onboarding` | IMPLEMENTED — device QA pending |
 | 03 | `03_login.png` | `SignIn` | IMPLEMENTED — device QA pending |
 | 04 | `04_register.png` | `SignUp` / profile setup | IMPLEMENTED — device QA pending |
-| 05 | `05_discover.png` | `Discover` | REWORK |
+| 05 | `05_discover.png` | `Discover` | IMPLEMENTED — device QA pending |
 | 06 | `06_profile_detail.png` | `OtherProfile` | REWORK |
 | 07 | `07_filters_sheet.png` | `Filters` | REWORK |
-| 08 | `08_match_found.png` | `MatchFound` | REWORK |
-| 09 | `09_saved.png` | `Saved` | REWORK |
+| 08 | `08_match_found.png` | `MatchFound` | IMPLEMENTED — device QA pending |
+| 09 | `09_saved.png` | `Saved` | IMPLEMENTED — device QA pending |
 | 10 | `10_connections.png` | `Matches` | REWORK |
 | 11 | `11_chat.png` | `Chat` | REWORK |
 | 12 | `12_audio_ringing.png` | `IncomingCallOverlay` / `AudioCall` | REWORK |
@@ -54,7 +54,7 @@ no screen below is visually complete until a device comparison is recorded.
 | 17 | `17_interests.png` | `Interests` | IMPLEMENTED — device QA pending |
 | 18 | `18_safety_center.png` | `Safety` | REWORK |
 | 19 | `19_report.png` | Report flow | BUILD |
-| 20 | `20_empty_discover.png` | `Discover` empty state | REWORK |
+| 20 | `20_empty_discover.png` | `Discover` empty state | IMPLEMENTED — device QA pending |
 | 21 | `21_settings.png` | `Settings` | IMPLEMENTED — device QA pending |
 | 22 | `22_dark_chat.png` | Chat appearance treatment | BUILD |
 

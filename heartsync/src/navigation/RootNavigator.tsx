@@ -74,12 +74,12 @@ function MainTabs() {
       <Tabs.Screen
         name="Discover"
         component={DiscoverScreen}
-        options={{ title: "Khám phá" }}
+        options={{ title: "Khám phá", headerShown: false }}
       />
       <Tabs.Screen
         name="Saved"
         component={SavedScreen}
-        options={{ title: "Đã lưu" }}
+        options={{ title: "Đã lưu", headerShown: false }}
       />
       <Tabs.Screen
         name="Matches"

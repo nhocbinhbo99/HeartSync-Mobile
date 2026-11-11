@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
 import { Animated, Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
+import { useSnackbar } from '../../shared/components/Snackbar';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { colors, radii, spacing, type } from '../../shared/theme/tokens';
 import type { ProfilePublic, SwipeAction } from '../../shared/types/domain.types';
@@ -26,11 +27,9 @@ const PREVIEW_INTEREST_COUNT = 3;
 
 const icons = {
   pass: { ios: 'xmark', android: 'close', web: 'close' },
-  profile: { ios: 'person.crop.circle', android: 'person', web: 'person' },
   like: { ios: 'heart.fill', android: 'favorite', web: 'favorite' },
   location: { ios: 'mappin.circle.fill', android: 'location_on', web: 'location_on' },
   work: { ios: 'briefcase.fill', android: 'work', web: 'work' },
-  photo: { ios: 'person.crop.circle', android: 'person', web: 'person' },
 } as const satisfies Record<string, IconName>;
 
 type SwipeControlProps = {
@@ -38,20 +37,21 @@ type SwipeControlProps = {
   disabled: boolean;
   icon: IconName;
   onPress: () => void;
-  tone: 'pass' | 'profile' | 'like';
+  tone: 'pass' | 'save' | 'like';
 };
 
 function SwipeControl({ accessibilityLabel, disabled, icon, onPress, tone }: SwipeControlProps) {
   const iconColor = tone === 'like' ? colors.onPrimary : tone === 'pass' ? colors.danger : colors.primaryPressed;
-  const toneStyle = tone === 'like' ? styles.actionLike : tone === 'pass' ? styles.actionPass : styles.actionProfile;
+  const toneStyle = tone === 'like' ? styles.actionLike : tone === 'pass' ? styles.actionPass : styles.actionSave;
   return <AnimatedPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} disabled={disabled}
-    onPress={onPress} rippleColor={tone === 'like' ? 'rgba(255,255,255,0.18)' : 'rgba(0,102,116,0.12)'} style={[styles.actionControl, toneStyle, disabled && styles.actionDisabled]}>
+    onPress={onPress} rippleColor={tone === 'like' ? 'rgba(255,255,255,0.22)' : 'rgba(230,56,111,0.12)'} style={[styles.actionControl, toneStyle, disabled && styles.actionDisabled]}>
     <AppIcon name={icon} color={iconColor} size={25} />
   </AnimatedPressable>;
 }
 
 export function DiscoverScreen({ navigation }: Props) {
   const services = useAppServices();
+  const snackbar = useSnackbar();
   const { width } = useWindowDimensions();
   const [candidates, setCandidates] = useState<ProfilePublic[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -62,6 +62,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const [pageError, setPageError] = useState('');
   const [swipeError, setSwipeError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const busyRef = useRef(false);
   const requestRef = useRef(0);
   const swipeStartXRef = useRef<number | null>(null);
@@ -121,12 +122,6 @@ export function DiscoverScreen({ navigation }: Props) {
     return () => { requestRef.current += 1; };
   }, [load]));
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => <IconButton icon="filter" label="Mở bộ lọc khám phá" onPress={() => navigation.navigate('Filters')} />,
-    });
-  }, [navigation]);
-
   const candidate = candidates[0];
   const nextCandidate = candidates[1];
   const photo = candidate?.photos.find((item) => item.isPrimary) ?? candidate?.photos[0];
@@ -177,6 +172,18 @@ export function DiscoverScreen({ navigation }: Props) {
     });
   }, [candidate, candidates.length, cursor, load, loadingMore, navigation, resetCard, services, swipeX, swipeY, width]);
 
+  const saveCandidate = async () => {
+    if (!services || !candidate || saving) return;
+    setSaving(true);
+    const result = await services.saved.setSaved(candidate.id, true);
+    setSaving(false);
+    if (!result.ok) {
+      snackbar.show({ message: result.error.message, tone: 'error' });
+      return;
+    }
+    snackbar.show({ message: `Đã lưu ${candidate.displayName} để xem lại sau.`, tone: 'success' });
+  };
+
   const captureSwipeStart = (pageX: number, pageY: number) => {
     swipeStartXRef.current = pageX;
     swipeStartYRef.current = pageY;
@@ -213,15 +220,17 @@ export function DiscoverScreen({ navigation }: Props) {
   const passOpacity = swipeX.interpolate({ inputRange: [-SWIPE_THRESHOLD, -32, 0], outputRange: [1, 0.55, 0], extrapolate: 'clamp' });
   const nextScale = swipeX.interpolate({ inputRange: [-width, 0, width], outputRange: [1, 0.96, 1], extrapolate: 'clamp' });
 
-  if (!services) return <Screen><StatePanel title="Chưa thể tải Khám phá" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
-  if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tìm hồ sơ phù hợp" description="Chỉ dữ liệu công khai đủ điều kiện được tải." /></Screen>;
-  if (loadError) return <Screen><AsyncStatePanel state="error" title="Không thể tải Khám phá" description={loadError} actionLabel="Thử lại" onAction={() => void load()} /><AppButton label="Mở bộ lọc" variant="secondary" onPress={() => navigation.navigate('Filters')} /></Screen>;
-  if (!candidate) return <Screen><StatePanel title={loadingMore ? 'Đang tìm thêm hồ sơ' : 'Chưa có gợi ý mới'} description="Hãy chỉnh bộ lọc hoặc quay lại sau khi có hồ sơ đủ điều kiện." /><AppButton label="Tải lại" variant="secondary" onPress={() => void load()} /><AppButton label="Mở bộ lọc" onPress={() => navigation.navigate('Filters')} /></Screen>;
+  const header = <DiscoverHeader onOpenFilters={() => navigation.navigate('Filters')} />;
+  if (!services) return <Screen safeTop>{header}<StatePanel title="Chưa thể tải Khám phá" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
+  if (loading) return <Screen safeTop>{header}<AsyncStatePanel state="loading" title="Đang tìm hồ sơ phù hợp" description="Chỉ dữ liệu công khai đủ điều kiện được tải." /></Screen>;
+  if (loadError) return <Screen safeTop>{header}<AsyncStatePanel state="error" title="Không thể tải Khám phá" description={loadError} actionLabel="Thử lại" onAction={() => void load()} /><AppButton label="Mở bộ lọc" variant="secondary" onPress={() => navigation.navigate('Filters')} /></Screen>;
+  if (!candidate) return <Screen safeTop>{header}<EmptyDiscoveryState loading={loadingMore} onReload={() => void load()} onOpenFilters={() => navigation.navigate('Filters')} /></Screen>;
 
   const interestPreview = candidate.interests.slice(0, PREVIEW_INTEREST_COUNT);
   const cardSummary = [candidate.displayName, `${candidate.age} tuổi`, candidate.occupation, candidate.publicLocation, ...interestPreview].filter(Boolean).join(', ');
 
-  return <Screen scroll={false} contentStyle={styles.screen}>
+  return <Screen scroll={false} safeTop contentStyle={styles.screen}>
+    {header}
     <View style={styles.deck}>
       {nextCandidate ? <Animated.View pointerEvents="none" style={[styles.nextCard, { transform: [{ scale: nextScale }] }]}>
         <AppText variant="caption" tone="muted">Hồ sơ tiếp theo</AppText>
@@ -241,36 +250,54 @@ export function DiscoverScreen({ navigation }: Props) {
             : <View style={styles.photoPlaceholder}><Avatar label={candidate.displayName} size={72} /><AppText variant="caption" tone="muted">Chưa có ảnh</AppText></View>}
           <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}><Text style={styles.likeBadgeText}>Thích</Text></Animated.View>
           <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.passBadge, { opacity: passOpacity }]}><Text style={styles.passBadgeText}>Bỏ qua</Text></Animated.View>
+          {candidate.publicLocation ? <View style={styles.locationBadge}><AppIcon name={icons.location} color={colors.primaryPressed} size={18} /><Text numberOfLines={1} style={styles.locationBadgeText}>{candidate.publicLocation}</Text></View> : null}
           {candidate.photos.length > 1 ? <View style={styles.photoCount}><Text style={styles.photoCountText}>{candidate.photos.length} ảnh</Text></View> : null}
-        </View>
-        <View style={styles.cardContent}>
-          <Text numberOfLines={2} style={styles.name}>{candidate.displayName}, {candidate.age}</Text>
-          {(candidate.occupation || candidate.publicLocation) ? <View style={styles.metaRow}>
-            {candidate.occupation ? <View style={styles.metaItem}><AppIcon name={icons.work} color={colors.inkMuted} size={16} /><Text numberOfLines={1} style={styles.metaText}>{candidate.occupation}</Text></View> : null}
-            {candidate.publicLocation ? <View style={styles.metaItem}><AppIcon name={icons.location} color={colors.inkMuted} size={16} /><Text numberOfLines={1} style={styles.metaText}>{candidate.publicLocation}</Text></View> : null}
-          </View> : null}
-          {candidate.bio ? <Text numberOfLines={2} style={styles.bio}>{candidate.bio}</Text> : null}
-          {interestPreview.length ? <View style={styles.chips}>{interestPreview.map((interest) => <View key={interest} style={styles.chip}><Text numberOfLines={1} style={styles.chipText}>{interest}</Text></View>)}</View> : null}
+          <View style={styles.photoDetails}>
+            <Text numberOfLines={2} style={styles.name}>{candidate.displayName}, {candidate.age}</Text>
+            {candidate.occupation ? <View style={styles.metaItem}><AppIcon name={icons.work} color={colors.onPrimary} size={17} /><Text numberOfLines={1} style={styles.metaText}>{candidate.occupation}</Text></View> : null}
+            {interestPreview.length ? <Text numberOfLines={1} style={styles.interestLine}>{interestPreview.join(' · ')}</Text> : null}
+            <AppButton label="Xem hồ sơ" variant="secondary" trailingIcon="forward" onPress={() => navigation.navigate('OtherProfile', { profileId: candidate.id })} style={styles.viewProfile} />
+          </View>
         </View>
       </Animated.View>
     </View>
     {swipeError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{swipeError}</Text> : null}
     {pageError ? <View style={styles.pageError}><Text accessibilityLiveRegion="polite" style={styles.error}>{pageError}</Text><AppButton label="Tải thêm hồ sơ" variant="quiet" disabled={loadingMore} onPress={() => { if (cursor) void load(cursor); }} /></View> : null}
     <View style={styles.actions}>
-      <SwipeControl accessibilityLabel="Bỏ qua hồ sơ này" disabled={busy} icon={icons.pass} onPress={() => void swipe('pass')} tone="pass" />
-      <SwipeControl accessibilityLabel={`Xem hồ sơ của ${candidate.displayName}`} disabled={busy} icon={icons.profile} onPress={() => navigation.navigate('OtherProfile', { profileId: candidate.id })} tone="profile" />
-      <SwipeControl accessibilityLabel={`Thích ${candidate.displayName}`} disabled={busy} icon={icons.like} onPress={() => void swipe('like')} tone="like" />
+      <SwipeControl accessibilityLabel="Bỏ qua hồ sơ này" disabled={busy || saving} icon={icons.pass} onPress={() => void swipe('pass')} tone="pass" />
+      <SwipeControl accessibilityLabel={`Thích ${candidate.displayName}`} disabled={busy || saving} icon={icons.like} onPress={() => void swipe('like')} tone="like" />
+      <SwipeControl accessibilityLabel={`Lưu ${candidate.displayName}`} disabled={busy || saving} icon="bookmark" onPress={() => void saveCandidate()} tone="save" />
     </View>
     <Text style={styles.hint}>Vuốt trái để bỏ qua · Vuốt phải để thích</Text>
   </Screen>;
 }
 
+function DiscoverHeader({ onOpenFilters }: { onOpenFilters: () => void }) {
+  return <View style={styles.header}>
+    <View style={styles.headerCopy}><AppText accessibilityRole="header" variant="heading">Khám phá</AppText><AppText tone="muted">Tìm một người hợp nhịp với bạn.</AppText></View>
+    <IconButton icon="filter" label="Mở bộ lọc khám phá" tone="primary" onPress={onOpenFilters} style={styles.filterButton} />
+  </View>;
+}
+
+function EmptyDiscoveryState({ loading, onReload, onOpenFilters }: { loading: boolean; onReload: () => void; onOpenFilters: () => void }) {
+  return <View style={styles.emptyState}>
+    <View accessible accessibilityRole="image" accessibilityLabel="Chưa có gợi ý mới" style={styles.emptyArtwork}><AppIcon name="heartOutline" color={colors.primaryPressed} size={48} /></View>
+    <AppText accessibilityRole="header" variant="heading" style={styles.emptyTitle}>{loading ? 'Đang tìm thêm người phù hợp.' : 'Tạm thời chưa có ai phù hợp với bộ lọc.'}</AppText>
+    <AppText tone="muted" style={styles.emptyCopy}>Thử mở rộng độ tuổi hoặc khoảng cách để gặp thêm những người thú vị nhé.</AppText>
+    <AppButton label="Điều chỉnh bộ lọc" onPress={onOpenFilters} />
+    <AppButton label="Tải lại" variant="quiet" onPress={onReload} />
+  </View>;
+}
+
 const styles = StyleSheet.create({
-  screen: { paddingTop: spacing.md, paddingBottom: spacing.md, gap: spacing.sm },
+  screen: { paddingTop: spacing.sm, paddingBottom: spacing.md, gap: spacing.sm },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  headerCopy: { flex: 1, gap: spacing.xxs },
+  filterButton: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   deck: { flex: 1, minHeight: 0, justifyContent: 'center' },
   nextCard: { position: 'absolute', top: 10, right: 12, bottom: 0, left: 12, backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, justifyContent: 'flex-end', padding: spacing.lg, gap: spacing.xs },
   card: { flex: 1, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, overflow: 'hidden' },
-  photoFrame: { flex: 1.25, minHeight: 200, backgroundColor: colors.surfaceMuted, position: 'relative' },
+  photoFrame: { flex: 1, minHeight: 260, backgroundColor: colors.surfaceMuted, position: 'relative' },
   photo: { width: '100%', height: '100%', resizeMode: 'cover' },
   photoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   swipeBadge: { position: 'absolute', top: spacing.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 2, borderRadius: radii.sm, backgroundColor: colors.surface },
@@ -278,24 +305,27 @@ const styles = StyleSheet.create({
   passBadge: { left: spacing.lg, borderColor: colors.danger },
   likeBadgeText: { ...type.label, color: colors.primaryPressed },
   passBadgeText: { ...type.label, color: colors.danger },
-  photoCount: { position: 'absolute', right: spacing.md, bottom: spacing.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.pill, backgroundColor: 'rgba(16,42,51,0.76)' },
+  locationBadge: { position: 'absolute', top: spacing.md, left: spacing.md, maxWidth: '76%', backgroundColor: colors.surface, borderRadius: radii.pill, paddingHorizontal: spacing.sm, minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  locationBadgeText: { ...type.label, color: colors.primaryPressed, flexShrink: 1 },
+  photoCount: { position: 'absolute', right: spacing.md, top: spacing.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.pill, backgroundColor: 'rgba(59,16,36,0.76)' },
   photoCountText: { ...type.caption, color: colors.onPrimary, fontWeight: '600' },
-  cardContent: { padding: spacing.lg, gap: spacing.sm },
-  name: { ...type.display, color: colors.ink },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: spacing.md, rowGap: spacing.xs },
+  photoDetails: { position: 'absolute', right: 0, bottom: 0, left: 0, padding: spacing.lg, gap: spacing.xs, backgroundColor: 'rgba(59,16,36,0.76)' },
+  name: { ...type.display, color: colors.onPrimary },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, maxWidth: '100%' },
-  metaText: { ...type.caption, color: colors.inkMuted, flexShrink: 1 },
-  bio: { ...type.body, color: colors.ink },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { maxWidth: '100%', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceMuted },
-  chipText: { ...type.caption, color: colors.ink, fontWeight: '600' },
+  metaText: { ...type.body, color: colors.onPrimary, flexShrink: 1 },
+  interestLine: { ...type.body, color: colors.onPrimary },
+  viewProfile: { alignSelf: 'flex-start', minHeight: 48, marginTop: spacing.xs, paddingHorizontal: spacing.md },
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', paddingHorizontal: spacing.xl },
   actionControl: { width: 58, height: 58, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
   actionPass: { backgroundColor: colors.surface, borderColor: colors.danger },
-  actionProfile: { backgroundColor: colors.surface, borderColor: colors.primary },
+  actionSave: { backgroundColor: colors.surface, borderColor: colors.primary },
   actionLike: { backgroundColor: colors.primary, borderColor: colors.primary },
   actionDisabled: { backgroundColor: colors.disabled, borderColor: colors.border },
   hint: { ...type.caption, color: colors.inkMuted, textAlign: 'center' },
   error: { ...type.caption, color: colors.danger, textAlign: 'center' },
   pageError: { alignItems: 'center', gap: spacing.xxs },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg },
+  emptyArtwork: { width: 176, height: 176, borderRadius: radii.lg, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { textAlign: 'center' },
+  emptyCopy: { textAlign: 'center' },
 });
