@@ -32,6 +32,7 @@ import { colors, spacing, type } from '../../shared/theme/tokens';
 import type { InterestOption, ProfilePhoto, ProfilePrivate, ProfilePublic, ProfileSaveInput } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAuth } from '../auth/AuthProvider';
+import { AiBioAssistant } from '../ai/AiBioAssistant';
 
 type Draft = {
   displayName: string;
@@ -359,6 +360,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
       <FormField label="Giới thiệu về bạn" value={draft.bio} onChangeText={(value) => update('bio', value)}
         multiline textAlignVertical="top" style={styles.multiline} maxLength={500} showCharacterCount error={errors.bio}
         placeholder="Sở thích, lối sống hoặc điều bạn đang tìm kiếm…" />
+      <AiBioAssistant bio={draft.bio} interests={draft.interests} onUseBio={(value) => update('bio', value)} />
       <SingleChoiceField label="Nghề nghiệp" options={OCCUPATION_OPTIONS} value={occupationChoice}
         onChange={(value) => { setCustomOccupation(value === '__other__'); update('occupation', value === '__other__' ? '' : value); }} error={errors.occupation} />
       {occupationChoice === '__other__' ? <AnimatedSection><FormField label="Nghề nghiệp của bạn" value={draft.occupation}

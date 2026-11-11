@@ -5,11 +5,13 @@ import type {
   CallRepository,
   ChatRepository,
   DiscoveryRepository,
+  AiAssistantRepository,
   MatchRepository,
   PreferencesRepository,
   ProfileRepository,
   SavedProfilesRepository,
 } from "./contracts";
+import { SupabaseAiAssistantRepository } from "./aiAssistantRepository";
 import {
   SupabaseCallRepository,
   SupabaseChatRepository,
@@ -24,6 +26,7 @@ import {
 import { getSupabaseClient } from "./supabase";
 
 export type AppServices = {
+  ai: AiAssistantRepository;
   profile: ProfileRepository;
   preferences: PreferencesRepository;
   saved: SavedProfilesRepository;
@@ -42,6 +45,7 @@ export function AppServicesProvider({ children }: PropsWithChildren) {
     if (!client) return null;
     const profile = new SupabaseProfileRepository(client);
     return {
+      ai: new SupabaseAiAssistantRepository(client),
       profile,
       preferences: new SupabasePreferencesRepository(client),
       saved: new SupabaseSavedProfilesRepository(client),

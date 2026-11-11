@@ -423,3 +423,8 @@ verify_jwt = false
 
 [functions.call-media-cleanup]
 verify_jwt = false
+
+# User-facing AI must keep the platform JWT check enabled. The handler also verifies
+# the caller and executes quota RPCs with the user's RLS context.
+[functions.ai-assistant]
+verify_jwt = true

@@ -20,6 +20,7 @@ import { Screen } from "../../shared/components/Screen";
 import type { RootStackParamList } from "../../navigation/types";
 import { colors, radii, spacing } from "../../shared/theme/tokens";
 import type { ChatMessage } from "../../shared/types/domain.types";
+import { AiIcebreakerAssistant } from "../ai/AiIcebreakerAssistant";
 
 type Message = ChatMessage & { delivery?: "sending" | "failed" };
 export function ChatScreen(
@@ -348,6 +349,7 @@ function Conversation({
         maxLength={4000}
         placeholder="Viết tin nhắn…"
       />
+      <AiIcebreakerAssistant key={`${matchId}:${enabled ? "active" : "inactive"}`} matchId={matchId} enabled={enabled} onSelect={setText} />
       <AppButton
         label="Gửi"
         disabled={!text.trim() || !enabled}
