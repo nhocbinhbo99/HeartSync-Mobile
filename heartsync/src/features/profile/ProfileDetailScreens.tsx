@@ -5,9 +5,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon, type AppIconName } from '../../shared/components/AppIcon';
+import { AppText } from '../../shared/components/AppText';
+import { Avatar } from '../../shared/components/Avatar';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
+import { SectionHeader } from '../../shared/components/SectionHeader';
 import { SelectedChip } from '../../shared/components/SelectedChip';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { useSnackbar } from '../../shared/components/Snackbar';
@@ -73,31 +76,35 @@ export function OtherProfileScreen({ route, navigation }: NativeStackScreenProps
   return <Screen>
     <View style={styles.heroWrap}>
       {photoUrl ? <Image accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`} source={{ uri: photoUrl }} style={styles.heroImage} resizeMode="cover" />
-        : <View style={styles.photoPlaceholder}><AppIcon name="photoAdd" color={colors.inkMuted} size={30} /><Text style={styles.photoPlaceholderText}>Hồ sơ chưa có ảnh hiển thị</Text></View>}
+        : <View style={styles.photoPlaceholder}>
+          <Avatar label={profile.displayName} size={64} />
+          <AppText variant="subtitle">Chưa có ảnh hiển thị</AppText>
+          <AppText variant="caption" tone="muted" style={styles.photoPlaceholderText}>Hồ sơ này chưa thêm ảnh công khai.</AppText>
+        </View>}
       <IconButton icon={saved ? 'bookmarkFilled' : 'bookmark'} label={saved ? `Bỏ lưu ${profile.displayName}` : `Lưu ${profile.displayName}`} tone={saved ? 'primary' : 'default'} disabled={saving} onPress={() => void toggleSaved()} style={styles.saveButton} />
     </View>
     <View style={styles.heading}>
-      <Text accessibilityRole="header" style={styles.title}>{profile.displayName}, {profile.age}</Text>
-      <Text style={styles.meta}>{optionLabel(GENDER_OPTIONS, profile.gender)}{profile.publicLocation ? ` · ${profile.publicLocation}` : ''}</Text>
+      <AppText accessibilityRole="header" variant="title">{profile.displayName}, {profile.age}</AppText>
+      <AppText tone="muted">{optionLabel(GENDER_OPTIONS, profile.gender)}{profile.publicLocation ? ` · ${profile.publicLocation}` : ''}</AppText>
     </View>
-    <Text style={styles.bio}>{profile.bio || 'Người này chưa thêm phần giới thiệu.'}</Text>
+    <AppText>{profile.bio || 'Người này chưa thêm phần giới thiệu.'}</AppText>
     <View style={styles.details}>
       {profile.occupation ? <Detail label="Nghề nghiệp" value={profile.occupation} /> : null}
       {profile.education ? <Detail label="Học vấn" value={profile.education} /> : null}
     </View>
-    {profile.interests.length ? <View style={styles.section}><Text style={styles.sectionTitle}>Sở thích</Text><View style={styles.chips}>{profile.interests.map((interest) => <SelectedChip key={interest} label={interest} />)}</View></View> : null}
-    {profile.languages.length ? <View style={styles.section}><Text style={styles.sectionTitle}>Ngôn ngữ</Text><View style={styles.chips}>{profile.languages.map((language) => <SelectedChip key={language} label={optionLabel(LANGUAGE_OPTIONS, language)} />)}</View></View> : null}
+    {profile.interests.length ? <View style={styles.section}><SectionHeader title="Sở thích" /><View style={styles.chips}>{profile.interests.map((interest) => <SelectedChip key={interest} label={interest} />)}</View></View> : null}
+    {profile.languages.length ? <View style={styles.section}><SectionHeader title="Ngôn ngữ" /><View style={styles.chips}>{profile.languages.map((language) => <SelectedChip key={language} label={optionLabel(LANGUAGE_OPTIONS, language)} />)}</View></View> : null}
     {error ? <View accessibilityLiveRegion="polite" style={styles.error}><AppIcon name="error" color={colors.danger} size={20} /><Text style={styles.errorText}>{error}</Text></View> : null}
   </Screen>;
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
-  return <View style={styles.detailRow}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailValue}>{value}</Text></View>;
+  return <View style={styles.detailRow}><AppText variant="label" tone="muted" style={styles.detailLabel}>{label}</AppText><AppText style={styles.detailValue}>{value}</AppText></View>;
 }
 
 export function SafetyScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Safety'>) {
   return <Screen>
-    <View style={styles.safetyHeader}><View style={styles.safetyHero}><AppIcon name="shield" color={colors.primaryPressed} size={25} /></View><View style={styles.safetyCopy}><Text accessibilityRole="header" style={styles.title}>An toàn & quyền riêng tư</Text><Text style={styles.meta}>Thông tin nào được hiển thị và cách HeartSync bảo vệ bạn.</Text></View></View>
+    <View style={styles.safetyHeader}><View style={styles.safetyHero}><AppIcon name="shield" color={colors.primaryPressed} size={25} /></View><View style={styles.safetyCopy}><AppText accessibilityRole="header" variant="title">An toàn & quyền riêng tư</AppText><AppText tone="muted">Thông tin nào được hiển thị và cách HeartSync bảo vệ bạn.</AppText></View></View>
     <View style={styles.safetyList}>
       <SafetyItem icon="lock" title="Dữ liệu riêng tư" description="Email, ngày sinh và tọa độ chính xác không xuất hiện trong Khám phá hoặc hồ sơ công khai." />
       <SafetyItem icon="locationOff" title="Vị trí theo lựa chọn của bạn" description="Bạn chỉ dùng tọa độ để lọc khoảng cách. Khi tắt, phạm vi sẽ trở thành không giới hạn." />
@@ -112,10 +119,10 @@ function SafetyItem({ icon, title, description }: { icon: AppIconName; title: st
 }
 
 const styles = StyleSheet.create({
-  heroWrap: { position: 'relative' }, heroImage: { width: '100%', aspectRatio: 0.84, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
-  photoPlaceholder: { width: '100%', aspectRatio: 1.4, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, gap: spacing.xs }, photoPlaceholderText: { ...type.body, color: colors.inkMuted, textAlign: 'center' },
-  saveButton: { position: 'absolute', top: spacing.sm, right: spacing.sm, backgroundColor: colors.surface }, heading: { gap: spacing.xxs }, title: { ...type.title, color: colors.ink }, meta: { ...type.body, color: colors.inkMuted }, bio: { ...type.body, color: colors.ink },
-  details: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border }, detailRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm }, detailLabel: { ...type.label, color: colors.inkMuted, width: 96 }, detailValue: { ...type.body, color: colors.ink, flex: 1 },
-  section: { gap: spacing.sm }, sectionTitle: { ...type.subtitle, color: colors.ink }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }, error: { borderWidth: 1, borderColor: colors.danger, borderRadius: radii.md, padding: spacing.sm, flexDirection: 'row', gap: spacing.xs }, errorText: { ...type.caption, color: colors.danger, flex: 1 },
+  heroWrap: { position: 'relative' }, heroImage: { width: '100%', aspectRatio: 0.84, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceMuted },
+  photoPlaceholder: { width: '100%', aspectRatio: 1.4, borderRadius: radii.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.border, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, gap: spacing.xs }, photoPlaceholderText: { textAlign: 'center' },
+  saveButton: { position: 'absolute', top: spacing.sm, right: spacing.sm, backgroundColor: colors.surface }, heading: { gap: spacing.xxs },
+  details: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border }, detailRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm }, detailLabel: { width: 96 }, detailValue: { flex: 1 },
+  section: { gap: spacing.sm }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }, error: { borderWidth: 1, borderColor: colors.danger, borderRadius: radii.md, padding: spacing.sm, flexDirection: 'row', gap: spacing.xs }, errorText: { ...type.caption, color: colors.danger, flex: 1 },
   safetyHeader: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }, safetyHero: { width: 56, height: 56, borderRadius: radii.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }, safetyCopy: { flex: 1, gap: spacing.xxs }, safetyList: { borderTopWidth: 1, borderTopColor: colors.border }, safetyItem: { minHeight: 100, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border }, safetyItemIcon: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' }, safetyItemCopy: { flex: 1, gap: spacing.xxs }, safetyItemTitle: { ...type.label, color: colors.ink }, safetyItemDescription: { ...type.body, color: colors.inkMuted },
 });
