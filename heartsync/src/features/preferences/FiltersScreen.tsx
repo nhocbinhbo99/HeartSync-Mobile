@@ -5,11 +5,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppServices } from '../../services/AppServicesProvider';
 import { validateDiscoveryFilters } from '../../shared/domain/filters';
 import { AnimatedSection } from '../../shared/components/AnimatedSection';
+import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { BottomActionBar } from '../../shared/components/BottomActionBar';
+import { IconButton } from '../../shared/components/IconButton';
 import { MultiChoiceField } from '../../shared/components/ChoiceFields';
 import { RangeSliderField, ValueSliderField } from '../../shared/components/RangeFields';
 import { Screen } from '../../shared/components/Screen';
@@ -61,25 +63,36 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
     setTimeout(() => navigation.goBack(), 360);
   };
 
+  const toggleGender = (value: string) => setFilters((current) => ({
+    ...current,
+    preferredGenders: current.preferredGenders.includes(value)
+      ? current.preferredGenders.filter((item) => item !== value)
+      : [...current.preferredGenders, value],
+  }));
+
   if (!services) return <Screen><StatePanel title="Chưa thể tải bộ lọc" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
   if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tải bộ lọc" description="Đang đọc lựa chọn riêng của bạn." /></Screen>;
 
-  return <Screen footer={<BottomActionBar><AppButton label="Áp dụng bộ lọc" loading={busy} disabled={busy} trailingIcon="check" onPress={() => void save()} /><AppButton label="Đặt lại" variant="quiet" disabled={busy} onPress={() => setFilters({ ...DEFAULT_FILTERS, distanceKm: locationReady ? 50 : null })} /></BottomActionBar>}>
-    <View style={styles.intro}>
-      <View style={styles.iconCircle}><AppIcon name="filter" color={colors.primaryPressed} size={24} /></View>
-      <AppText accessibilityRole="header" variant="heading">Tùy chỉnh tìm kiếm</AppText>
-      <AppText tone="muted">Bạn luôn kiểm soát tiêu chí; các lựa chọn này chỉ thuộc về tài khoản của bạn.</AppText>
+  return <Screen safeTop contentStyle={styles.filterScreen} footer={<BottomActionBar><AppButton label="Áp dụng bộ lọc" loading={busy} disabled={busy} trailingIcon="check" onPress={() => void save()} style={styles.applyButton} /><AppButton label="Đặt lại" variant="quiet" disabled={busy} onPress={() => setFilters({ ...DEFAULT_FILTERS, distanceKm: locationReady ? 50 : null })} /></BottomActionBar>}>
+    <View style={styles.filterHeader}>
+      <IconButton icon="back" label="Quay lại Khám phá" onPress={() => navigation.goBack()} />
+      <AppText accessibilityRole="header" style={styles.filterTitle}>Tùy chỉnh tìm kiếm</AppText>
+      <IconButton icon="close" label="Đóng bộ lọc" onPress={() => navigation.goBack()} />
     </View>
     <AnimatedSection><View style={styles.section}>
-      <SectionHeader title="Độ tuổi" />
+      <SectionHeader title="Độ tuổi" action={<AppText variant="label" tone="primary">{filters.ageMin} – {filters.ageMax}</AppText>} />
       <RangeSliderField label="Khoảng tuổi mong muốn" min={18} max={120} low={filters.ageMin} high={filters.ageMax}
         onChange={(ageMin, ageMax) => setFilters((current) => ({ ...current, ageMin, ageMax }))} />
     </View></AnimatedSection>
     <AnimatedSection><View style={styles.section}>
-      <SectionHeader title="Bạn muốn gặp ai?" description="Để trống một tiêu chí nếu bạn không muốn giới hạn gợi ý." />
-      <MultiChoiceField label="Giới tính" options={GENDER_OPTIONS} values={filters.preferredGenders}
-        onChange={(preferredGenders) => setFilters((current) => ({ ...current, preferredGenders }))}
-        helperText="Không chọn nghĩa là không giới hạn theo giới tính." searchable={false} />
+      <SectionHeader title="Giới tính mong muốn" description="Không chọn nghĩa là không giới hạn." />
+      <View style={styles.genderChoices}>{GENDER_OPTIONS.map((option) => {
+        const selected = filters.preferredGenders.includes(option.value);
+        return <AnimatedPressable key={option.value} accessibilityRole="checkbox" accessibilityLabel={option.label} accessibilityState={{ checked: selected }} onPress={() => toggleGender(option.value)} style={[styles.genderChoice, selected && styles.genderChoiceSelected]}><AppText variant="label" tone={selected ? 'onPrimary' : 'default'}>{option.label}</AppText></AnimatedPressable>;
+      })}</View>
+    </View></AnimatedSection>
+    <AnimatedSection><View style={styles.section}>
+      <SectionHeader title="Ngôn ngữ" description="Chọn nếu bạn muốn giới hạn theo ngôn ngữ." />
       <MultiChoiceField label="Ngôn ngữ" options={LANGUAGE_OPTIONS} values={filters.preferredLanguages}
         onChange={(preferredLanguages) => setFilters((current) => ({ ...current, preferredLanguages }))}
         helperText="Không chọn nghĩa là không giới hạn theo ngôn ngữ." />
@@ -105,11 +118,17 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs, marginBottom: spacing.xs }, iconCircle: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  section: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg, gap: spacing.md },
+  filterScreen: { paddingTop: spacing.sm, gap: spacing.xl },
+  filterHeader: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginHorizontal: -spacing.xs },
+  filterTitle: { flex: 1, fontSize: 34, lineHeight: 40, fontWeight: '700', color: colors.ink, letterSpacing: -0.4 },
+  section: { gap: spacing.md },
+  genderChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  genderChoice: { minHeight: 52, minWidth: '46%', flexGrow: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, backgroundColor: colors.surface, paddingHorizontal: spacing.md, alignItems: 'center', justifyContent: 'center' },
+  genderChoiceSelected: { borderColor: colors.primary, backgroundColor: colors.primaryPressed },
   locationNotice: { borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, backgroundColor: colors.surface, padding: spacing.md, gap: spacing.sm },
   noticeIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   noticeCopy: { gap: spacing.xxs },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radii.md }, switchCopy: { flex: 1, gap: spacing.xxs },
+  applyButton: { minHeight: 58, borderRadius: 20 },
   error: { borderWidth: 1, borderColor: colors.danger, borderRadius: radii.md, padding: spacing.sm, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs }, errorText: { flex: 1 },
 });

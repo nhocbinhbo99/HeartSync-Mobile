@@ -275,7 +275,7 @@ function Conversation({
       <View style={[styles.chatHeader, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
         <IconButton icon="back" label="Quay lại kết nối" tone={darkAppearance ? "onPrimary" : "default"} onPress={() => navigation.goBack()} />
         {recipient ? <ConversationProfile profileId={recipient.id} presentation="avatar" /> : null}
-        <View style={styles.headerCopy}><AppText numberOfLines={1} variant="title" style={{ color: palette.text }}>{recipient?.displayName ?? "Trò chuyện"}</AppText><AppText variant="caption" tone="success">Đã kết nối</AppText></View>
+        <View style={styles.headerCopy}><AppText numberOfLines={1} variant="title" style={{ color: palette.text }}>{recipient?.displayName ?? "Trò chuyện"}</AppText><AppText variant="caption" style={{ color: darkAppearance ? palette.muted : colors.success }}>Đã kết nối</AppText></View>
         <IconButton icon="phone" label="Gọi thoại" tone={darkAppearance ? "onPrimary" : "primary"} disabled={!enabled || startingCall} onPress={() => void startCall("audio")} />
         <IconButton icon="video" label="Gọi video" tone={darkAppearance ? "onPrimary" : "primary"} disabled={!enabled || startingCall} onPress={() => void startCall("video")} />
         <IconButton icon="moon" label={darkAppearance ? "Dùng giao diện sáng" : "Dùng giao diện tối"} tone={darkAppearance ? "onPrimary" : "primary"} onPress={() => setDarkAppearance((value) => !value)} />

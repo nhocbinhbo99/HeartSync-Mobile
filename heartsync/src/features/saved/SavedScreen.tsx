@@ -105,7 +105,7 @@ export function SavedScreen({ navigation }: Props) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} colors={[colors.primary]} tintColor={colors.primary} />}
       renderItem={({ item }) => <SavedCard item={item} removing={removingId === item.profile.id}
         onOpen={() => navigation.navigate('OtherProfile', { profileId: item.profile.id })} onRemove={() => void remove(item.profile.id)} />}
-      ListHeaderComponent={<View style={styles.intro}><AppText accessibilityRole="header" variant="heading">Đã lưu</AppText><AppText tone="muted">Những người bạn muốn tìm hiểu thêm.</AppText></View>}
+      ListHeaderComponent={<View style={styles.intro}><AppText accessibilityRole="header" style={styles.introTitle}>Đã lưu</AppText><AppText tone="muted" style={styles.introBody}>Những người bạn muốn tìm hiểu thêm.</AppText></View>}
       ListEmptyComponent={<StatePanel title="Chưa có hồ sơ đã lưu" description="Bạn có thể lưu một hồ sơ từ Khám phá để xem lại sau." />}
       ListFooterComponent={nextCursor ? <View style={styles.footer}>{loadingMore ? <ActivityIndicator color={colors.primary} /> : <AnimatedPressable accessibilityRole="button" accessibilityLabel="Tải thêm hồ sơ đã lưu" onPress={() => void loadMore()} style={styles.loadMore}><AppIcon name="refresh" color={colors.primaryPressed} size={20} /><AppText variant="label" tone="primary">Tải thêm</AppText></AnimatedPressable>}{error ? <AppText accessibilityLiveRegion="polite" variant="caption" tone="danger" style={styles.error}>{error}</AppText> : null}</View> : undefined}
       onEndReached={() => void loadMore()} onEndReachedThreshold={0.3} showsVerticalScrollIndicator={false} />
@@ -128,11 +128,11 @@ function SavedCard({ item, removing, onOpen, onRemove }: { item: SavedItem; remo
 }
 
 const styles = StyleSheet.create({
-  screen: { padding: 0 }, content: { flexGrow: 1, backgroundColor: colors.background, padding: spacing.lg, gap: spacing.md },
-  row: { gap: spacing.md }, intro: { gap: spacing.xxs, marginBottom: spacing.sm },
-  card: { flex: 1, minWidth: 0, aspectRatio: 0.72, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted, overflow: 'hidden', position: 'relative' }, cardTap: { flex: 1, borderRadius: radii.lg },
+  screen: { padding: 0 }, content: { flexGrow: 1, backgroundColor: colors.background, paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.lg, gap: spacing.lg },
+  row: { gap: spacing.md }, intro: { gap: spacing.xs, marginBottom: spacing.md }, introTitle: { fontSize: 48, lineHeight: 55, fontWeight: '700', letterSpacing: -0.8 }, introBody: { fontSize: 18, lineHeight: 26 },
+  card: { flex: 1, minWidth: 0, aspectRatio: 0.70, borderRadius: 24, backgroundColor: colors.surfaceMuted, overflow: 'hidden', position: 'relative' }, cardTap: { flex: 1, borderRadius: 24 },
   avatar: { width: '100%', height: '100%', backgroundColor: colors.surfaceMuted }, avatarPlaceholder: { flex: 1, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  cardCopy: { position: 'absolute', right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(59,16,36,0.84)', padding: spacing.sm, gap: spacing.xxs },
+  cardCopy: { position: 'absolute', right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(35, 20, 30, 0.93)', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xxs },
   removeButton: { position: 'absolute', top: spacing.xs, right: spacing.xs, backgroundColor: 'rgba(59,16,36,0.68)' },
   footer: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm }, loadMore: { minHeight: 48, paddingHorizontal: spacing.md, borderRadius: radii.md, flexDirection: 'row', alignItems: 'center', gap: spacing.xs }, error: { textAlign: 'center' },
 });

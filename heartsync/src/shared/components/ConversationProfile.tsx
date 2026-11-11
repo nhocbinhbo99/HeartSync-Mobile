@@ -42,7 +42,7 @@ export function ConversationProfile({ profileId, presentation = "inline" }: { pr
           }}
         />
       )}
-      {!avatarOnly ? <Text style={{ fontSize: hero ? 24 : 20, fontWeight: hero ? "700" : "400", color: colors.ink }}>
+      {!avatarOnly ? <Text style={{ fontSize: hero ? 24 : 20, fontWeight: hero ? "700" : "400", color: presentation === "callHero" ? colors.onPrimary : colors.ink }}>
         {profile?.displayName ?? "Người bạn kết nối"}
       </Text> : null}
     </View>

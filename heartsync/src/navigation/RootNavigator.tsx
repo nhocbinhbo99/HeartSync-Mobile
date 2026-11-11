@@ -178,22 +178,22 @@ export function RootNavigator() {
             <Stack.Screen
               name="Interests"
               component={InterestsScreen}
-              options={{ title: "Sở thích của bạn" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="Settings"
               component={SettingsScreen}
-              options={{ title: "Cài đặt" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="Filters"
               component={FiltersScreen}
-              options={{ title: "Bộ lọc" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="OtherProfile"
               component={OtherProfileScreen}
-              options={{ title: "Hồ sơ" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="Chat"
@@ -213,17 +213,17 @@ export function RootNavigator() {
             <Stack.Screen
               name="MatchFound"
               component={MatchFoundScreen}
-              options={{ title: "Kết nối mới" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="Safety"
               component={SafetyScreen}
-              options={{ title: "An toàn" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="Report"
               component={ReportScreen}
-              options={{ title: "Báo cáo" }}
+              options={{ headerShown: false }}
             />
           </>
         ) : null}

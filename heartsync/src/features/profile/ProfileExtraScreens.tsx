@@ -9,6 +9,7 @@ import { AppIcon, type AppIconName } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
+import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { useSnackbar } from '../../shared/components/Snackbar';
@@ -98,11 +99,11 @@ export function InterestsScreen({ navigation }: InterestsProps) {
   if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang chuẩn bị sở thích" description="Chỉ danh mục và hồ sơ của bạn được tải." /></Screen>;
   if (!profile) return <Screen><AsyncStatePanel state="error" title="Không thể tải sở thích" description={error || 'Hãy thử lại sau.'} actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
 
-  return <Screen footer={<View style={styles.footer}><AppButton label={saving ? 'Đang lưu' : 'Lưu sở thích'} loading={saving} disabled={saving} onPress={() => void save()} /></View>}>
+  return <Screen safeTop contentStyle={styles.interestsScreen} footer={<View style={styles.footer}><AppButton label={saving ? 'Đang lưu' : 'Lưu sở thích'} loading={saving} disabled={saving} onPress={() => void save()} style={styles.saveInterests} /></View>}>
+    <View style={styles.subscreenHeader}><IconButton icon="back" label="Quay lại hồ sơ" onPress={() => navigation.goBack()} /><AppText accessibilityRole="header" style={styles.subscreenTitle}>Sở thích của bạn</AppText></View>
     <View style={styles.interestsIntro}>
-      <AppText accessibilityRole="header" variant="heading">Sở thích của bạn</AppText>
-      <AppText tone="muted">Chọn những điều thật sự nói lên bạn. Danh sách này có thể thay đổi bất cứ lúc nào.</AppText>
-      <AppText variant="label" tone="primary">{selected.length} / 8 đã chọn</AppText>
+      <AppText tone="muted" style={styles.interestsLead}>Chọn từ 3 đến 8 sở thích thật sự nói lên bạn.</AppText>
+      <AppText variant="label" tone="primary" style={styles.interestsCount}>{selected.length} / 8 đã chọn</AppText>
       <View accessibilityRole="progressbar" accessibilityLabel="Số sở thích đã chọn" accessibilityValue={{ min: 0, max: 8, now: selected.length }} style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${Math.max(6, selected.length / 8 * 100)}%` }]} />
       </View>
@@ -134,10 +135,11 @@ export function SettingsScreen({ navigation }: SettingsProps) {
     if (!result.ok) snackbar.show({ message: result.message, tone: 'error' });
   };
 
-  return <Screen>
+  return <Screen safeTop contentStyle={styles.settingsScreen}>
+    <View style={styles.subscreenHeader}><IconButton icon="back" label="Quay lại hồ sơ" onPress={() => navigation.goBack()} /><AppText accessibilityRole="header" style={styles.subscreenTitle}>Cài đặt</AppText></View>
     <View style={styles.settingSection}>
       <AppText variant="label" tone="muted">TRẢI NGHIỆM</AppText>
-      <SettingsRow icon="settings" title="Giao diện" description="Hồng Romance sáng" />
+      <SettingsRow icon="moon" title="Giao diện" description="Hồng Romance sáng" />
       <SettingsRow icon="heartOutline" title="Hồ sơ và sở thích" description="Chỉnh sửa thông tin bạn chia sẻ" onPress={() => navigation.navigate('EditProfile')} />
     </View>
     <View style={styles.settingSection}>
@@ -167,17 +169,21 @@ function SettingsRow({ icon, title, description, destructive = false, disabled =
 
 const styles = StyleSheet.create({
   footer: { backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md },
-  interestsIntro: { gap: spacing.sm },
+  interestsScreen: { paddingTop: spacing.sm, gap: spacing.xl },
+  settingsScreen: { paddingTop: spacing.sm, gap: spacing.xl },
+  subscreenHeader: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginLeft: -spacing.xs },
+  subscreenTitle: { fontSize: 35, lineHeight: 42, fontWeight: '700', color: colors.ink, letterSpacing: -0.4 },
+  interestsIntro: { gap: spacing.md }, interestsLead: { fontSize: 19, lineHeight: 29 }, interestsCount: { fontSize: 18, lineHeight: 26, marginTop: spacing.sm },
   progressTrack: { height: 8, backgroundColor: colors.primarySoft, borderRadius: radii.pill, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: radii.pill },
   interestGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  interestOption: { minHeight: 64, width: '48%', borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, backgroundColor: colors.surface, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
-  interestOptionSelected: { borderColor: colors.primary, backgroundColor: colors.primary },
-  interestLabel: { flex: 1 },
+  interestOption: { minHeight: 76, width: '48%', borderWidth: 1, borderColor: colors.border, borderRadius: 20, backgroundColor: colors.surface, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
+  interestOptionSelected: { borderColor: colors.primaryPressed, backgroundColor: colors.primaryPressed },
+  interestLabel: { flex: 1, fontSize: 18, lineHeight: 24 }, saveInterests: { minHeight: 58, borderRadius: 20 },
   settingSection: { gap: spacing.xs },
-  settingRow: { minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: spacing.sm },
-  settingIcon: { width: 48, height: 48, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft },
+  settingRow: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: spacing.md },
+  settingIcon: { width: 48, height: 48, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
   settingIconDanger: { backgroundColor: colors.dangerSoft },
   settingCopy: { flex: 1, gap: spacing.xxs },
-  version: { marginTop: 'auto', paddingTop: spacing.lg },
+  version: { marginTop: 'auto', paddingTop: spacing.lg, paddingBottom: spacing.sm },
 });
