@@ -26,10 +26,10 @@ replace any real backend state with fixtures.
 | Forgot password | `ForgotPassword` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Preserve recovery deep link flow. |
 | Update password | `UpdatePassword` | Missing | DONE | Static review; Android device review pending | `fccb6f1` | Preserve authenticated recovery state. |
 | Profile setup | `ProfileSetup` | Missing | DONE | Static review; Android device review pending | `be8d86a` | Reuses private profile editor. |
-| Discover | `Discover` | Missing | TODO | Pending | — | Candidate DTO stays public-only. |
+| Discover | `Discover` | Missing | DONE | Static review; Android device review pending | This commit | Candidate DTO stays public-only. |
 | Filters | `Filters` | Missing | TODO | Pending | — | Keep explicit location consent. |
 | Other profile | `OtherProfile` | Missing | DONE | Static review; Android device review pending | `8a43257` | No DOB or exact coordinates. |
-| Like / pass / match | `Discover`, `MatchFound` | Missing | IN PROGRESS | Static review; Android device review pending | This commit | Match confirmation is complete; Discover controls preserve atomic server RPC. |
+| Like / pass / match | `Discover`, `MatchFound` | Missing | DONE | Static review; Android device review pending | This commit | Match confirmation and Discover controls preserve atomic server RPC. |
 | Saved profiles | `Saved` | Missing | TODO | Pending | — | Optimistic removal must retain rollback. |
 | Matches list | `Matches` | Missing | TODO | Pending | — | Show only active server-authorized matches. |
 | Conversation | `Chat` | Missing | TODO | Pending | — | Keep Realtime cleanup and message dedupe. |
@@ -38,7 +38,7 @@ replace any real backend state with fixtures.
 | Video call | `VideoCall` | Missing | TODO | Pending | — | Camera/mic permission state remains real. |
 | My profile | `Profile` | Missing | DONE | Static review; Android device review pending | `4690e5a` | Keep private/public separation. |
 | Edit profile | `EditProfile` | Missing | DONE | Static review; Android device review pending | `d586b1b` | Keep storage/photo lifecycle. |
-| Safety | `Safety` | Missing | DONE | Static review; Android device review pending | This commit | Block/report contracts stay unchanged. |
+| Safety | `Safety` | Missing | DONE | Static review; Android device review pending | `ff1e162` | Block/report contracts stay unchanged. |
 
 ## QA constraints
 

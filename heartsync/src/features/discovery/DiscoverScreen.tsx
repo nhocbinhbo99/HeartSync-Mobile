@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from 'react';
-import { Animated, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,7 +7,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
+import { AppText } from '../../shared/components/AppText';
+import { Avatar } from '../../shared/components/Avatar';
+import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
+import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
@@ -21,7 +25,6 @@ const SWIPE_THRESHOLD = 88;
 const PREVIEW_INTEREST_COUNT = 3;
 
 const icons = {
-  filter: { ios: 'slider.horizontal.3', android: 'tune', web: 'tune' },
   pass: { ios: 'xmark', android: 'close', web: 'close' },
   profile: { ios: 'person.crop.circle', android: 'person', web: 'person' },
   like: { ios: 'heart.fill', android: 'favorite', web: 'favorite' },
@@ -41,10 +44,10 @@ type SwipeControlProps = {
 function SwipeControl({ accessibilityLabel, disabled, icon, onPress, tone }: SwipeControlProps) {
   const iconColor = tone === 'like' ? colors.onPrimary : tone === 'pass' ? colors.danger : colors.primaryPressed;
   const toneStyle = tone === 'like' ? styles.actionLike : tone === 'pass' ? styles.actionPass : styles.actionProfile;
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} disabled={disabled}
-    onPress={onPress} style={({ pressed }) => [styles.actionControl, toneStyle, pressed && !disabled && styles.actionPressed, disabled && styles.actionDisabled]}>
+  return <AnimatedPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} disabled={disabled}
+    onPress={onPress} rippleColor={tone === 'like' ? 'rgba(255,255,255,0.18)' : 'rgba(0,102,116,0.12)'} style={[styles.actionControl, toneStyle, disabled && styles.actionDisabled]}>
     <AppIcon name={icon} color={iconColor} size={25} />
-  </Pressable>;
+  </AnimatedPressable>;
 }
 
 export function DiscoverScreen({ navigation }: Props) {
@@ -120,10 +123,7 @@ export function DiscoverScreen({ navigation }: Props) {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerRight: () => <Pressable accessibilityRole="button" accessibilityLabel="Mở bộ lọc khám phá"
-        hitSlop={8} onPress={() => navigation.navigate('Filters')} style={({ pressed }) => [styles.headerAction, pressed && styles.headerActionPressed]}>
-        <AppIcon name={icons.filter} color={colors.primaryPressed} size={24} />
-      </Pressable>,
+      headerRight: () => <IconButton icon="filter" label="Mở bộ lọc khám phá" onPress={() => navigation.navigate('Filters')} />,
     });
   }, [navigation]);
 
@@ -224,8 +224,8 @@ export function DiscoverScreen({ navigation }: Props) {
   return <Screen scroll={false} contentStyle={styles.screen}>
     <View style={styles.deck}>
       {nextCandidate ? <Animated.View pointerEvents="none" style={[styles.nextCard, { transform: [{ scale: nextScale }] }]}>
-        <Text style={styles.nextCardLabel}>HỒ SƠ TIẾP THEO</Text>
-        <Text numberOfLines={1} style={styles.nextCardName}>{nextCandidate.displayName}, {nextCandidate.age}</Text>
+        <AppText variant="caption" tone="muted">Hồ sơ tiếp theo</AppText>
+        <AppText numberOfLines={1} variant="subtitle" tone="muted">{nextCandidate.displayName}, {nextCandidate.age}</AppText>
       </Animated.View> : null}
       <Animated.View accessibilityLabel={cardSummary} style={[styles.card, { transform: [{ translateX: swipeX }, { translateY: swipeY }, { rotate: rotation }] }]}
         onTouchStart={(event) => captureSwipeStart(event.nativeEvent.pageX, event.nativeEvent.pageY)}
@@ -238,9 +238,9 @@ export function DiscoverScreen({ navigation }: Props) {
         <View style={styles.photoFrame}>
           {visiblePhotoUrl
             ? <Image source={{ uri: visiblePhotoUrl }} style={styles.photo} accessibilityLabel={`Ảnh hồ sơ của ${candidate.displayName}`} />
-            : <View style={styles.photoPlaceholder}><AppIcon name={icons.photo} color={colors.inkMuted} size={46} /><Text style={styles.placeholderText}>Chưa có ảnh</Text></View>}
-          <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}><Text style={styles.likeBadgeText}>THÍCH</Text></Animated.View>
-          <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.passBadge, { opacity: passOpacity }]}><Text style={styles.passBadgeText}>BỎ QUA</Text></Animated.View>
+            : <View style={styles.photoPlaceholder}><Avatar label={candidate.displayName} size={72} /><AppText variant="caption" tone="muted">Chưa có ảnh</AppText></View>}
+          <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}><Text style={styles.likeBadgeText}>Thích</Text></Animated.View>
+          <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.passBadge, { opacity: passOpacity }]}><Text style={styles.passBadgeText}>Bỏ qua</Text></Animated.View>
           {candidate.photos.length > 1 ? <View style={styles.photoCount}><Text style={styles.photoCountText}>{candidate.photos.length} ảnh</Text></View> : null}
         </View>
         <View style={styles.cardContent}>
@@ -267,17 +267,12 @@ export function DiscoverScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { paddingTop: spacing.md, paddingBottom: spacing.md, gap: spacing.sm },
-  headerAction: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radii.pill },
-  headerActionPressed: { backgroundColor: colors.primarySoft },
   deck: { flex: 1, minHeight: 0, justifyContent: 'center' },
   nextCard: { position: 'absolute', top: 10, right: 12, bottom: 0, left: 12, backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, justifyContent: 'flex-end', padding: spacing.lg, gap: spacing.xs },
-  nextCardLabel: { ...type.caption, color: colors.inkMuted, fontWeight: '600' },
-  nextCardName: { ...type.subtitle, color: colors.inkMuted },
   card: { flex: 1, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.lg, overflow: 'hidden' },
   photoFrame: { flex: 1.25, minHeight: 200, backgroundColor: colors.surfaceMuted, position: 'relative' },
   photo: { width: '100%', height: '100%', resizeMode: 'cover' },
   photoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
-  placeholderText: { ...type.body, color: colors.inkMuted },
   swipeBadge: { position: 'absolute', top: spacing.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 2, borderRadius: radii.sm, backgroundColor: colors.surface },
   likeBadge: { right: spacing.lg, borderColor: colors.primary },
   passBadge: { left: spacing.lg, borderColor: colors.danger },
@@ -292,14 +287,13 @@ const styles = StyleSheet.create({
   metaText: { ...type.caption, color: colors.inkMuted, flexShrink: 1 },
   bio: { ...type.body, color: colors.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { maxWidth: '100%', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.pill, backgroundColor: colors.primarySoft },
-  chipText: { ...type.caption, color: colors.primaryPressed, fontWeight: '600' },
+  chip: { maxWidth: '100%', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceMuted },
+  chipText: { ...type.caption, color: colors.ink, fontWeight: '600' },
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', paddingHorizontal: spacing.xl },
   actionControl: { width: 58, height: 58, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
   actionPass: { backgroundColor: colors.surface, borderColor: colors.danger },
   actionProfile: { backgroundColor: colors.surface, borderColor: colors.primary },
   actionLike: { backgroundColor: colors.primary, borderColor: colors.primary },
-  actionPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
   actionDisabled: { backgroundColor: colors.disabled, borderColor: colors.border },
   hint: { ...type.caption, color: colors.inkMuted, textAlign: 'center' },
   error: { ...type.caption, color: colors.danger, textAlign: 'center' },
