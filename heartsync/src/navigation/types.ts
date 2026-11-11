@@ -19,6 +19,8 @@ export type RootStackParamList = {
   ProfileSetup: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   EditProfile: undefined;
+  Interests: undefined;
+  Settings: undefined;
   Filters: undefined;
   OtherProfile: { profileId?: string } | undefined;
   Chat: { matchId?: string } | undefined;

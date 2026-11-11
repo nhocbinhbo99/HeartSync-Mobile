@@ -49,13 +49,13 @@ no screen below is visually complete until a device comparison is recorded.
 | 12 | `12_audio_ringing.png` | `IncomingCallOverlay` / `AudioCall` | REWORK |
 | 13 | `13_audio_active.png` | `AudioCall` | REWORK |
 | 14 | `14_video_call.png` | `VideoCall` | REWORK |
-| 15 | `15_my_profile.png` | `Profile` | REWORK |
-| 16 | `16_edit_profile.png` | `EditProfile` | REWORK |
-| 17 | `17_interests.png` | Profile interests | BUILD |
+| 15 | `15_my_profile.png` | `Profile` | IMPLEMENTED — device QA pending |
+| 16 | `16_edit_profile.png` | `EditProfile` | IMPLEMENTED — device QA pending |
+| 17 | `17_interests.png` | `Interests` | IMPLEMENTED — device QA pending |
 | 18 | `18_safety_center.png` | `Safety` | REWORK |
 | 19 | `19_report.png` | Report flow | BUILD |
 | 20 | `20_empty_discover.png` | `Discover` empty state | REWORK |
-| 21 | `21_settings.png` | Settings | BUILD |
+| 21 | `21_settings.png` | `Settings` | IMPLEMENTED — device QA pending |
 | 22 | `22_dark_chat.png` | Chat appearance treatment | BUILD |
 
 ## Foundation status

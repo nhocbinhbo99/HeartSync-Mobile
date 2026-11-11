@@ -28,6 +28,7 @@ import {
   OtherProfileScreen,
   SafetyScreen,
 } from "../features/profile/ProfileDetailScreens";
+import { InterestsScreen, SettingsScreen } from "../features/profile/ProfileExtraScreens";
 import { ProfileScreen } from "../features/profile/ProfileScreen";
 import { ProfileSetupScreen } from "../features/profile/ProfileSetupScreen";
 import { FiltersScreen } from "../features/preferences/FiltersScreen";
@@ -88,7 +89,7 @@ function MainTabs() {
       <Tabs.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ title: "Hồ sơ" }}
+        options={{ title: "Trang cá nhân", headerShown: false }}
       />
     </Tabs.Navigator>
   );
@@ -169,6 +170,16 @@ export function RootNavigator() {
               name="EditProfile"
               component={EditProfileScreen}
               options={{ title: "Chỉnh sửa hồ sơ" }}
+            />
+            <Stack.Screen
+              name="Interests"
+              component={InterestsScreen}
+              options={{ title: "Sở thích của bạn" }}
+            />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{ title: "Cài đặt" }}
             />
             <Stack.Screen
               name="Filters"
