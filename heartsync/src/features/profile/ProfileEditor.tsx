@@ -6,16 +6,21 @@ import type { User } from '@supabase/supabase-js';
 import { useNavigation, type NavigationAction, type NavigationProp } from '@react-navigation/native';
 
 import { useAppServices } from '../../services/AppServicesProvider';
-import { AppButton } from '../../shared/components/AppButton';
 import { AnimatedSection } from '../../shared/components/AnimatedSection';
+import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
+import { AppButton } from '../../shared/components/AppButton';
+import { AppIcon } from '../../shared/components/AppIcon';
+import { AppText } from '../../shared/components/AppText';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { BottomActionBar } from '../../shared/components/BottomActionBar';
 import { DateField } from '../../shared/components/DateField';
 import { FormField } from '../../shared/components/FormField';
+import { IconButton } from '../../shared/components/IconButton';
 import { LocationConsentField } from '../../shared/components/LocationConsentField';
 import { MultiChoiceField, SingleChoiceField } from '../../shared/components/ChoiceFields';
 import { PhotoGrid, type PhotoGridItem } from '../../shared/components/PhotoGrid';
 import { Screen } from '../../shared/components/Screen';
+import { SectionHeader } from '../../shared/components/SectionHeader';
 import { useSnackbar } from '../../shared/components/Snackbar';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { UnsavedChangesDialog } from '../../shared/components/UnsavedChangesDialog';
@@ -28,8 +33,15 @@ import {
   type ChoiceOption,
 } from '../../shared/domain/profileOptions';
 import { hasProfileErrors, validateProfile, type ProfileFieldErrors } from '../../shared/domain/profileValidation';
-import { colors, spacing, type } from '../../shared/theme/tokens';
-import type { InterestOption, ProfilePhoto, ProfilePrivate, ProfilePublic, ProfileSaveInput } from '../../shared/types/domain.types';
+import { feedback } from '../../shared/motion/feedback';
+import { colors, fonts, radii, spacing, type } from '../../shared/theme/tokens';
+import type {
+  InterestOption,
+  ProfilePhoto,
+  ProfilePrivate,
+  ProfilePublic,
+  ProfileSaveInput,
+} from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -50,8 +62,19 @@ type Draft = {
 };
 
 const blankDraft: Draft = {
-  displayName: '', gender: '', bio: '', occupation: '', education: '', publicLocation: '',
-  dateOfBirth: '', interests: [], languages: [], locationConsent: false, latitude: null, longitude: null, photos: [],
+  displayName: '',
+  gender: '',
+  bio: '',
+  occupation: '',
+  education: '',
+  publicLocation: '',
+  dateOfBirth: '',
+  interests: [],
+  languages: [],
+  locationConsent: false,
+  latitude: null,
+  longitude: null,
+  photos: [],
 };
 
 function fromProfile(publicProfile: ProfilePublic, privateProfile: ProfilePrivate): Draft {
@@ -131,15 +154,20 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     setErrors((current) => ({ ...current, [key]: undefined }));
   };
 
-  const loadPhotoUrls = useCallback(async (photos: ProfilePhoto[]) => {
-    if (!services) return;
-    setPhotoItems(photos.map((photo) => ({ ...photo, loading: true })));
-    const resolved = await Promise.all(photos.map(async (photo): Promise<PhotoGridItem> => {
-      const result = await services.profile.createPhotoUrl(photo.storagePath);
-      return result.ok ? { ...photo, url: result.data } : { ...photo, error: true };
-    }));
-    setPhotoItems(resolved);
-  }, [services]);
+  const loadPhotoUrls = useCallback(
+    async (photos: ProfilePhoto[]) => {
+      if (!services) return;
+      setPhotoItems(photos.map((photo) => ({ ...photo, loading: true })));
+      const resolved = await Promise.all(
+        photos.map(async (photo): Promise<PhotoGridItem> => {
+          const result = await services.profile.createPhotoUrl(photo.storagePath);
+          return result.ok ? { ...photo, url: result.data } : { ...photo, error: true };
+        }),
+      );
+      setPhotoItems(resolved);
+    },
+    [services],
+  );
 
   const load = useCallback(async () => {
     if (!services || !user) return;
@@ -154,28 +182,50 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
       setLoading(false);
       return;
     }
-    setInterestOptions(interestsResult.data.map((interest: InterestOption) => ({ value: interest.label, label: interest.label })));
-    const nextDraft = profileResult.ok ? fromProfile(profileResult.data.public, profileResult.data.private) : fromMetadata(user);
-    if (!profileResult.ok && profileResult.error.code !== 'not_found') setError(profileResult.error.message);
+    setInterestOptions(
+      interestsResult.data.map((interest: InterestOption) => ({
+        value: interest.label,
+        label: interest.label,
+      })),
+    );
+    const nextDraft = profileResult.ok
+      ? fromProfile(profileResult.data.public, profileResult.data.private)
+      : fromMetadata(user);
+    if (!profileResult.ok && profileResult.error.code !== 'not_found') {
+      setError(profileResult.error.message);
+    }
     setDraft(nextDraft);
-    setCustomOccupation(Boolean(nextDraft.occupation) && !OCCUPATION_OPTIONS.some((option) => option.value === nextDraft.occupation));
-    setCustomLocation(Boolean(nextDraft.publicLocation) && !LOCATION_OPTIONS.some((option) => option.value === nextDraft.publicLocation));
+    setCustomOccupation(
+      Boolean(nextDraft.occupation) &&
+        !OCCUPATION_OPTIONS.some((option) => option.value === nextDraft.occupation),
+    );
+    setCustomLocation(
+      Boolean(nextDraft.publicLocation) &&
+        !LOCATION_OPTIONS.some((option) => option.value === nextDraft.publicLocation),
+    );
     setInitialSnapshot(snapshot(nextDraft));
     if (profileResult.ok) await loadPhotoUrls(profileResult.data.public.photos);
     setLoading(false);
   }, [loadPhotoUrls, services, user]);
 
-  useEffect(() => { const timer = setTimeout(() => void load(), 0); return () => clearTimeout(timer); }, [load]);
+  useEffect(() => {
+    const timer = setTimeout(() => void load(), 0);
+    return () => clearTimeout(timer);
+  }, [load]);
 
-  useEffect(() => navigation.addListener('beforeRemove', (event) => {
-    if (allowNextNavigation.current) {
-      allowNextNavigation.current = false;
-      return;
-    }
-    if (mode !== 'edit' || !isDirty || saving) return;
-    event.preventDefault();
-    setPendingNavigation(event.data.action);
-  }), [isDirty, mode, navigation, saving]);
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (event) => {
+        if (allowNextNavigation.current) {
+          allowNextNavigation.current = false;
+          return;
+        }
+        if (mode !== 'edit' || !isDirty || saving) return;
+        event.preventDefault();
+        setPendingNavigation(event.data.action);
+      }),
+    [isDirty, mode, navigation, saving],
+  );
 
   const requestLocation = async () => {
     setError('');
@@ -188,11 +238,18 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
             { text: 'Để sau', style: 'cancel' },
             { text: 'Mở Cài đặt', onPress: () => void Linking.openSettings() },
           ]);
-        } else setError('Bạn chưa cấp quyền vị trí. Bộ lọc khoảng cách sẽ được tắt.');
+        } else {
+          setError('Bạn chưa cấp quyền vị trí. Bộ lọc khoảng cách sẽ được tắt.');
+        }
         return;
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setDraft((current) => ({ ...current, locationConsent: true, latitude: position.coords.latitude, longitude: position.coords.longitude }));
+      setDraft((current) => ({
+        ...current,
+        locationConsent: true,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      }));
       snackbar.show({ message: 'Đã cập nhật vị trí riêng tư.', tone: 'success' });
     } catch {
       setError('Không thể lấy vị trí lúc này. Hãy kiểm tra GPS và thử lại.');
@@ -209,19 +266,29 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       setError('Cần quyền thư viện ảnh để chọn ảnh hồ sơ.');
-      if (!permission.canAskAgain) Alert.alert('Quyền thư viện đang bị chặn', 'Bạn có thể cấp lại quyền trong Cài đặt Android.', [
-        { text: 'Để sau', style: 'cancel' },
-        { text: 'Mở Cài đặt', onPress: () => void Linking.openSettings() },
-      ]);
+      if (!permission.canAskAgain) {
+        Alert.alert('Quyền thư viện đang bị chặn', 'Bạn có thể cấp lại quyền trong Cài đặt Android.', [
+          { text: 'Để sau', style: 'cancel' },
+          { text: 'Mở Cài đặt', onPress: () => void Linking.openSettings() },
+        ]);
+      }
       return;
     }
-    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 5], quality: 0.8 });
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 5],
+      quality: 0.8,
+    });
     if (picked.canceled || !picked.assets[0]) return;
     setPhotoBusy(true);
     setError('');
     const result = await services.profile.uploadPhoto(picked.assets[0].uri, draft.photos.length);
     setPhotoBusy(false);
-    if (!result.ok) { setError(result.error.message); return; }
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
     const photos = [...draft.photos, result.data].sort((a, b) => a.sortOrder - b.sortOrder);
     setDraft((current) => ({ ...current, photos }));
     await loadPhotoUrls(photos);
@@ -239,11 +306,20 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     setPhotoBusy(true);
     setError('');
     const deleted = await services.profile.deletePhoto(photo);
-    if (!deleted.ok) { setPhotoBusy(false); setError(deleted.error.message); await load(); return; }
+    if (!deleted.ok) {
+      setPhotoBusy(false);
+      setError(deleted.error.message);
+      await load();
+      return;
+    }
     const remainingIds = draft.photos.filter((item) => item.id !== photo.id).map((item) => item.id);
     const reordered = await services.profile.reorderPhotos(remainingIds);
     setPhotoBusy(false);
-    if (!reordered.ok) { setError(reordered.error.message); await load(); return; }
+    if (!reordered.ok) {
+      setError(reordered.error.message);
+      await load();
+      return;
+    }
     setDraft((current) => ({ ...current, photos: reordered.data }));
     await loadPhotoUrls(reordered.data);
   };
@@ -258,7 +334,10 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     setPhotoBusy(true);
     const result = await services.profile.reorderPhotos(ids);
     setPhotoBusy(false);
-    if (!result.ok) { setError(result.error.message); return; }
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
     setDraft((current) => ({ ...current, photos: result.data }));
     await loadPhotoUrls(result.data);
   };
@@ -268,9 +347,12 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     setPhotoBusy(true);
     const result = await services.profile.setPrimaryPhoto(photoId);
     setPhotoBusy(false);
-    if (!result.ok) { setError(result.error.message); return; }
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
     const photos = [...draft.photos]
-      .sort((a, b) => a.id === photoId ? -1 : b.id === photoId ? 1 : a.sortOrder - b.sortOrder)
+      .sort((a, b) => (a.id === photoId ? -1 : b.id === photoId ? 1 : a.sortOrder - b.sortOrder))
       .map((photo, index) => ({ ...photo, sortOrder: index, isPrimary: photo.id === photoId }));
     setDraft((current) => ({ ...current, photos }));
     await loadPhotoUrls(photos);
@@ -281,9 +363,13 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     const fieldErrors = validateProfile(draft);
     setErrors(fieldErrors);
     setError('');
-    if (hasProfileErrors(fieldErrors)) return;
+    if (hasProfileErrors(fieldErrors)) {
+      feedback('error');
+      return;
+    }
     if (draft.locationConsent && (draft.latitude === null || draft.longitude === null)) {
       setError('Hãy cập nhật vị trí hoặc tắt dùng vị trí trước khi lưu.');
+      feedback('error');
       return;
     }
     const input: ProfileSaveInput = {
@@ -302,114 +388,347 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     };
     setSaving(true);
     const result = await services.profile.save(input);
-    if (!result.ok) { setSaving(false); setError(result.error.message); return; }
+    if (!result.ok) {
+      setSaving(false);
+      setError(result.error.message);
+      feedback('error');
+      return;
+    }
     const nextDraft = { ...fromProfile(result.data.public, result.data.private), photos: draft.photos };
     setDraft(nextDraft);
     setInitialSnapshot(snapshot(nextDraft));
     if (mode === 'setup') {
       const completed = await completeOnboarding();
       setSaving(false);
-      if (!completed.ok) { setError(completed.message); return; }
+      if (!completed.ok) {
+        setError(completed.message);
+        return;
+      }
       onCompleted?.();
       return;
     }
     await refreshProfileStatus();
     setSaving(false);
-    snackbar.show({ message: 'Đã lưu hồ sơ. Dữ liệu riêng tư không xuất hiện trong Khám phá.', tone: 'success' });
+    snackbar.show({ message: 'Đã lưu thay đổi hồ sơ!', tone: 'success' });
   };
 
   const cancel = () => {
     onCancel?.();
   };
 
-  if (!services || !user) return <Screen><StatePanel title="Không thể chỉnh sửa" description="Phiên đăng nhập đã hết hạn." /></Screen>;
-  if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang chuẩn bị hồ sơ" description="Dữ liệu riêng tư chỉ được tải cho chính bạn." /></Screen>;
+  if (!services || !user) {
+    return (
+      <Screen safeTop>
+        <StatePanel title="Không thể chỉnh sửa" description="Phiên đăng nhập đã hết hạn." />
+      </Screen>
+    );
+  }
+  if (loading) {
+    return (
+      <Screen safeTop>
+        <AsyncStatePanel
+          state="loading"
+          title="Đang chuẩn bị hồ sơ"
+          description="Đang tải dữ liệu hồ sơ của bạn."
+        />
+      </Screen>
+    );
+  }
 
   const occupationChoice = customOccupation ? '__other__' : otherValue(draft.occupation, OCCUPATION_OPTIONS);
   const locationChoice = customLocation ? '__other__' : otherValue(draft.publicLocation, LOCATION_OPTIONS);
-  const actions = <BottomActionBar>
-    <AppButton label={saving ? 'Đang lưu' : mode === 'setup' ? 'Hoàn tất hồ sơ' : 'Lưu thay đổi'} loading={saving}
-      trailingIcon="check" disabled={saving || photoBusy || !isDirty && mode === 'edit'} onPress={() => void save()} />
-    {onCancel ? <AppButton label={mode === 'setup' ? 'Đăng xuất và làm sau' : 'Quay lại'} variant="quiet" leadingIcon="back" disabled={saving}
-      onPress={cancel} /> : null}
-  </BottomActionBar>;
+  const actions = (
+    <BottomActionBar>
+      <AppButton
+        label={saving ? 'Đang lưu' : mode === 'setup' ? 'Hoàn tất hồ sơ' : 'Lưu thay đổi'}
+        loading={saving}
+        trailingIcon="check"
+        disabled={saving || photoBusy || (!isDirty && mode === 'edit')}
+        onPress={() => void save()}
+      />
+      {mode === 'setup' && onCancel ? (
+        <AppButton
+          label="Đăng xuất và làm sau"
+          variant="quiet"
+          leadingIcon="back"
+          disabled={saving}
+          onPress={cancel}
+        />
+      ) : null}
+    </BottomActionBar>
+  );
 
-  return <Screen keyboardAware footer={actions}>
-    <View style={styles.intro}>
-      <Text accessibilityRole="header" style={styles.title}>{mode === 'setup' ? 'Hoàn thiện hồ sơ' : 'Chỉnh sửa hồ sơ'}</Text>
-      <Text style={styles.body}>Ngày sinh và tọa độ chỉ dùng để xác minh tuổi và lọc phù hợp. Người khác chỉ thấy thông tin công khai.</Text>
-    </View>
+  return (
+    <Screen keyboardAware safeTop footer={actions} contentStyle={styles.editorScreen}>
+      {mode === 'edit' ? (
+        <View style={styles.editorHeader}>
+          <IconButton
+            icon="back"
+            label="Quay lại hồ sơ"
+            onPress={() => {
+              if (onCancel) onCancel();
+              else navigation.goBack();
+            }}
+          />
+          <AppText accessibilityRole="header" style={styles.editorTitle}>
+            Chỉnh sửa hồ sơ
+          </AppText>
+        </View>
+      ) : null}
 
-    {mode === 'edit' ? <Section title="Ảnh hồ sơ" description="Ảnh chính xuất hiện đầu tiên. Bạn có thể dùng tối đa 6 ảnh.">
-      <PhotoGrid photos={photoItems} busy={photoBusy} onAdd={() => void addPhoto()} onDelete={removePhoto}
-        onReorder={(id, targetIndex) => void reorderPhoto(id, targetIndex)} onSetPrimary={(id) => void setPrimaryPhoto(id)}
-        onRetry={() => void loadPhotoUrls(draft.photos)} />
-    </Section> : null}
+      <View style={styles.intro}>
+        {mode === 'setup' ? (
+          <AppText accessibilityRole="header" variant="heading">
+            Hoàn thiện hồ sơ
+          </AppText>
+        ) : null}
+        <AppText tone="muted">
+          {mode === 'edit'
+            ? 'Cập nhật chân thật để mọi người dễ tìm thấy sự đồng điệu với bạn.'
+            : 'Ngày sinh và tọa độ chỉ dùng để xác minh tuổi và lọc phù hợp.'}
+        </AppText>
+      </View>
 
-    <Section title="Thông tin cơ bản" description="Các thông tin này giúp hồ sơ rõ ràng và dễ tìm thấy hơn.">
-      <FormField label="Tên hiển thị" value={draft.displayName} onChangeText={(value) => update('displayName', value)}
-        maxLength={80} showCharacterCount error={errors.displayName} placeholder="Tên mọi người sẽ nhìn thấy" />
-      <SingleChoiceField label="Giới tính" options={GENDER_OPTIONS} value={draft.gender}
-        onChange={(value) => update('gender', value)} error={errors.gender} searchable={false} />
-      <DateField label="Ngày sinh riêng tư" value={draft.dateOfBirth} onChange={(value) => update('dateOfBirth', value)}
-        maximumDate={dateLimits.maximum} minimumDate={dateLimits.minimum} error={errors.dateOfBirth} />
-    </Section>
+      {mode === 'edit' ? (
+        <Section title="Ảnh hồ sơ" description="Ảnh chính xuất hiện đầu tiên. Tối đa 6 ảnh.">
+          <PhotoGrid
+            photos={photoItems}
+            busy={photoBusy}
+            onAdd={() => void addPhoto()}
+            onDelete={removePhoto}
+            onReorder={(id, targetIndex) => void reorderPhoto(id, targetIndex)}
+            onSetPrimary={(id) => void setPrimaryPhoto(id)}
+            onRetry={() => void loadPhotoUrls(draft.photos)}
+          />
+        </Section>
+      ) : null}
 
-    <Section title="Giới thiệu" description="Chia sẻ vừa đủ để một người phù hợp có lý do bắt đầu trò chuyện.">
-      <FormField label="Giới thiệu về bạn" value={draft.bio} onChangeText={(value) => update('bio', value)}
-        multiline textAlignVertical="top" style={styles.multiline} maxLength={500} showCharacterCount error={errors.bio}
-        placeholder="Sở thích, lối sống hoặc điều bạn đang tìm kiếm…" />
-      <SingleChoiceField label="Nghề nghiệp" options={OCCUPATION_OPTIONS} value={occupationChoice}
-        onChange={(value) => { setCustomOccupation(value === '__other__'); update('occupation', value === '__other__' ? '' : value); }} error={errors.occupation} />
-      {occupationChoice === '__other__' ? <AnimatedSection><FormField label="Nghề nghiệp của bạn" value={draft.occupation}
-        onChangeText={(value) => update('occupation', value)} maxLength={120} showCharacterCount error={errors.occupation} /></AnimatedSection> : null}
-      <SingleChoiceField label="Học vấn" options={EDUCATION_OPTIONS} value={draft.education}
-        onChange={(value) => update('education', value)} error={errors.education} searchable={false} />
-    </Section>
+      <Section title="Thông tin cơ bản" description="Giúp mọi người gọi tên và nhận ra bạn dễ dàng.">
+        <FormField
+          label="Tên hiển thị"
+          value={draft.displayName}
+          onChangeText={(value) => update('displayName', value)}
+          maxLength={80}
+          showCharacterCount
+          error={errors.displayName}
+          placeholder="Tên mọi người sẽ nhìn thấy"
+        />
 
-    <Section title="Sở thích và ngôn ngữ" description="Bạn có thể chọn nhiều mục và bỏ chọn trực tiếp trên chip.">
-      <MultiChoiceField label="Sở thích" options={interestOptions} values={draft.interests}
-        onChange={(values) => update('interests', values)} error={errors.interests}
-        helperText={interestOptions.length ? undefined : 'Chưa có danh mục sở thích từ máy chủ.'} />
-      <MultiChoiceField label="Ngôn ngữ" options={LANGUAGE_OPTIONS} values={draft.languages}
-        onChange={(values) => update('languages', values)} error={errors.languages} />
-    </Section>
+        {/* Pill chips chọn giới tính trực tiếp một chạm */}
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Giới tính</Text>
+          <View style={styles.pillGrid}>
+            {GENDER_OPTIONS.map((option) => {
+              const active = draft.gender === option.value;
+              return (
+                <AnimatedPressable
+                  key={option.value}
+                  accessibilityRole="radio"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ checked: active }}
+                  onPress={() => {
+                    feedback('selection');
+                    update('gender', option.value);
+                  }}
+                  style={[styles.choicePill, active && styles.choicePillActive]}
+                >
+                  <Text style={[styles.choicePillText, active && styles.choicePillTextActive]}>
+                    {option.label}
+                  </Text>
+                  {active ? <AppIcon name="check" color={colors.primaryPressed} size={14} /> : null}
+                </AnimatedPressable>
+              );
+            })}
+          </View>
+          {errors.gender ? <Text style={styles.fieldError}>{errors.gender}</Text> : null}
+        </View>
 
-    <Section title="Vị trí và quyền riêng tư" description="Khu vực công khai là thông tin thô. Tọa độ GPS luôn được giữ riêng tư.">
-      <SingleChoiceField label="Khu vực công khai" options={LOCATION_OPTIONS} value={locationChoice}
-        onChange={(value) => { setCustomLocation(value === '__other__'); update('publicLocation', value === '__other__' ? '' : value); }} error={errors.publicLocation} />
-      {locationChoice === '__other__' ? <AnimatedSection><FormField label="Khu vực của bạn" value={draft.publicLocation}
-        onChangeText={(value) => update('publicLocation', value)} maxLength={120} showCharacterCount error={errors.publicLocation}
-        placeholder="Chỉ ghi tỉnh/thành phố hoặc khu vực chung" /></AnimatedSection> : null}
-      <LocationConsentField value={draft.locationConsent} onChange={setLocationConsent}
-        disabled={saving} hasCoordinates={draft.latitude !== null && draft.longitude !== null} />
-      {draft.locationConsent ? <AppButton label="Cập nhật vị trí hiện tại" variant="secondary" disabled={saving}
-        onPress={() => void requestLocation()} /> : null}
-    </Section>
+        <DateField
+          label="Ngày sinh riêng tư"
+          value={draft.dateOfBirth}
+          onChange={(value) => update('dateOfBirth', value)}
+          maximumDate={dateLimits.maximum}
+          minimumDate={dateLimits.minimum}
+          error={errors.dateOfBirth}
+        />
+      </Section>
 
-    {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
-    <UnsavedChangesDialog visible={pendingNavigation !== undefined} onKeepEditing={() => setPendingNavigation(undefined)}
-      onDiscard={() => {
-        const action = pendingNavigation;
-        setPendingNavigation(undefined);
-        if (action) {
-          allowNextNavigation.current = true;
-          navigation.dispatch(action);
-        }
-      }} />
-  </Screen>;
+      <Section title="Giới thiệu" description="Chia sẻ vài nét về phong cách sống hoặc nghề nghiệp.">
+        <FormField
+          label="Giới thiệu về bạn"
+          value={draft.bio}
+          onChangeText={(value) => update('bio', value)}
+          multiline
+          textAlignVertical="top"
+          style={styles.multiline}
+          maxLength={500}
+          showCharacterCount
+          error={errors.bio}
+          placeholder="Sở thích, thói quen hoặc điều bạn đang tìm kiếm…"
+        />
+        <SingleChoiceField
+          label="Nghề nghiệp"
+          options={OCCUPATION_OPTIONS}
+          value={occupationChoice}
+          onChange={(value) => {
+            setCustomOccupation(value === '__other__');
+            update('occupation', value === '__other__' ? '' : value);
+          }}
+          error={errors.occupation}
+        />
+        {occupationChoice === '__other__' ? (
+          <AnimatedSection>
+            <FormField
+              label="Nghề nghiệp của bạn"
+              value={draft.occupation}
+              onChangeText={(value) => update('occupation', value)}
+              maxLength={120}
+              showCharacterCount
+              error={errors.occupation}
+            />
+          </AnimatedSection>
+        ) : null}
+        <SingleChoiceField
+          label="Học vấn"
+          options={EDUCATION_OPTIONS}
+          value={draft.education}
+          onChange={(value) => update('education', value)}
+          error={errors.education}
+          searchable={false}
+        />
+      </Section>
+
+      <Section title="Sở thích & Ngôn ngữ" description="Chạm để bật hoặc tắt các mục phù hợp với bạn.">
+        <MultiChoiceField
+          label="Sở thích"
+          options={interestOptions}
+          values={draft.interests}
+          onChange={(values) => update('interests', values)}
+          error={errors.interests}
+          helperText={interestOptions.length ? undefined : 'Chưa có danh mục sở thích từ máy chủ.'}
+        />
+        <MultiChoiceField
+          label="Ngôn ngữ"
+          options={LANGUAGE_OPTIONS}
+          values={draft.languages}
+          onChange={(values) => update('languages', values)}
+          error={errors.languages}
+        />
+      </Section>
+
+      <Section title="Vị trí & Quyền riêng tư" description="Tọa độ GPS chính xác luôn được giữ kín.">
+        <SingleChoiceField
+          label="Khu vực công khai"
+          options={LOCATION_OPTIONS}
+          value={locationChoice}
+          onChange={(value) => {
+            setCustomLocation(value === '__other__');
+            update('publicLocation', value === '__other__' ? '' : value);
+          }}
+          error={errors.publicLocation}
+        />
+        {locationChoice === '__other__' ? (
+          <AnimatedSection>
+            <FormField
+              label="Khu vực của bạn"
+              value={draft.publicLocation}
+              onChangeText={(value) => update('publicLocation', value)}
+              maxLength={120}
+              showCharacterCount
+              error={errors.publicLocation}
+              placeholder="Chỉ ghi quận/huyện hoặc thành phố"
+            />
+          </AnimatedSection>
+        ) : null}
+        <LocationConsentField
+          value={draft.locationConsent}
+          onChange={setLocationConsent}
+          disabled={saving}
+          hasCoordinates={draft.latitude !== null && draft.longitude !== null}
+        />
+        {draft.locationConsent ? (
+          <AppButton
+            label="Cập nhật vị trí hiện tại"
+            variant="secondary"
+            disabled={saving}
+            onPress={() => void requestLocation()}
+          />
+        ) : null}
+      </Section>
+
+      {error ? (
+        <AppText accessibilityLiveRegion="polite" variant="caption" tone="danger" style={styles.error}>
+          {error}
+        </AppText>
+      ) : null}
+
+      <UnsavedChangesDialog
+        visible={pendingNavigation !== undefined}
+        onKeepEditing={() => setPendingNavigation(undefined)}
+        onDiscard={() => {
+          const action = pendingNavigation;
+          setPendingNavigation(undefined);
+          if (action) {
+            allowNextNavigation.current = true;
+            navigation.dispatch(action);
+          }
+        }}
+      />
+    </Screen>
+  );
 }
 
 function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
-  return <AnimatedSection><View style={styles.section}>
-    <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionBody}>{description}</Text></View>
-    {children}
-  </View></AnimatedSection>;
+  return (
+    <AnimatedSection>
+      <View style={styles.section}>
+        <SectionHeader title={title} description={description} />
+        {children}
+      </View>
+    </AnimatedSection>
+  );
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs }, title: { ...type.title, color: colors.ink }, body: { ...type.body, color: colors.inkMuted },
-  section: { borderTopColor: colors.border, borderTopWidth: 1, paddingTop: spacing.lg, gap: spacing.md },
-  sectionHeading: { gap: spacing.xs }, sectionTitle: { ...type.subtitle, color: colors.ink }, sectionBody: { ...type.caption, color: colors.inkMuted },
-  multiline: { minHeight: 132, paddingTop: spacing.md }, error: { ...type.body, color: colors.danger },
+  editorScreen: { paddingTop: spacing.xs, gap: spacing.lg },
+  editorHeader: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginLeft: -spacing.xs,
+  },
+  editorTitle: { fontFamily: fonts.extrabold, fontSize: 26, lineHeight: 32, color: colors.ink },
+  intro: { gap: spacing.xs },
+  section: { borderTopColor: colors.border, borderTopWidth: 1, paddingTop: spacing.md, gap: spacing.md },
+  fieldBlock: { gap: spacing.xs },
+  fieldLabel: { ...type.label, color: colors.ink },
+  fieldError: { ...type.caption, color: colors.danger },
+  pillGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  choicePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1.2,
+    borderColor: colors.border,
+  },
+  choicePillActive: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  choicePillText: {
+    fontFamily: fonts.semibold,
+    fontSize: 14,
+    color: colors.inkMuted,
+  },
+  choicePillTextActive: {
+    fontFamily: fonts.bold,
+    color: colors.primaryPressed,
+  },
+  multiline: { minHeight: 120, paddingTop: spacing.md },
+  error: { paddingTop: spacing.xs },
 });

@@ -10,12 +10,13 @@ import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { BottomActionBar } from '../../shared/components/BottomActionBar';
+import { IconButton } from '../../shared/components/IconButton';
 import { RangeSliderField, ValueSliderField } from '../../shared/components/RangeFields';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { useSnackbar } from '../../shared/components/Snackbar';
 import { feedback } from '../../shared/motion/feedback';
-import { colors, radii, spacing, type } from '../../shared/theme/tokens';
+import { colors, fonts, radii, spacing, type } from '../../shared/theme/tokens';
 import type { DiscoveryFilters } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -126,19 +127,31 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
     }
     setFilters(result.data);
     snackbar.show({ message: 'Đã lưu bộ lọc thành công!', tone: 'success' });
-    setTimeout(() => navigation.goBack(), 320);
+    setTimeout(() => navigation.goBack(), 280);
   };
+
+  const topHeader = (
+    <View style={styles.topHeader}>
+      <IconButton icon="back" label="Quay lại Khám phá" onPress={() => navigation.goBack()} />
+      <Text accessibilityRole="header" style={styles.topTitle}>
+        Tùy chỉnh tìm kiếm
+      </Text>
+      <View style={styles.headerSpacer} />
+    </View>
+  );
 
   if (!services) {
     return (
-      <Screen>
+      <Screen safeTop>
+        {topHeader}
         <StatePanel title="Chưa thể tải bộ lọc" description="Cấu hình dịch vụ đang thiếu." />
       </Screen>
     );
   }
   if (loading) {
     return (
-      <Screen>
+      <Screen safeTop>
+        {topHeader}
         <AsyncStatePanel state="loading" title="Đang tải bộ lọc" description="Đang đọc các tùy chọn của bạn." />
       </Screen>
     );
@@ -153,31 +166,14 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         trailingIcon="check"
         onPress={() => void save()}
       />
-      <AppButton
-        label="Đặt lại về mặc định"
-        variant="quiet"
-        disabled={busy}
-        onPress={resetFilters}
-      />
+      <AppButton label="Đặt lại về mặc định" variant="quiet" disabled={busy} onPress={resetFilters} />
     </BottomActionBar>
   );
 
   return (
-    <Screen footer={actions}>
-      {/* Header Intro */}
-      <View style={styles.intro}>
-        <View style={styles.iconCircle}>
-          <AppIcon name="filter" color={colors.primary} size={24} />
-        </View>
-        <Text accessibilityRole="header" style={styles.title}>
-          Tùy chỉnh tìm kiếm
-        </Text>
-        <Text style={styles.body}>
-          Khám phá những người phù hợp với sở thích và mong muốn của bạn.
-        </Text>
-      </View>
+    <Screen safeTop footer={actions}>
+      {topHeader}
 
-      {/* Error Banner */}
       {error ? (
         <View style={styles.errorBox}>
           <AppIcon name="error" color={colors.danger} size={18} />
@@ -185,7 +181,6 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         </View>
       ) : null}
 
-      {/* Age Section */}
       <AnimatedSection>
         <View style={styles.cardSection}>
           <RangeSliderField
@@ -199,13 +194,14 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         </View>
       </AnimatedSection>
 
-      {/* Gender Section */}
       <AnimatedSection>
         <View style={styles.cardSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Giới tính mong muốn</Text>
             <Text style={styles.sectionHint}>
-              {filters.preferredGenders.length === 0 ? 'Mọi giới tính' : `${filters.preferredGenders.length} đã chọn`}
+              {filters.preferredGenders.length === 0
+                ? 'Mọi giới tính'
+                : `${filters.preferredGenders.length} đã chọn`}
             </Text>
           </View>
           <Text style={styles.helperText}>Không chọn nghĩa là hiển thị tất cả mọi người.</Text>
@@ -236,16 +232,17 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         </View>
       </AnimatedSection>
 
-      {/* Languages Section */}
       <AnimatedSection>
         <View style={styles.cardSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Ngôn ngữ giao tiếp</Text>
             <Text style={styles.sectionHint}>
-              {filters.preferredLanguages.length === 0 ? 'Tất cả' : `${filters.preferredLanguages.length} đã chọn`}
+              {filters.preferredLanguages.length === 0
+                ? 'Tất cả'
+                : `${filters.preferredLanguages.length} đã chọn`}
             </Text>
           </View>
-          <Text style={styles.helperText}>Chọn ngôn ngữ bạn muốn trò chuyện.</Text>
+          <Text style={styles.helperText}>Chọn một hoặc nhiều ngôn ngữ bạn muốn trò chuyện.</Text>
           <View style={styles.languageTags}>
             {POPULAR_LANGUAGES.map((lang) => {
               const active = filters.preferredLanguages.includes(lang.code);
@@ -261,9 +258,7 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
                   <Text style={[styles.langChipText, active && styles.langChipTextActive]}>
                     {lang.label}
                   </Text>
-                  {active ? (
-                    <AppIcon name="check" color={colors.primaryPressed} size={14} />
-                  ) : null}
+                  {active ? <AppIcon name="check" color={colors.primaryPressed} size={14} /> : null}
                 </AnimatedPressable>
               );
             })}
@@ -271,7 +266,6 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
         </View>
       </AnimatedSection>
 
-      {/* Distance Section */}
       <AnimatedSection>
         <View style={styles.cardSection}>
           <Text style={styles.sectionTitle}>Khoảng cách</Text>
@@ -283,7 +277,7 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
               <View style={styles.noticeCopy}>
                 <Text style={styles.noticeTitle}>Chưa bật vị trí</Text>
                 <Text style={styles.noticeBody}>
-                  Bật vị trí trong Hồ sơ để lọc theo khoảng cách. Tọa độ chính xác luôn được bảo mật riêng tư.
+                  Bật vị trí trong Hồ sơ để lọc theo khoảng cách. Tọa độ chính xác luôn được giữ riêng tư.
                 </Text>
               </View>
               <AppButton
@@ -329,40 +323,28 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
 }
 
 const styles = StyleSheet.create({
-  intro: {
-    gap: spacing.xs,
+  topHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingTop: spacing.xs,
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    minHeight: 52,
+    marginLeft: -spacing.xs,
     marginBottom: spacing.xs,
   },
-  title: {
-    ...type.title,
+  topTitle: {
+    fontFamily: fonts.extrabold,
+    fontSize: 22,
+    lineHeight: 28,
     color: colors.ink,
-    textAlign: 'center',
   },
-  body: {
-    ...type.body,
-    fontSize: 14,
-    color: colors.inkMuted,
-    textAlign: 'center',
-    maxWidth: 320,
-  },
+  headerSpacer: { width: 48 },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     padding: spacing.sm,
     borderRadius: radii.md,
-    backgroundColor: '#FFE5EC',
+    backgroundColor: colors.dangerSoft,
     marginBottom: spacing.sm,
   },
   errorText: {
@@ -390,15 +372,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    ...type.subtitle,
+    fontFamily: fonts.bold,
     fontSize: 16,
     color: colors.ink,
-    fontWeight: '700',
   },
   sectionHint: {
-    ...type.caption,
+    fontFamily: fonts.semibold,
+    fontSize: 12,
     color: colors.primaryPressed,
-    fontWeight: '600',
   },
   helperText: {
     ...type.caption,
@@ -430,13 +411,13 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   genderChipLabel: {
-    ...type.label,
+    fontFamily: fonts.semibold,
     fontSize: 14,
     color: colors.inkMuted,
   },
   genderChipLabelActive: {
+    fontFamily: fonts.bold,
     color: colors.primaryPressed,
-    fontWeight: '700',
   },
   languageTags: {
     flexDirection: 'row',
@@ -460,14 +441,13 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   langChipText: {
-    ...type.caption,
+    fontFamily: fonts.semibold,
     fontSize: 13,
     color: colors.inkMuted,
-    fontWeight: '500',
   },
   langChipTextActive: {
+    fontFamily: fonts.bold,
     color: colors.primaryPressed,
-    fontWeight: '700',
   },
   locationNotice: {
     backgroundColor: colors.surfaceMuted,
@@ -489,7 +469,7 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   noticeTitle: {
-    ...type.subtitle,
+    fontFamily: fonts.bold,
     fontSize: 15,
     color: colors.ink,
     textAlign: 'center',
@@ -511,7 +491,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   switchTitle: {
-    ...type.label,
+    fontFamily: fonts.bold,
     fontSize: 14,
     color: colors.ink,
   },
