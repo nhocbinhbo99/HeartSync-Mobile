@@ -57,23 +57,31 @@ export function AiIcebreakerAssistant({
     setError('');
     const requestId = retryRequestId ?? randomUUID();
     setRetryRequestId(requestId);
-    const result = await services.ai.generateIcebreaker({ requestId, matchId, tone: 'friendly' });
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.error.message);
-      if (result.error.code === 'quota_exhausted') {
-        setQuota((current) => (current ? { ...current, remaining: 0 } : current));
+    try {
+      const result = await services.ai.generateIcebreaker({ requestId, matchId, tone: 'friendly' });
+      if (!result.ok) {
+        setError(result.error.message);
+        if (result.error.code === 'quota_exhausted') {
+          setQuota((current) => (current ? { ...current, remaining: 0 } : current));
+        }
+        // Reuse IDs only when a network response may have been lost or the server is still working.
+        // A completed provider failure is refunded and must use a new request ID on retry.
+        if (result.error.code !== 'network' && result.error.code !== 'request_in_progress') {
+          setRetryRequestId(undefined);
+        }
+        return;
       }
-      if (result.error.code !== 'network' && result.error.code !== 'request_in_progress') {
-        setRetryRequestId(undefined);
-      }
-      return;
+      if (consentNeeded) recordAiConsent('icebreaker', user?.id);
+      setConsentNeeded(false);
+      setRetryRequestId(undefined);
+      setSuggestion(result.data);
+      setQuota(result.data.quota);
+    } catch {
+      setRetryRequestId(undefined);
+      setError('Không thể kết nối đến máy chủ AI. Vui lòng thử lại.');
+    } finally {
+      setBusy(false);
     }
-    if (consentNeeded) recordAiConsent('icebreaker', user?.id);
-    setConsentNeeded(false);
-    setRetryRequestId(undefined);
-    setSuggestion(result.data);
-    setQuota(result.data.quota);
   };
 
   useEffect(() => {
@@ -140,7 +148,7 @@ export function AiIcebreakerAssistant({
         ) : (
           <>
             {consentNeeded ? (
-              <AiConsentNotice text="Sở thích công khai phù hợp của hai hồ sơ sẽ được gửi đến Gemini để tạo gợi ý. Không gửi nội dung Chat, số điện thoại hoặc vị trí chính xác." />
+              <AiConsentNotice text="Sở thích công khai phù hợp của hai hồ sơ sẽ được gửi đến dịch vụ Gemini để Trợ lý AI tạo gợi ý. Không gửi nội dung Chat, số điện thoại hoặc vị trí chính xác." />
             ) : null}
 
             {exhausted ? (
@@ -167,9 +175,9 @@ export function AiIcebreakerAssistant({
           </AppText>
         ) : null}
 
-        {error && retryRequestId && !exhausted ? (
+        {error && !exhausted ? (
           <AppButton
-            label="Thử lại an toàn"
+            label="Thử lại"
             variant="secondary"
             disabled={busy}
             onPress={() => void generate()}

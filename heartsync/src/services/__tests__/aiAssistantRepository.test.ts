@@ -33,4 +33,11 @@ describe('SupabaseAiAssistantRepository', () => {
     expect(result).toMatchObject({ ok: false, error: { code: 'quota_exhausted' } });
     if (!result.ok) expect(result.error.message).not.toContain('provider internals');
   });
+
+  it('maps provider-neutral AI errors without exposing Function internals', async () => {
+    const client = clientFor(null, { context: { json: async () => ({ code: 'AI_RATE_LIMITED', message: 'provider internals' }) } });
+    const result = await new SupabaseAiAssistantRepository(client).getQuotas();
+    expect(result).toMatchObject({ ok: false, error: { code: 'rate_limited' } });
+    if (!result.ok) expect(result.error.message).not.toContain('provider internals');
+  });
 });

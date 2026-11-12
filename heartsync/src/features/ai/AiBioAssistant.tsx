@@ -67,23 +67,30 @@ export function AiBioAssistant({
     setError('');
     const requestId = retryRequestId ?? randomUUID();
     setRetryRequestId(requestId);
-    const result = await services.ai.generateBio({ requestId, tone, ideas });
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.error.message);
-      if (result.error.code === 'quota_exhausted') {
-        setQuota((current) => (current ? { ...current, remaining: 0 } : current));
+    try {
+      const result = await services.ai.generateBio({ requestId, tone, ideas });
+      if (!result.ok) {
+        setError(result.error.message);
+        if (result.error.code === 'quota_exhausted') {
+          setQuota((current) => (current ? { ...current, remaining: 0 } : current));
+        }
+        // Reuse IDs only when the original request may still complete on the server.
+        if (result.error.code !== 'network' && result.error.code !== 'request_in_progress') {
+          setRetryRequestId(undefined);
+        }
+        return;
       }
-      if (result.error.code !== 'network' && result.error.code !== 'request_in_progress') {
-        setRetryRequestId(undefined);
-      }
-      return;
+      if (consentNeeded) recordAiConsent('profile_bio', user?.id);
+      setConsentNeeded(false);
+      setRetryRequestId(undefined);
+      setSuggestion(result.data);
+      setQuota(result.data.quota);
+    } catch {
+      setRetryRequestId(undefined);
+      setError('Không thể kết nối đến máy chủ AI. Vui lòng thử lại.');
+    } finally {
+      setBusy(false);
     }
-    if (consentNeeded) recordAiConsent('profile_bio', user?.id);
-    setConsentNeeded(false);
-    setRetryRequestId(undefined);
-    setSuggestion(result.data);
-    setQuota(result.data.quota);
   };
 
   useEffect(() => {
@@ -99,7 +106,7 @@ export function AiBioAssistant({
     <>
       <AiTriggerPill
         label="✨ Viết Bio bằng AI"
-        hint="Gemini AI"
+        hint="Trợ lý AI"
         accessibilityHint="Tạo gợi ý tùy chọn; Bio chỉ được điền vào form, chưa được lưu."
         onPress={open}
       />
@@ -187,7 +194,7 @@ export function AiBioAssistant({
             </View>
 
             {consentNeeded ? (
-              <AiConsentNotice text="Nội dung bạn nhập và sở thích được chọn sẽ được gửi đến dịch vụ Gemini để tạo gợi ý. Không gửi email, tin nhắn riêng tư hoặc vị trí chính xác." />
+              <AiConsentNotice text="Nội dung bạn nhập và sở thích được chọn sẽ được gửi đến dịch vụ Gemini để Trợ lý AI tạo gợi ý. Không gửi email, tin nhắn riêng tư hoặc vị trí chính xác." />
             ) : null}
 
             {exhausted ? (
@@ -214,9 +221,9 @@ export function AiBioAssistant({
           </AppText>
         ) : null}
 
-        {error && retryRequestId && !exhausted ? (
+        {error && !exhausted ? (
           <AppButton
-            label="Thử lại an toàn"
+            label="Thử lại"
             variant="secondary"
             disabled={busy}
             onPress={() => void generate()}
