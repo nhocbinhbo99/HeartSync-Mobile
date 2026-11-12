@@ -238,8 +238,11 @@ export function OtherProfileScreen({
               />
             ))}
           </ScrollView>
+        ) : profile.photos.length > 0 ? (
+          <View style={[styles.heroImage, { width: heroWidth, height: heroHeight }]} />
         ) : (
           <Image
+            key={`fallback-${profile.id}`}
             accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`}
             source={getProfileImageSource(undefined, profile.id, profile.gender, profile.displayName)}
             fadeDuration={0}

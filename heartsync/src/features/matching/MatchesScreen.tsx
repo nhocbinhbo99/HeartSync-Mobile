@@ -28,7 +28,8 @@ type Props = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Matches'>,
   NativeStackScreenProps<RootStackParamList>
 >;
-type PhotoUrls = Record<string, string>;
+type ResolvedPhoto = { storagePath: string; url: string };
+type PhotoUrls = Record<string, ResolvedPhoto>;
 type MatchFilter = 'all' | 'chats' | 'new';
 
 function connectedAt(createdAt: string) {
@@ -71,11 +72,11 @@ function MatchAvatar({
   size = 58,
 }: {
   profile: ProfilePublic;
-  photoUrl?: string;
+  photoUrl?: ResolvedPhoto;
   size?: number;
 }) {
   const path = primaryPhotoPath(profile);
-  const resolved = photoUrl ?? getCachedPhotoUrl(path);
+  const resolved = (photoUrl && photoUrl.storagePath === path ? photoUrl.url : undefined) ?? getCachedPhotoUrl(path);
   return (
     <Avatar
       label={`Ảnh hồ sơ của ${profile.displayName}`}
@@ -126,7 +127,7 @@ export function MatchesScreen({ navigation }: Props) {
       for (const match of nextMatches) {
         const path = primaryPhotoPath(match.otherProfile);
         if (path && resolvedMap[path]) {
-          nextPhotos[match.id] = resolvedMap[path];
+          nextPhotos[match.id] = { storagePath: path, url: resolvedMap[path] };
         }
       }
 
@@ -135,7 +136,12 @@ export function MatchesScreen({ navigation }: Props) {
       setPhotoUrls((prev) => {
         const prevKeys = Object.keys(prev);
         const nextKeys = Object.keys(nextPhotos);
-        if (prevKeys.length === nextKeys.length && nextKeys.every((k) => prev[k] === nextPhotos[k])) {
+        if (
+          prevKeys.length === nextKeys.length &&
+          nextKeys.every(
+            (k) => prev[k]?.storagePath === nextPhotos[k].storagePath && prev[k]?.url === nextPhotos[k].url,
+          )
+        ) {
           return prev;
         }
         return nextPhotos;

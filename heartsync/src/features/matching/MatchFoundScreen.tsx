@@ -87,6 +87,10 @@ export function MatchFoundScreen({
 
   const visiblePeople = people?.matchId === matchId ? people : undefined;
   const otherName = visiblePeople?.other.displayName ?? 'người ấy';
+  const showMyPhoto = Boolean(visiblePeople && (visiblePeople.myPhoto || visiblePeople.mine.photos.length === 0));
+  const showOtherPhoto = Boolean(
+    visiblePeople && (visiblePeople.otherPhoto || visiblePeople.other.photos.length === 0),
+  );
 
   return (
     <Screen scroll={false} safeTop contentStyle={styles.screen}>
@@ -120,32 +124,46 @@ export function MatchFoundScreen({
 
           <View style={styles.circlesRow}>
             <View style={[styles.circleFrame, styles.leftCircle]}>
-              <Image
-                key={visiblePeople?.myPhoto ?? 'mine-fallback'}
-                accessibilityLabel={`Ảnh của ${visiblePeople?.mine.displayName ?? 'Bạn'}`}
-                source={getProfileImageSource(
-                  visiblePeople?.myPhoto,
-                  visiblePeople?.mine.id ?? 'match-mine',
-                  visiblePeople?.mine.gender ?? 'man',
-                  visiblePeople?.mine.displayName,
-                )}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
+              {showMyPhoto && visiblePeople ? (
+                <Image
+                  key={visiblePeople.myPhoto ?? `mine-${visiblePeople.mine.id}`}
+                  accessibilityLabel={`Ảnh của ${visiblePeople.mine.displayName}`}
+                  source={getProfileImageSource(
+                    visiblePeople.myPhoto,
+                    visiblePeople.mine.id,
+                    visiblePeople.mine.gender,
+                    visiblePeople.mine.displayName,
+                  )}
+                  fadeDuration={0}
+                  style={styles.circleImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.circlePlaceholder}>
+                  <AppIcon name="heart" color="#FF85A9" size={28} />
+                </View>
+              )}
             </View>
             <View style={[styles.circleFrame, styles.rightCircle]}>
-              <Image
-                key={visiblePeople?.otherPhoto ?? 'other-fallback'}
-                accessibilityLabel={`Ảnh của ${otherName}`}
-                source={getProfileImageSource(
-                  visiblePeople?.otherPhoto,
-                  visiblePeople?.other.id ?? 'match-other',
-                  visiblePeople?.other.gender ?? 'woman',
-                  otherName,
-                )}
-                style={styles.circleImage}
-                resizeMode="cover"
-              />
+              {showOtherPhoto && visiblePeople ? (
+                <Image
+                  key={visiblePeople.otherPhoto ?? `other-${visiblePeople.other.id}`}
+                  accessibilityLabel={`Ảnh của ${otherName}`}
+                  source={getProfileImageSource(
+                    visiblePeople.otherPhoto,
+                    visiblePeople.other.id,
+                    visiblePeople.other.gender,
+                    otherName,
+                  )}
+                  fadeDuration={0}
+                  style={styles.circleImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.circlePlaceholder}>
+                  <AppIcon name="heart" color="#FF85A9" size={28} />
+                </View>
+              )}
             </View>
             <View pointerEvents="none" accessible={false} style={styles.centerHeartBadge}>
               <Image
@@ -261,6 +279,12 @@ const styles = StyleSheet.create({
   circleImage: {
     width: '100%',
     height: '100%',
+  },
+  circlePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
   },
   centerHeartBadge: {
     position: 'absolute',

@@ -130,8 +130,10 @@ function PhotoTile({
     <Animated.View style={[styles.card, animatedStyle]}>
       {photo.url ? (
         <Image
+          key={photo.url}
           accessibilityLabel={`Ảnh hồ sơ ${index + 1}`}
           source={{ uri: photo.url }}
+          fadeDuration={0}
           style={styles.image}
           resizeMode="cover"
         />

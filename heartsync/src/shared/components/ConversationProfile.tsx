@@ -55,27 +55,32 @@ export function ConversationProfile({
   const avatarOnly = presentation === 'avatar' || presentation === 'callTile';
   const hero = presentation === 'hero' || presentation === 'callHero';
   const avatarSize = hero ? 116 : presentation === 'callTile' ? 64 : avatarOnly ? 46 : 48;
-  const imageSource = getProfileImageSource(
-    resolvedUrl || undefined,
-    profileId,
-    profile?.gender,
-    profile?.displayName,
-  );
+  const canRenderImage = Boolean(profile && (resolvedUrl || !primaryPath));
+  const imageSource = canRenderImage
+    ? getProfileImageSource(
+        resolvedUrl || undefined,
+        profileId,
+        profile?.gender,
+        profile?.displayName,
+      )
+    : undefined;
+  const imageKey = resolvedUrl || (primaryPath ? 'pending' : `fallback-${profileId}`);
+  const avatarFrameStyle = {
+    width: avatarSize,
+    height: avatarSize,
+    borderRadius: avatarSize / 2,
+    borderWidth: hero ? 3 : 1.5,
+    borderColor: hero ? 'rgba(255,255,255,0.85)' : colors.border,
+    backgroundColor: colors.surfaceMuted,
+  };
 
   const content = (
     <View style={{ flexDirection: hero ? 'column' : 'row', alignItems: 'center', gap: hero ? 14 : 10 }}>
-      <Image
-        source={imageSource}
-        fadeDuration={0}
-        style={{
-          width: avatarSize,
-          height: avatarSize,
-          borderRadius: avatarSize / 2,
-          borderWidth: hero ? 3 : 1.5,
-          borderColor: hero ? 'rgba(255,255,255,0.85)' : colors.border,
-          backgroundColor: colors.surfaceMuted,
-        }}
-      />
+      {imageSource ? (
+        <Image key={imageKey} source={imageSource} fadeDuration={0} style={avatarFrameStyle} />
+      ) : (
+        <View style={avatarFrameStyle} />
+      )}
       {!avatarOnly ? (
         <Text
           style={{
@@ -93,7 +98,9 @@ export function ConversationProfile({
   if (presentation === 'callHero' || presentation === 'callTile') {
     return (
       <View style={styles.callHero}>
-        <Image source={imageSource} blurRadius={28} resizeMode="cover" style={styles.callHeroBackdrop} />
+        {imageSource ? (
+          <Image key={`backdrop-${imageKey}`} source={imageSource} fadeDuration={0} blurRadius={28} resizeMode="cover" style={styles.callHeroBackdrop} />
+        ) : null}
         <View style={styles.callHeroScrim} />
         <View style={styles.callHeroContent}>{content}</View>
       </View>

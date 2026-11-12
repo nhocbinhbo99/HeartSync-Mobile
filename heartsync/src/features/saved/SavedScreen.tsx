@@ -37,6 +37,7 @@ export function SavedScreen({ navigation }: Props) {
   const [removingId, setRemovingId] = useState<string>();
   const [error, setError] = useState('');
   const hasLoadedRef = useRef(false);
+  const requestRef = useRef(0);
 
   const withPhotoUrls = useCallback(
     async (profiles: ProfilePublic[]): Promise<SavedItem[]> => {
@@ -59,17 +60,21 @@ export function SavedScreen({ navigation }: Props) {
   const load = useCallback(
     async (isRefresh = false, silent = false) => {
       if (!services) return;
+      const request = ++requestRef.current;
       if (isRefresh) setRefreshing(true);
       else if (!hasLoadedRef.current && !silent) setLoading(true);
       if (!silent) setError('');
       const result = await services.saved.list();
+      if (request !== requestRef.current) return;
       if (!result.ok) {
         if (isRefresh) setRefreshing(false);
         else setLoading(false);
         if (!hasLoadedRef.current || !silent) setError(result.error.message);
         return;
       }
-      setItems(await withPhotoUrls(result.data.items));
+      const nextItems = await withPhotoUrls(result.data.items);
+      if (request !== requestRef.current) return;
+      setItems(nextItems);
       setNextCursor(result.data.nextCursor);
       hasLoadedRef.current = true;
       if (isRefresh) setRefreshing(false);
@@ -252,6 +257,9 @@ function SavedCard({
   onRemove: () => void;
 }) {
   const { profile, photoUrl } = item;
+  const primaryPath = (profile.photos.find((photo) => photo.isPrimary) ?? profile.photos[0])?.storagePath;
+  const resolvedUrl = photoUrl ?? getCachedPhotoUrl(primaryPath);
+  const canRenderImage = Boolean(resolvedUrl || !primaryPath);
   return (
     <View style={styles.card}>
       <AnimatedPressable
@@ -261,12 +269,17 @@ function SavedCard({
         onPress={onOpen}
         style={styles.cardTap}
       >
-        <Image
-          accessibilityLabel={`Ảnh của ${profile.displayName}`}
-          source={getProfileImageSource(photoUrl, profile.id, profile.gender, profile.displayName)}
-          fadeDuration={0}
-          style={styles.avatar}
-        />
+        {canRenderImage ? (
+          <Image
+            key={`${profile.id}:${resolvedUrl ?? 'fallback'}`}
+            accessibilityLabel={`Ảnh của ${profile.displayName}`}
+            source={getProfileImageSource(resolvedUrl, profile.id, profile.gender, profile.displayName)}
+            fadeDuration={0}
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={styles.avatar} />
+        )}
         <Image
           source={brandAssets.cardScrimGradient}
           style={styles.cardScrim}
