@@ -67,4 +67,28 @@ describe('Supabase profile repositories', () => {
     expect(rpc).toHaveBeenNthCalledWith(1, 'reorder_profile_photos', { p_photo_ids: ['photo-b'] });
     expect(rpc).toHaveBeenNthCalledWith(2, 'set_primary_profile_photo', { p_photo_id: 'photo-b' });
   });
+
+  it('batches concurrent signed photo URLs and reuses the in-memory result', async () => {
+    const createSignedUrls = jest.fn(async (paths: string[]) => ({
+      data: paths.map((path) => ({ path, error: null, signedUrl: `https://cdn.test/${path}?token=stable` })),
+      error: null,
+    }));
+    const client = {
+      storage: { from: jest.fn(() => ({ createSignedUrls })) },
+    } as unknown as AppSupabaseClient;
+    const repository = new SupabaseProfileRepository(client);
+
+    const [first, second, duplicate] = await Promise.all([
+      repository.createPhotoUrl('profile-a/a.jpg'),
+      repository.createPhotoUrl('profile-b/b.jpg'),
+      repository.createPhotoUrl('profile-a/a.jpg'),
+    ]);
+
+    expect(first).toEqual({ ok: true, data: 'https://cdn.test/profile-a/a.jpg?token=stable' });
+    expect(second).toEqual({ ok: true, data: 'https://cdn.test/profile-b/b.jpg?token=stable' });
+    expect(duplicate).toEqual(first);
+    await expect(repository.createPhotoUrl('profile-a/a.jpg')).resolves.toEqual(first);
+    expect(createSignedUrls).toHaveBeenCalledTimes(1);
+    expect(createSignedUrls).toHaveBeenCalledWith(['profile-a/a.jpg', 'profile-b/b.jpg'], 3600);
+  });
 });

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppButton } from '../../shared/components/AppButton';
+import { CachedImage } from '../../shared/components/CachedImage';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { Screen } from '../../shared/components/Screen';
@@ -12,7 +13,8 @@ import { colors, radii, spacing } from '../../shared/theme/tokens';
 import type { ProfilePublic } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 
-type MatchPeople = { other: ProfilePublic; mine: ProfilePublic; otherPhoto?: string; myPhoto?: string };
+type ResolvedPhoto = { storagePath: string; url: string };
+type MatchPeople = { other: ProfilePublic; mine: ProfilePublic; otherPhoto?: ResolvedPhoto; myPhoto?: ResolvedPhoto };
 
 export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'MatchFound'>) {
   const services = useAppServices();
@@ -36,8 +38,8 @@ export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<R
       setPeople({
         other: match.otherProfile,
         mine: mine.data.public,
-        otherPhoto: otherUrl?.ok ? otherUrl.data : undefined,
-        myPhoto: myUrl?.ok ? myUrl.data : undefined,
+        otherPhoto: otherPath && otherUrl?.ok ? { storagePath: otherPath, url: otherUrl.data } : undefined,
+        myPhoto: myPath && myUrl?.ok ? { storagePath: myPath, url: myUrl.data } : undefined,
       });
     });
     return () => { live = false; };
@@ -67,9 +69,9 @@ export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<R
   </Screen>;
 }
 
-function Portrait({ photoUrl, label, style }: { photoUrl?: string; label: string; style: object }) {
+function Portrait({ photoUrl, label, style }: { photoUrl?: ResolvedPhoto; label: string; style: object }) {
   return <View style={[styles.portrait, style]}>
-    {photoUrl ? <Image accessibilityLabel={`Ảnh của ${label}`} source={{ uri: photoUrl }} style={styles.portraitImage} resizeMode="cover" /> : <View accessibilityRole="image" accessibilityLabel={`Ảnh của ${label} chưa có`} style={styles.portraitFallback}><AppIcon name="heartOutline" color={colors.primarySoft} size={42} /></View>}
+    {photoUrl ? <CachedImage accessibilityLabel={`Ảnh của ${label}`} source={{ uri: photoUrl.url, cacheKey: photoUrl.storagePath }} recyclingKey={photoUrl.storagePath} style={styles.portraitImage} /> : <View accessibilityRole="image" accessibilityLabel={`Ảnh của ${label} chưa có`} style={styles.portraitFallback}><AppIcon name="heartOutline" color={colors.primarySoft} size={42} /></View>}
   </View>;
 }
 

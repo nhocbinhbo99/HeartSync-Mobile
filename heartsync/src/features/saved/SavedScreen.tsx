@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
+import { CachedImage } from '../../shared/components/CachedImage';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
@@ -21,6 +22,11 @@ import type { ProfilePublic } from '../../shared/types/domain.types';
 type Props = CompositeScreenProps<BottomTabScreenProps<MainTabParamList, 'Saved'>, NativeStackScreenProps<RootStackParamList>>;
 type SavedItem = { profile: ProfilePublic; photoUrl?: string };
 
+function preserveLoadedPhotos(profiles: ProfilePublic[], current: SavedItem[]) {
+  const currentUrls = new Map(current.map((item) => [item.profile.id, item.photoUrl]));
+  return profiles.map((profile) => ({ profile, photoUrl: currentUrls.get(profile.id) }));
+}
+
 export function SavedScreen({ navigation }: Props) {
   const services = useAppServices();
   const snackbar = useSnackbar();
@@ -31,6 +37,9 @@ export function SavedScreen({ navigation }: Props) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [removingId, setRemovingId] = useState<string>();
   const [error, setError] = useState('');
+  const loadedRef = useRef(false);
+  const requestRef = useRef(0);
+  const loadingMoreRef = useRef(false);
 
   const withPhotoUrls = useCallback(async (profiles: ProfilePublic[]) => {
     if (!services) return [];
@@ -44,30 +53,50 @@ export function SavedScreen({ navigation }: Props) {
 
   const load = useCallback(async (isRefresh = false) => {
     if (!services) return;
-    if (isRefresh) setRefreshing(true); else setLoading(true);
+    const request = ++requestRef.current;
+    if (isRefresh) setRefreshing(true);
+    else if (!loadedRef.current) setLoading(true);
     setError('');
     const result = await services.saved.list();
+    if (request !== requestRef.current) return;
     if (!result.ok) {
       if (isRefresh) setRefreshing(false); else setLoading(false);
-      setError(result.error.message);
+      if (!loadedRef.current) setError(result.error.message);
       return;
     }
-    setItems(await withPhotoUrls(result.data.items));
+    loadedRef.current = true;
+    setItems((current) => preserveLoadedPhotos(result.data.items, current));
     setNextCursor(result.data.nextCursor);
     if (isRefresh) setRefreshing(false); else setLoading(false);
+    const hydrated = await withPhotoUrls(result.data.items);
+    if (request !== requestRef.current) return;
+    setItems((current) => hydrated.map((item) => ({
+      ...item,
+      photoUrl: item.photoUrl ?? current.find((saved) => saved.profile.id === item.profile.id)?.photoUrl,
+    })));
   }, [services, withPhotoUrls]);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    void load();
+    return () => { requestRef.current += 1; };
+  }, [load]));
 
   const loadMore = async () => {
-    if (!services || !nextCursor || loadingMore) return;
+    if (!services || !nextCursor || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
-    const result = await services.saved.list(nextCursor);
-    setLoadingMore(false);
-    if (!result.ok) { setError(result.error.message); return; }
-    const nextItems = await withPhotoUrls(result.data.items);
-    setItems((current) => [...current, ...nextItems.filter((item) => !current.some((saved) => saved.profile.id === item.profile.id))]);
-    setNextCursor(result.data.nextCursor);
+    try {
+      const result = await services.saved.list(nextCursor);
+      if (!result.ok) { setError(result.error.message); return; }
+      setItems((current) => [...current, ...preserveLoadedPhotos(result.data.items, current)
+        .filter((item) => !current.some((saved) => saved.profile.id === item.profile.id))]);
+      setNextCursor(result.data.nextCursor);
+      const nextItems = await withPhotoUrls(result.data.items);
+      setItems((current) => current.map((item) => nextItems.find((next) => next.profile.id === item.profile.id) ?? item));
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
   };
 
   const restore = async (removed: SavedItem) => {
@@ -102,6 +131,7 @@ export function SavedScreen({ navigation }: Props) {
 
   return <Screen scroll={false} safeTop contentStyle={styles.screen}>
     <FlatList data={items} keyExtractor={(item) => item.profile.id} numColumns={2} columnWrapperStyle={items.length ? styles.row : undefined} contentContainerStyle={styles.content}
+      initialNumToRender={6} maxToRenderPerBatch={6} updateCellsBatchingPeriod={50} windowSize={5} removeClippedSubviews
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} colors={[colors.primary]} tintColor={colors.primary} />}
       renderItem={({ item }) => <SavedCard item={item} removing={removingId === item.profile.id}
         onOpen={() => navigation.navigate('OtherProfile', { profileId: item.profile.id })} onRemove={() => void remove(item.profile.id)} />}
@@ -114,9 +144,10 @@ export function SavedScreen({ navigation }: Props) {
 
 function SavedCard({ item, removing, onOpen, onRemove }: { item: SavedItem; removing: boolean; onOpen: () => void; onRemove: () => void }) {
   const { profile, photoUrl } = item;
+  const primaryPhoto = profile.photos.find((photo) => photo.isPrimary) ?? profile.photos[0];
   return <View style={styles.card}>
     <AnimatedPressable accessibilityRole="button" accessibilityLabel={`Xem hồ sơ ${profile.displayName}`} accessibilityHint="Mở hồ sơ công khai" onPress={onOpen} style={styles.cardTap}>
-      {photoUrl ? <Image accessibilityLabel={`Ảnh của ${profile.displayName}`} source={{ uri: photoUrl }} style={styles.avatar} />
+      {photoUrl ? <CachedImage accessibilityLabel={`Ảnh của ${profile.displayName}`} source={{ uri: photoUrl, cacheKey: primaryPhoto?.storagePath }} recyclingKey={profile.id} style={styles.avatar} />
         : <View accessible accessibilityRole="image" accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`} style={styles.avatarPlaceholder}><AppText variant="title" tone="primary">{profile.displayName.slice(0, 1).toLocaleUpperCase('vi-VN')}</AppText></View>}
       <View style={styles.cardCopy}>
         <AppText numberOfLines={1} variant="subtitle" tone="onPrimary">{profile.displayName}, {profile.age}</AppText>

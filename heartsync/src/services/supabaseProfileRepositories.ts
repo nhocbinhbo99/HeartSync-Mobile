@@ -1,3 +1,5 @@
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+
 import { calculateAge } from '../shared/domain/age';
 import { validateDiscoveryFilters } from '../shared/domain/filters';
 import type {
@@ -22,6 +24,18 @@ const DEFAULT_FILTERS: DiscoveryFilters = {
   preferredGenders: [],
   preferredLanguages: [],
 };
+
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+const SIGNED_URL_CACHE_MS = 50 * 60 * 1000;
+const PROFILE_CACHE_MS = 30 * 1000;
+const INTEREST_CACHE_MS = 10 * 60 * 1000;
+const MAX_PHOTO_URL_CACHE_ENTRIES = 200;
+const PROFILE_PHOTO_MAX_WIDTH = 1440;
+const PROFILE_PHOTO_MAX_HEIGHT = 1800;
+
+type MineProfile = { public: ProfilePublic; private: ProfilePrivate };
+type CacheEntry<T> = { data: T; expiresAt: number };
+type PhotoUrlRequest = { resolve: (result: Result<string>) => void };
 
 async function userId(client: AppSupabaseClient): Promise<Result<string>> {
   const { data, error } = await client.auth.getUser();
@@ -48,9 +62,19 @@ function parseFilters(value: unknown): DiscoveryFilters | null {
 }
 
 export class SupabaseProfileRepository implements ProfileRepository {
+  private mineCache?: CacheEntry<MineProfile>;
+  private interestCache?: CacheEntry<InterestOption[]>;
+  private readonly publicProfileCache = new Map<string, CacheEntry<ProfilePublic>>();
+  private readonly photoUrlCache = new Map<string, CacheEntry<string>>();
+  private readonly photoUrlInFlight = new Map<string, Promise<Result<string>>>();
+  private photoUrlQueue = new Map<string, PhotoUrlRequest>();
+  private photoUrlBatchScheduled = false;
+
   constructor(private readonly client: AppSupabaseClient) {}
 
-  async getMine(): Promise<Result<{ public: ProfilePublic; private: ProfilePrivate }>> {
+  async getMine(): Promise<Result<MineProfile>> {
+    const cached = this.mineCache;
+    if (cached && cached.expiresAt > Date.now()) return { ok: true, data: cached.data };
     const identity = await userId(this.client);
     if (!identity.ok) return identity;
     const [profileQuery, privateQuery, photosQuery, interestsQuery, languagesQuery] = await Promise.all([
@@ -83,31 +107,38 @@ export class SupabaseProfileRepository implements ProfileRepository {
     if (!publicProfile) {
       return { ok: false, error: { code: 'conflict', message: 'Dữ liệu hồ sơ không hợp lệ.', retryable: false } };
     }
+    const mine = {
+      public: publicProfile,
+      private: {
+        userId: identity.data,
+        dateOfBirth,
+        latitude: typeof privateRow?.latitude === 'number' ? privateRow.latitude : null,
+        longitude: typeof privateRow?.longitude === 'number' ? privateRow.longitude : null,
+        locationConsent: privateRow?.location_consent === true,
+      },
+    } satisfies MineProfile;
+    this.mineCache = { data: mine, expiresAt: Date.now() + PROFILE_CACHE_MS };
+    this.publicProfileCache.set(publicProfile.id, { data: publicProfile, expiresAt: Date.now() + PROFILE_CACHE_MS });
     return {
       ok: true,
-      data: {
-        public: publicProfile,
-        private: {
-          userId: identity.data,
-          dateOfBirth,
-          latitude: typeof privateRow?.latitude === 'number' ? privateRow.latitude : null,
-          longitude: typeof privateRow?.longitude === 'number' ? privateRow.longitude : null,
-          locationConsent: privateRow?.location_consent === true,
-        },
-      },
+      data: mine,
     };
   }
 
   async getPublic(profileId: string): Promise<Result<ProfilePublic>> {
+    const cached = this.publicProfileCache.get(profileId);
+    if (cached && cached.expiresAt > Date.now()) return { ok: true, data: cached.data };
     const { data, error } = await this.client.rpc('get_public_profile', { p_profile_id: profileId });
     if (error) return { ok: false, error: mapServiceError(error) };
     const profile = parseProfilePublic(data);
-    return profile
-      ? { ok: true, data: profile }
-      : { ok: false, error: { code: 'conflict', message: 'Máy chủ trả về hồ sơ không hợp lệ.', retryable: false } };
+    if (!profile) return { ok: false, error: { code: 'conflict', message: 'Máy chủ trả về hồ sơ không hợp lệ.', retryable: false } };
+    this.publicProfileCache.set(profileId, { data: profile, expiresAt: Date.now() + PROFILE_CACHE_MS });
+    return { ok: true, data: profile };
   }
 
   async listInterests(): Promise<Result<InterestOption[]>> {
+    const cached = this.interestCache;
+    if (cached && cached.expiresAt > Date.now()) return { ok: true, data: cached.data };
     const { data, error } = await this.client.from('interests').select('id,slug,label').order('label');
     if (error) return { ok: false, error: mapServiceError(error) };
     const interests = (data ?? []).flatMap((entry) => {
@@ -116,6 +147,7 @@ export class SupabaseProfileRepository implements ProfileRepository {
         ? [{ id: row.id, slug: row.slug, label: row.label }]
         : [];
     });
+    this.interestCache = { data: interests, expiresAt: Date.now() + INTEREST_CACHE_MS };
     return { ok: true, data: interests };
   }
 
@@ -141,18 +173,21 @@ export class SupabaseProfileRepository implements ProfileRepository {
     if (!profile) {
       return { ok: false, error: { code: 'conflict', message: 'Máy chủ đã lưu nhưng trả về hồ sơ không hợp lệ.', retryable: false } };
     }
+    const mine = {
+      public: profile,
+      private: {
+        userId: identity.data,
+        dateOfBirth: input.dateOfBirth,
+        locationConsent: input.locationConsent,
+        latitude: input.locationConsent ? input.latitude : null,
+        longitude: input.locationConsent ? input.longitude : null,
+      },
+    } satisfies MineProfile;
+    this.mineCache = { data: mine, expiresAt: Date.now() + PROFILE_CACHE_MS };
+    this.publicProfileCache.set(profile.id, { data: profile, expiresAt: Date.now() + PROFILE_CACHE_MS });
     return {
       ok: true,
-      data: {
-        public: profile,
-        private: {
-          userId: identity.data,
-          dateOfBirth: input.dateOfBirth,
-          locationConsent: input.locationConsent,
-          latitude: input.locationConsent ? input.latitude : null,
-          longitude: input.locationConsent ? input.longitude : null,
-        },
-      },
+      data: mine,
     };
   }
 
@@ -163,11 +198,18 @@ export class SupabaseProfileRepository implements ProfileRepository {
     const identity = await userId(this.client);
     if (!identity.ok) return identity;
     try {
-      const response = await fetch(sourceUri);
+      const context = ImageManipulator.manipulate(sourceUri, {
+        maxWidth: PROFILE_PHOTO_MAX_WIDTH,
+        maxHeight: PROFILE_PHOTO_MAX_HEIGHT,
+      });
+      const rendered = await context.renderAsync();
+      const optimized = await rendered.saveAsync({ compress: 0.84, format: SaveFormat.JPEG });
+      const response = await fetch(optimized.uri);
       if (!response.ok) throw new Error('photo_read_failed');
       const body = await response.arrayBuffer();
       const path = `${identity.data}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
       const upload = await this.client.storage.from('profile-photos').upload(path, body, {
+        cacheControl: '31536000',
         contentType: 'image/jpeg',
         upsert: false,
       });
@@ -188,6 +230,7 @@ export class SupabaseProfileRepository implements ProfileRepository {
         sortOrder: insert.data.sort_order,
         isPrimary: insert.data.is_primary,
       });
+      this.invalidateProfileCaches(identity.data);
       return photo
         ? { ok: true, data: photo }
         : { ok: false, error: { code: 'conflict', message: 'Ảnh đã tải lên nhưng dữ liệu trả về không hợp lệ.', retryable: false } };
@@ -200,6 +243,10 @@ export class SupabaseProfileRepository implements ProfileRepository {
     const metadata = await this.client.from('profile_photos').delete().eq('id', photo.id);
     if (metadata.error) return { ok: false, error: mapServiceError(metadata.error) };
     const file = await this.client.storage.from('profile-photos').remove([photo.storagePath]);
+    if (!file.error) {
+      this.photoUrlCache.delete(photo.storagePath);
+      this.mineCache = undefined;
+    }
     return file.error ? { ok: false, error: mapServiceError(file.error) } : { ok: true, data: undefined };
   }
 
@@ -210,6 +257,7 @@ export class SupabaseProfileRepository implements ProfileRepository {
       return { ok: false, error: { code: 'conflict', message: 'Máy chủ trả về thứ tự ảnh không hợp lệ.', retryable: false } };
     }
     const photos = data.map(parseProfilePhoto).filter((photo): photo is ProfilePhoto => photo !== null);
+    if (photos.length === data.length) this.mineCache = undefined;
     return photos.length === data.length
       ? { ok: true, data: photos }
       : { ok: false, error: { code: 'conflict', message: 'Máy chủ trả về thứ tự ảnh không hợp lệ.', retryable: false } };
@@ -217,14 +265,80 @@ export class SupabaseProfileRepository implements ProfileRepository {
 
   async setPrimaryPhoto(photoId: string): Promise<Result<void>> {
     const { error } = await this.client.rpc('set_primary_profile_photo', { p_photo_id: photoId });
+    if (!error) this.mineCache = undefined;
     return error ? { ok: false, error: mapServiceError(error) } : { ok: true, data: undefined };
   }
 
-  async createPhotoUrl(storagePath: string): Promise<Result<string>> {
-    const { data, error } = await this.client.storage.from('profile-photos').createSignedUrl(storagePath, 60 * 60);
-    return error || !data?.signedUrl
-      ? { ok: false, error: mapServiceError(error ?? { status: 404 }) }
-      : { ok: true, data: data.signedUrl };
+  createPhotoUrl(storagePath: string): Promise<Result<string>> {
+    const path = storagePath.trim();
+    if (!path) {
+      return Promise.resolve({ ok: false, error: { code: 'validation', message: 'Đường dẫn ảnh không hợp lệ.', retryable: false } });
+    }
+    const cached = this.photoUrlCache.get(path);
+    if (cached && cached.expiresAt > Date.now()) return Promise.resolve({ ok: true, data: cached.data });
+    if (cached) this.photoUrlCache.delete(path);
+
+    const activeRequest = this.photoUrlInFlight.get(path);
+    if (activeRequest) return activeRequest;
+
+    let resolveRequest!: (result: Result<string>) => void;
+    const request = new Promise<Result<string>>((resolve) => { resolveRequest = resolve; });
+    this.photoUrlInFlight.set(path, request);
+    this.photoUrlQueue.set(path, { resolve: resolveRequest });
+    if (!this.photoUrlBatchScheduled) {
+      this.photoUrlBatchScheduled = true;
+      void Promise.resolve().then(() => this.flushPhotoUrlBatch());
+    }
+    return request;
+  }
+
+  private async flushPhotoUrlBatch() {
+    const batch = this.photoUrlQueue;
+    this.photoUrlQueue = new Map();
+    this.photoUrlBatchScheduled = false;
+    const paths = [...batch.keys()];
+    if (paths.length === 0) return;
+
+    try {
+      const { data, error } = await this.client.storage.from('profile-photos').createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
+      if (error || !data) {
+        const failure: Result<string> = { ok: false, error: mapServiceError(error ?? { status: 404 }) };
+        batch.forEach(({ resolve }) => resolve(failure));
+        return;
+      }
+      paths.forEach((path, index) => {
+        const signedUrl = data[index]?.signedUrl;
+        if (!signedUrl) {
+          batch.get(path)?.resolve({ ok: false, error: mapServiceError(data[index]?.error ?? { status: 404 }) });
+          return;
+        }
+        this.cachePhotoUrl(path, signedUrl);
+        batch.get(path)?.resolve({ ok: true, data: signedUrl });
+      });
+    } catch (error) {
+      const failure: Result<string> = { ok: false, error: mapServiceError(error) };
+      batch.forEach(({ resolve }) => resolve(failure));
+    } finally {
+      paths.forEach((path) => this.photoUrlInFlight.delete(path));
+    }
+  }
+
+  private cachePhotoUrl(path: string, url: string) {
+    const now = Date.now();
+    for (const [cachedPath, entry] of this.photoUrlCache) {
+      if (entry.expiresAt <= now) this.photoUrlCache.delete(cachedPath);
+    }
+    while (this.photoUrlCache.size >= MAX_PHOTO_URL_CACHE_ENTRIES) {
+      const oldest = this.photoUrlCache.keys().next().value as string | undefined;
+      if (!oldest) break;
+      this.photoUrlCache.delete(oldest);
+    }
+    this.photoUrlCache.set(path, { data: url, expiresAt: now + SIGNED_URL_CACHE_MS });
+  }
+
+  private invalidateProfileCaches(profileId: string) {
+    this.mineCache = undefined;
+    this.publicProfileCache.delete(profileId);
   }
 }
 

@@ -193,7 +193,7 @@ function CallSession({
     // fallback for the caller after the callee accepts on another device.
     const timer = setInterval(() => {
       void refresh();
-    }, 1000);
+    }, 3000);
     return () => {
       cancelled.current = true;
       clearInterval(timer);

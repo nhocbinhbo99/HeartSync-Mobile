@@ -23,6 +23,7 @@ import { colors, radii, spacing } from "../../shared/theme/tokens";
 import type { ChatMessage } from "../../shared/types/domain.types";
 
 type Message = ChatMessage & { delivery?: "sending" | "failed" };
+const CHAT_FALLBACK_REFRESH_MS = 30_000;
 export function ChatScreen(
   props: NativeStackScreenProps<RootStackParamList, "Chat">,
 ) {
@@ -148,8 +149,8 @@ function Conversation({
     subscriptionRef.current = sub;
     const initial = setTimeout(() => void refresh(), 0);
     const timer = setInterval(() => {
-      if (appActive.current) void refresh();
-    }, 5000);
+      if (appActive.current && focus.current) void refresh();
+    }, CHAT_FALLBACK_REFRESH_MS);
     const state = AppState.addEventListener("change", (s) => {
       appActive.current = s === "active";
       if (s === "active") {

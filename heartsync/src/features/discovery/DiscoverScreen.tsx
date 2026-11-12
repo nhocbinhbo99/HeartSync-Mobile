@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
-import { Animated, Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+/* Reanimated shared values are intentionally mutated by UI-thread gestures and animation callbacks. */
+/* eslint-disable react-hooks/immutability */
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { GestureDetector, useExclusiveGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler';
+import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppButton } from '../../shared/components/AppButton';
+import { CachedImage, prefetchCachedImages } from '../../shared/components/CachedImage';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { Avatar } from '../../shared/components/Avatar';
@@ -15,6 +21,7 @@ import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { useSnackbar } from '../../shared/components/Snackbar';
+import { motion } from '../../shared/motion/tokens';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { colors, radii, spacing, type } from '../../shared/theme/tokens';
 import type { ProfilePublic, SwipeAction } from '../../shared/types/domain.types';
@@ -55,7 +62,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const [candidates, setCandidates] = useState<ProfilePublic[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<{ storagePath: string; url: string } | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -65,33 +72,34 @@ export function DiscoverScreen({ navigation }: Props) {
   const [saving, setSaving] = useState(false);
   const busyRef = useRef(false);
   const requestRef = useRef(0);
-  const swipeStartXRef = useRef<number | null>(null);
-  const swipeStartYRef = useRef<number | null>(null);
-  const hasHorizontalGestureRef = useRef(false);
-  const [swipeX] = useState(() => new Animated.Value(0));
-  const [swipeY] = useState(() => new Animated.Value(0));
+  const loadedRef = useRef(false);
+  const swipeX = useSharedValue(0);
+  const swipeY = useSharedValue(0);
 
   const resetCard = useCallback((animated = false) => {
-    if (!animated) {
-      swipeX.setValue(0);
-      swipeY.setValue(0);
-      return;
-    }
-    Animated.parallel([
-      Animated.spring(swipeX, { toValue: 0, useNativeDriver: true, friction: 7, tension: 85 }),
-      Animated.spring(swipeY, { toValue: 0, useNativeDriver: true, friction: 7, tension: 85 }),
-    ]).start();
+    swipeX.value = animated ? withSpring(0, motion.overlay) : 0;
+    swipeY.value = animated ? withSpring(0, motion.overlay) : 0;
   }, [swipeX, swipeY]);
 
   const load = useCallback(async (nextCursor?: string) => {
     if (!services) return;
     const request = ++requestRef.current;
-    if (nextCursor) { setLoadingMore(true); setPageError(''); } else { setLoading(true); setCandidates([]); setCursor(null); setLoadError(''); }
+    const backgroundRefresh = !nextCursor && loadedRef.current;
+    if (nextCursor) {
+      setLoadingMore(true);
+      setPageError('');
+    } else if (!backgroundRefresh) {
+      setLoading(true);
+      setCandidates([]);
+      setCursor(null);
+      setLoadError('');
+    }
     try {
       const preferences = await services.preferences.get();
       if (!preferences.ok) {
         if (request === requestRef.current) {
           if (nextCursor) setPageError(preferences.error.message);
+          else if (backgroundRefresh) setPageError(preferences.error.message);
           else setLoadError(preferences.error.message);
         }
         return;
@@ -100,9 +108,13 @@ export function DiscoverScreen({ navigation }: Props) {
       if (request !== requestRef.current) return;
       if (!result.ok) {
         if (nextCursor) setPageError(result.error.message);
+        else if (backgroundRefresh) setPageError(result.error.message);
         else setLoadError(result.error.message);
         return;
       }
+      loadedRef.current = true;
+      setLoadError('');
+      setPageError('');
       setCandidates((current) => nextCursor
         ? [...current, ...result.data.items.filter((profile) => !current.some((item) => item.id === profile.id))]
         : result.data.items);
@@ -110,6 +122,7 @@ export function DiscoverScreen({ navigation }: Props) {
     } catch {
       if (request === requestRef.current) {
         if (nextCursor) setPageError('Không thể tải thêm hồ sơ. Vui lòng thử lại.');
+        else if (backgroundRefresh) setPageError('Không thể làm mới hồ sơ. Vui lòng thử lại.');
         else setLoadError('Không thể tải hồ sơ. Vui lòng thử lại.');
       }
     } finally {
@@ -126,50 +139,60 @@ export function DiscoverScreen({ navigation }: Props) {
   const nextCandidate = candidates[1];
   const photo = candidate?.photos.find((item) => item.isPrimary) ?? candidate?.photos[0];
   const photoPath = photo?.storagePath;
-  const visiblePhotoUrl = photoUrl && photoPath && photoUrl.storagePath === photoPath ? photoUrl.url : null;
+  const visiblePhotoUrl = photoPath ? photoUrls[photoPath] : undefined;
+  const previewPhotoPaths = useMemo(() => candidates.slice(0, 3).flatMap((profile) => {
+    const preview = profile.photos.find((item) => item.isPrimary) ?? profile.photos[0];
+    return preview ? [preview.storagePath] : [];
+  }), [candidates]);
   useEffect(() => {
     let active = true;
-    if (photoPath && services) void services.profile.createPhotoUrl(photoPath).then((result) => {
-      if (active && result.ok) setPhotoUrl({ storagePath: photoPath, url: result.data });
-    });
+    if (services && previewPhotoPaths.length > 0) {
+      void Promise.all(previewPhotoPaths.map(async (path) => {
+        const result = await services.profile.createPhotoUrl(path);
+        return result.ok ? [path, result.data] as const : null;
+      })).then((entries) => {
+        if (!active) return;
+        const resolved = entries.filter((entry): entry is readonly [string, string] => entry !== null);
+        if (resolved.length === 0) return;
+        setPhotoUrls((current) => ({ ...current, ...Object.fromEntries(resolved) }));
+        void prefetchCachedImages(resolved.map(([, url]) => url)).catch(() => undefined);
+      });
+    }
     return () => { active = false; };
-  }, [photoPath, services]);
+  }, [previewPhotoPaths, services]);
 
-  const swipe = useCallback(async (action: SwipeAction) => {
+  const swipe = useCallback(async (action: SwipeAction, alreadyAnimated = false) => {
     const current = candidate;
     if (!services || !current || busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
     setSwipeError('');
-    const direction = action === 'like' ? 1 : -1;
-    const flyDistance = Math.max(width + 80, 420) * direction;
-
-    Animated.parallel([
-      Animated.timing(swipeX, { toValue: flyDistance, duration: 180, useNativeDriver: true }),
-      Animated.timing(swipeY, { toValue: -20, duration: 180, useNativeDriver: true }),
-    ]).start(async () => {
-      try {
-        const result = await services.matches.recordSwipe(current.id, action);
-        if (!result.ok) {
-          setSwipeError(result.error.message);
-          resetCard(true);
-          return;
-        }
-        resetCard();
-        setCandidates((items) => items[0]?.id === current.id ? items.slice(1) : items);
-        if (result.data.outcome === 'matched') {
-          navigation.navigate('MatchFound', { matchId: result.data.matchId });
-        } else if (candidates.length <= 2 && cursor && !loadingMore) {
-          void load(cursor);
-        }
-      } catch {
-        setSwipeError('Không thể lưu thao tác. Vui lòng thử lại.');
+    if (!alreadyAnimated) {
+      const direction = action === 'like' ? 1 : -1;
+      swipeX.value = withTiming(Math.max(width + 80, 420) * direction, motion.feedback);
+      swipeY.value = withTiming(-20, motion.feedback);
+    }
+    try {
+      const result = await services.matches.recordSwipe(current.id, action);
+      if (!result.ok) {
+        setSwipeError(result.error.message);
         resetCard(true);
-      } finally {
-        busyRef.current = false;
-        setBusy(false);
+        return;
       }
-    });
+      resetCard();
+      setCandidates((items) => items[0]?.id === current.id ? items.slice(1) : items);
+      if (result.data.outcome === 'matched') {
+        navigation.navigate('MatchFound', { matchId: result.data.matchId });
+      } else if (candidates.length <= 2 && cursor && !loadingMore) {
+        void load(cursor);
+      }
+    } catch {
+      setSwipeError('Không thể lưu thao tác. Vui lòng thử lại.');
+      resetCard(true);
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
   }, [candidate, candidates.length, cursor, load, loadingMore, navigation, resetCard, services, swipeX, swipeY, width]);
 
   const saveCandidate = async () => {
@@ -184,41 +207,52 @@ export function DiscoverScreen({ navigation }: Props) {
     snackbar.show({ message: `Đã lưu ${candidate.displayName} để xem lại sau.`, tone: 'success' });
   };
 
-  const captureSwipeStart = (pageX: number, pageY: number) => {
-    swipeStartXRef.current = pageX;
-    swipeStartYRef.current = pageY;
-    hasHorizontalGestureRef.current = false;
-  };
-  const isHorizontalSwipe = (pageX: number, pageY: number) => {
-    const dx = pageX - (swipeStartXRef.current ?? pageX);
-    const dy = pageY - (swipeStartYRef.current ?? pageY);
-    const isHorizontal = Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.25;
-    if (isHorizontal) hasHorizontalGestureRef.current = true;
-    return isHorizontal;
-  };
-  const moveCard = (pageX: number, pageY: number) => {
-    const dx = pageX - (swipeStartXRef.current ?? pageX);
-    const dy = pageY - (swipeStartYRef.current ?? pageY);
-    swipeX.setValue(dx);
-    swipeY.setValue(dy * 0.08);
-  };
-  const finishSwipe = (pageX: number) => {
-    const dx = pageX - (swipeStartXRef.current ?? pageX);
-    swipeStartXRef.current = null;
-    swipeStartYRef.current = null;
-    if (Math.abs(dx) >= SWIPE_THRESHOLD) void swipe(dx > 0 ? 'like' : 'pass');
-    else resetCard(true);
-  };
-  const openProfileFromCard = () => {
-    if (!hasHorizontalGestureRef.current && !busyRef.current && candidate) {
-      navigation.navigate('OtherProfile', { profileId: candidate.id });
-    }
-  };
-
-  const rotation = swipeX.interpolate({ inputRange: [-width, 0, width], outputRange: ['-7deg', '0deg', '7deg'], extrapolate: 'clamp' });
-  const likeOpacity = swipeX.interpolate({ inputRange: [0, 32, SWIPE_THRESHOLD], outputRange: [0, 0.55, 1], extrapolate: 'clamp' });
-  const passOpacity = swipeX.interpolate({ inputRange: [-SWIPE_THRESHOLD, -32, 0], outputRange: [1, 0.55, 0], extrapolate: 'clamp' });
-  const nextScale = swipeX.interpolate({ inputRange: [-width, 0, width], outputRange: [1, 0.96, 1], extrapolate: 'clamp' });
+  const openProfileFromCard = useCallback(() => {
+    if (!busyRef.current && candidate) navigation.navigate('OtherProfile', { profileId: candidate.id });
+  }, [candidate, navigation]);
+  const panConfig = useMemo(() => ({
+    enabled: !busy && !saving,
+    activeOffsetX: [-12, 12] as [number, number],
+    failOffsetY: [-18, 18] as [number, number],
+    onUpdate: (event: { translationX: number; translationY: number }) => {
+      swipeX.value = event.translationX;
+      swipeY.value = event.translationY * 0.08;
+    },
+    onDeactivate: (event: { translationX: number; velocityX: number }) => {
+      const shouldCommit = Math.abs(event.translationX) >= SWIPE_THRESHOLD || Math.abs(event.velocityX) > 900;
+      if (!shouldCommit) {
+        swipeX.value = withSpring(0, motion.overlay);
+        swipeY.value = withSpring(0, motion.overlay);
+        return;
+      }
+      const action: SwipeAction = event.translationX >= 0 ? 'like' : 'pass';
+      const direction = action === 'like' ? 1 : -1;
+      swipeX.value = withTiming(Math.max(width + 80, 420) * direction, motion.feedback);
+      swipeY.value = withTiming(-20, motion.feedback);
+      scheduleOnRN(swipe, action, true);
+    },
+  }), [busy, saving, swipe, swipeX, swipeY, width]);
+  const tapConfig = useMemo(() => ({
+    enabled: !busy && !saving,
+    maxDistance: 10,
+    onActivate: () => { scheduleOnRN(openProfileFromCard); },
+  }), [busy, openProfileFromCard, saving]);
+  const panGesture = usePanGesture(panConfig);
+  const tapGesture = useTapGesture(tapConfig);
+  const cardGesture = useExclusiveGestures(panGesture, tapGesture);
+  const cardAnimatedStyle = useAnimatedStyle(() => {
+    const rotation = interpolate(swipeX.value, [-width, 0, width], [-7, 0, 7], Extrapolation.CLAMP);
+    return { transform: [{ translateX: swipeX.value }, { translateY: swipeY.value }, { rotate: `${rotation}deg` }] };
+  });
+  const nextCardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(swipeX.value, [-width, 0, width], [1, 0.96, 1], Extrapolation.CLAMP) }],
+  }));
+  const likeBadgeAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(swipeX.value, [0, 32, SWIPE_THRESHOLD], [0, 0.55, 1], Extrapolation.CLAMP),
+  }));
+  const passBadgeAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(swipeX.value, [-SWIPE_THRESHOLD, -32, 0], [1, 0.55, 0], Extrapolation.CLAMP),
+  }));
 
   const header = <DiscoverHeader onOpenFilters={() => navigation.navigate('Filters')} />;
   if (!services) return <Screen safeTop>{header}<StatePanel title="Chưa thể tải Khám phá" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
@@ -232,34 +266,29 @@ export function DiscoverScreen({ navigation }: Props) {
   return <Screen scroll={false} safeTop contentStyle={styles.screen}>
     {header}
     <View style={styles.deck}>
-      {nextCandidate ? <Animated.View pointerEvents="none" style={[styles.nextCard, { transform: [{ scale: nextScale }] }]}>
+      {nextCandidate ? <Animated.View pointerEvents="none" style={[styles.nextCard, nextCardAnimatedStyle]}>
         <AppText variant="caption" tone="muted">Hồ sơ tiếp theo</AppText>
         <AppText numberOfLines={1} variant="subtitle" tone="muted">{nextCandidate.displayName}, {nextCandidate.age}</AppText>
       </Animated.View> : null}
-      <Animated.View accessibilityLabel={cardSummary} style={[styles.card, { transform: [{ translateX: swipeX }, { translateY: swipeY }, { rotate: rotation }] }]}
-        onTouchStart={(event) => captureSwipeStart(event.nativeEvent.pageX, event.nativeEvent.pageY)}
-        onMoveShouldSetResponder={(event) => isHorizontalSwipe(event.nativeEvent.pageX, event.nativeEvent.pageY)}
-        onMoveShouldSetResponderCapture={(event) => isHorizontalSwipe(event.nativeEvent.pageX, event.nativeEvent.pageY)}
-        onResponderMove={(event) => moveCard(event.nativeEvent.pageX, event.nativeEvent.pageY)}
-        onResponderRelease={(event) => finishSwipe(event.nativeEvent.pageX)}
-        onResponderTerminate={() => resetCard(true)}
-        onTouchEnd={openProfileFromCard}>
+      <GestureDetector gesture={cardGesture}>
+      <Animated.View accessibilityRole="button" accessibilityLabel={cardSummary} style={[styles.card, cardAnimatedStyle]}>
         <View style={styles.photoFrame}>
           {visiblePhotoUrl
-            ? <Image source={{ uri: visiblePhotoUrl }} style={styles.photo} accessibilityLabel={`Ảnh hồ sơ của ${candidate.displayName}`} />
+            ? <CachedImage source={{ uri: visiblePhotoUrl, cacheKey: photoPath }} recyclingKey={candidate.id} style={styles.photo} accessibilityLabel={`Ảnh hồ sơ của ${candidate.displayName}`} />
             : <View style={styles.photoPlaceholder}><Avatar label={candidate.displayName} size={72} /><AppText variant="caption" tone="muted">Chưa có ảnh</AppText></View>}
-          <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.likeBadge, { opacity: likeOpacity }]}><Text style={styles.likeBadgeText}>Thích</Text></Animated.View>
-          <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.passBadge, { opacity: passOpacity }]}><Text style={styles.passBadgeText}>Bỏ qua</Text></Animated.View>
+          <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.likeBadge, likeBadgeAnimatedStyle]}><Text style={styles.likeBadgeText}>Thích</Text></Animated.View>
+          <Animated.View pointerEvents="none" style={[styles.swipeBadge, styles.passBadge, passBadgeAnimatedStyle]}><Text style={styles.passBadgeText}>Bỏ qua</Text></Animated.View>
           {candidate.publicLocation ? <View style={styles.locationBadge}><AppIcon name={icons.location} color={colors.primaryPressed} size={18} /><Text numberOfLines={1} style={styles.locationBadgeText}>{candidate.publicLocation}</Text></View> : null}
           {candidate.photos.length > 1 ? <View style={styles.photoCount}><Text style={styles.photoCountText}>{candidate.photos.length} ảnh</Text></View> : null}
           <View style={styles.photoDetails}>
             <Text numberOfLines={2} style={styles.name}>{candidate.displayName}, {candidate.age}</Text>
             {candidate.occupation ? <View style={styles.metaItem}><AppIcon name={icons.work} color={colors.onPrimary} size={17} /><Text numberOfLines={1} style={styles.metaText}>{candidate.occupation}</Text></View> : null}
             {interestPreview.length ? <Text numberOfLines={1} style={styles.interestLine}>{interestPreview.join(' · ')}</Text> : null}
-            <AppButton label="Xem hồ sơ" variant="secondary" trailingIcon="forward" onPress={() => navigation.navigate('OtherProfile', { profileId: candidate.id })} style={styles.viewProfile} />
+            <View pointerEvents="none" style={styles.viewProfile}><Text style={styles.viewProfileLabel}>Xem hồ sơ</Text><AppIcon name="forward" color={colors.primaryPressed} size={18} /></View>
           </View>
         </View>
       </Animated.View>
+      </GestureDetector>
     </View>
     {swipeError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{swipeError}</Text> : null}
     {pageError ? <View style={styles.pageError}><Text accessibilityLiveRegion="polite" style={styles.error}>{pageError}</Text><AppButton label="Tải thêm hồ sơ" variant="quiet" disabled={loadingMore} onPress={() => { if (cursor) void load(cursor); }} /></View> : null}
@@ -303,7 +332,7 @@ const styles = StyleSheet.create({
   nextCard: { position: 'absolute', top: 12, right: 14, bottom: 0, left: 14, backgroundColor: colors.primarySoft, borderRadius: 24, justifyContent: 'flex-end', padding: spacing.lg, gap: spacing.xs },
   card: { flex: 1, backgroundColor: colors.surface, borderRadius: 26, overflow: 'hidden' },
   photoFrame: { flex: 1, minHeight: 300, backgroundColor: colors.surfaceMuted, position: 'relative' },
-  photo: { width: '100%', height: '100%', resizeMode: 'cover' },
+  photo: { width: '100%', height: '100%' },
   photoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   swipeBadge: { position: 'absolute', top: spacing.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 2, borderRadius: radii.sm, backgroundColor: colors.surface },
   likeBadge: { right: spacing.lg, borderColor: colors.primary },
@@ -319,7 +348,8 @@ const styles = StyleSheet.create({
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, maxWidth: '100%' },
   metaText: { ...type.body, color: colors.onPrimary, flexShrink: 1 },
   interestLine: { ...type.body, color: colors.onPrimary },
-  viewProfile: { alignSelf: 'flex-start', minHeight: 48, marginTop: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radii.md },
+  viewProfile: { alignSelf: 'flex-start', minHeight: 48, marginTop: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radii.md, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  viewProfileLabel: { ...type.label, color: colors.primaryPressed },
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', paddingHorizontal: spacing.xl, paddingVertical: spacing.xs },
   actionControl: { width: 62, height: 62, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
   actionPass: { backgroundColor: colors.surface, borderColor: colors.danger },

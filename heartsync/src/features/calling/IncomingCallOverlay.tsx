@@ -8,6 +8,8 @@ import { AppText } from "../../shared/components/AppText";
 import type { IncomingCall } from "../../shared/types/domain.types";
 import { colors, radii, spacing } from "../../shared/theme/tokens";
 
+const INCOMING_CALL_FALLBACK_REFRESH_MS = 15_000;
+
 export function IncomingCallOverlay({
   onOpen,
 }: {
@@ -41,7 +43,7 @@ export function IncomingCallOverlay({
     void refresh();
     const timer = setInterval(() => {
       if (AppState.currentState === "active") void refresh();
-    }, 5000);
+    }, INCOMING_CALL_FALLBACK_REFRESH_MS);
     const state = AppState.addEventListener("change", (s) => {
       if (s === "active") void refresh();
     });

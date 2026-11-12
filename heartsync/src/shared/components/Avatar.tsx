@@ -1,10 +1,12 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, type } from '../theme/tokens';
+import { CachedImage } from './CachedImage';
 
 type Props = {
   label: string;
   uri?: string;
+  cacheKey?: string;
   size?: number;
 };
 
@@ -19,10 +21,10 @@ function initials(label: string) {
 }
 
 /** Shows a real profile image when available and a clearly non-photographic fallback otherwise. */
-export function Avatar({ label, uri, size = 48 }: Props) {
+export function Avatar({ label, uri, cacheKey, size = 48 }: Props) {
   const frame = { width: size, height: size, borderRadius: size / 2 };
-  if (uri) return <Image source={{ uri }} accessibilityLabel={label} accessibilityRole="image"
-    accessibilityIgnoresInvertColors style={[styles.image, frame]} />;
+  if (uri) return <CachedImage source={{ uri, cacheKey }} accessibilityLabel={label} accessibilityRole="image"
+    accessibilityIgnoresInvertColors recyclingKey={uri} style={[styles.image, frame]} />;
 
   return <View accessible accessibilityRole="image" accessibilityLabel={label} style={[styles.fallback, frame]}>
     <Text style={styles.initials}>{initials(label)}</Text>

@@ -2,8 +2,9 @@
 /* eslint-disable react-hooks/immutability, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { filterChoiceOptions, type ChoiceOption } from '../domain/profileOptions';
 import { feedback } from '../motion/feedback';
@@ -34,7 +35,7 @@ export function ChoiceBottomSheet({ visible, title, options, selectedValues, mul
   const completeClose = useCallback(() => { setMounted(false); setQuery(''); onClose(); }, [onClose]);
   const close = useCallback(() => {
     progress.value = withTiming(0, { duration: 160, reduceMotion: motion.feedback.reduceMotion }, (finished) => {
-      if (finished) runOnJS(completeClose)();
+      if (finished) scheduleOnRN(completeClose);
     });
   }, [completeClose, progress]);
 
@@ -53,11 +54,16 @@ export function ChoiceBottomSheet({ visible, title, options, selectedValues, mul
     if (!multiple) { onChange([value]); close(); return; }
     onChange(selectedValues.includes(value) ? selectedValues.filter((item) => item !== value) : [...selectedValues, value]);
   };
-  const drag = Gesture.Pan().onUpdate((event) => { dragY.value = Math.max(0, event.translationY); })
-    .onEnd((event) => {
-      if (event.translationY > 92 || event.velocityY > 900) runOnJS(close)();
+  const dragConfig = useMemo(() => ({
+    activeOffsetY: 8,
+    failOffsetX: [-24, 24] as [number, number],
+    onUpdate: (event: { translationY: number }) => { dragY.value = Math.max(0, event.translationY); },
+    onDeactivate: (event: { translationY: number; velocityY: number }) => {
+      if (event.translationY > 92 || event.velocityY > 900) scheduleOnRN(close);
       else dragY.value = withSpring(0, motion.overlay);
-    });
+    },
+  }), [close, dragY]);
+  const drag = usePanGesture(dragConfig);
   const backdropStyle = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 1], [0, 1]) }));
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: interpolate(progress.value, [0, 1], [440, 0]) + dragY.value }] }));
 

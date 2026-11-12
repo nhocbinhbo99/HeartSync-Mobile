@@ -1,7 +1,7 @@
 /* Gesture worklets intentionally mutate Reanimated shared values on the UI thread. */
 /* eslint-disable react-hooks/immutability */
 import { useCallback, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -12,6 +12,7 @@ import { colors, componentSize, radii, spacing, type } from '../theme/tokens';
 import type { ProfilePhoto } from '../types/domain.types';
 import { AnimatedPressable } from './AnimatedPressable';
 import { AppIcon } from './AppIcon';
+import { CachedImage } from './CachedImage';
 import { IconButton } from './IconButton';
 
 export type PhotoGridItem = ProfilePhoto & { url?: string; loading?: boolean; error?: boolean };
@@ -67,7 +68,7 @@ function PhotoTile({ photo, index, total, busy, onDelete, onReorder, onSetPrimar
   [dragX, dragY, dragging, finishDrag]);
 
   return <Animated.View style={[styles.card, animatedStyle]}>
-    {photo.url ? <Image accessibilityLabel={`Ảnh hồ sơ ${index + 1}`} source={{ uri: photo.url }} style={styles.image} resizeMode="cover" />
+    {photo.url ? <CachedImage accessibilityLabel={`Ảnh hồ sơ ${index + 1}`} source={{ uri: photo.url, cacheKey: photo.storagePath }} recyclingKey={photo.id} style={styles.image} />
       : <View style={styles.imagePlaceholder}><AppIcon name={photo.error ? 'warning' : 'photoAdd'} color={colors.inkMuted} size={24} /><Text style={styles.placeholderText}>{photo.error ? 'Không tải được ảnh' : 'Đang tải ảnh…'}</Text></View>}
     {photo.isPrimary ? <View accessible accessibilityLabel="Ảnh chính" style={styles.badge}><AppIcon name="star" color={colors.onPrimary} size={14} /><Text style={styles.badgeText}>Ảnh chính</Text></View> : null}
     <View style={styles.cardToolbar}>

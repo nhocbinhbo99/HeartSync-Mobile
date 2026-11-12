@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useAppServices } from "../../services/AppServicesProvider";
 import type { ProfilePublic } from "../types/domain.types";
 import { colors } from "../theme/tokens";
+import { CachedImage } from "./CachedImage";
 export function ConversationProfile({ profileId, presentation = "inline" }: { profileId: string; presentation?: "inline" | "hero" | "callHero" | "callTile" | "avatar" }) {
   const services = useAppServices();
   const [profile, setProfile] = useState<ProfilePublic>();
-  const [url, setUrl] = useState("");
+  const [photo, setPhoto] = useState<{ storagePath: string; url: string }>();
   useEffect(() => {
     let live = true;
     void services?.profile.getPublic(profileId).then(async (r) => {
@@ -15,7 +16,7 @@ export function ConversationProfile({ profileId, presentation = "inline" }: { pr
       const path = r.data.photos[0]?.storagePath;
       if (path) {
         const result = await services.profile.createPhotoUrl(path);
-        if (live && result.ok) setUrl(result.data);
+        if (live && result.ok) setPhoto({ storagePath: path, url: result.data });
       }
     });
     return () => {
@@ -27,9 +28,10 @@ export function ConversationProfile({ profileId, presentation = "inline" }: { pr
   const avatarSize = hero ? 112 : presentation === "callTile" ? 64 : avatarOnly ? 72 : 48;
   const content = (
     <View style={{ flexDirection: hero ? "column" : "row", alignItems: "center", gap: hero ? 16 : 12 }}>
-      {url ? (
-        <Image
-          source={{ uri: url }}
+      {photo ? (
+        <CachedImage
+          source={{ uri: photo.url, cacheKey: photo.storagePath }}
+          recyclingKey={`${profileId}-${presentation}`}
           style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }}
         />
       ) : (
@@ -50,7 +52,7 @@ export function ConversationProfile({ profileId, presentation = "inline" }: { pr
   if (presentation === "callHero" || presentation === "callTile")
     return (
       <View style={styles.callHero}>
-        {url ? <Image source={{ uri: url }} blurRadius={28} resizeMode="cover" style={styles.callHeroBackdrop} /> : <View style={styles.callHeroFallback} />}
+        {photo ? <CachedImage source={{ uri: photo.url, cacheKey: photo.storagePath }} recyclingKey={`${profileId}-backdrop`} blurRadius={28} style={styles.callHeroBackdrop} /> : <View style={styles.callHeroFallback} />}
         <View style={styles.callHeroScrim} />
         <View style={styles.callHeroContent}>{content}</View>
       </View>

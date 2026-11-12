@@ -1,17 +1,19 @@
-import { useCallback, useState } from 'react';
-import { Image, ScrollView, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../../shared/components/AppButton';
+import { CachedImage } from '../../shared/components/CachedImage';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { Avatar } from '../../shared/components/Avatar';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
+import { SkeletonBlock } from '../../shared/components/SkeletonBlock';
 import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { useAppServices } from '../../services/AppServicesProvider';
@@ -20,34 +22,58 @@ import type { ProfilePublic } from '../../shared/types/domain.types';
 import { colors, radii, spacing } from '../../shared/theme/tokens';
 
 type Props = CompositeScreenProps<BottomTabScreenProps<MainTabParamList, 'Profile'>, NativeStackScreenProps<RootStackParamList>>;
+type ResolvedPhoto = { storagePath: string; url: string };
 
 export function ProfileScreen({ navigation }: Props) {
   const services = useAppServices();
   const [profile, setProfile] = useState<ProfilePublic>();
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<ResolvedPhoto[]>([]);
   const [activePhoto, setActivePhoto] = useState(0);
+  const [photoLoading, setPhotoLoading] = useState(false);
   const [state, setState] = useState<AsyncViewState>('loading');
   const [error, setError] = useState('');
+  const loadedRef = useRef(false);
+  const requestRef = useRef(0);
   const { width } = useWindowDimensions();
   const photoWidth = Math.max(0, width - spacing.lg * 2);
 
   const load = useCallback(async () => {
     if (!services) return;
-    setState('loading'); setError('');
+    const request = ++requestRef.current;
+    if (!loadedRef.current) setState('loading');
+    setError('');
     const result = await services.profile.getMine();
+    if (request !== requestRef.current) return;
     if (!result.ok) {
-      if (result.error.code === 'not_found') { setProfile(undefined); setState('empty'); return; }
-      setError(result.error.message); setState('error'); return;
+      if (result.error.code === 'not_found') { setProfile(undefined); loadedRef.current = true; setState('empty'); return; }
+      if (!loadedRef.current) { setError(result.error.message); setState('error'); }
+      return;
     }
     setProfile(result.data.public);
-    const urls = await Promise.all(result.data.public.photos
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map(async (photo) => { const signed = await services.profile.createPhotoUrl(photo.storagePath); return signed.ok ? signed.data : undefined; }));
-    setPhotoUrls(urls.filter((url): url is string => Boolean(url)));
+    loadedRef.current = true;
     setState('empty');
+    const orderedPhotos = [...result.data.public.photos].sort((a, b) => a.sortOrder - b.sortOrder);
+    if (orderedPhotos.length === 0) {
+      setPhotoUrls([]);
+      setPhotoLoading(false);
+      return;
+    }
+    setPhotoLoading(true);
+    const urls = await Promise.all(orderedPhotos
+      .map(async (photo) => {
+        const signed = await services.profile.createPhotoUrl(photo.storagePath);
+        return signed.ok ? { storagePath: photo.storagePath, url: signed.data } : undefined;
+      }));
+    if (request !== requestRef.current) return;
+    setPhotoUrls(urls.filter((photo): photo is ResolvedPhoto => Boolean(photo)));
+    setActivePhoto(0);
+    setPhotoLoading(false);
   }, [services]);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    void load();
+    return () => { requestRef.current += 1; };
+  }, [load]));
   const onPhotoScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const width = event.nativeEvent.layoutMeasurement.width;
     if (width) setActivePhoto(Math.round(event.nativeEvent.contentOffset.x / width));
@@ -66,14 +92,14 @@ export function ProfileScreen({ navigation }: Props) {
     {profile ? <>
       {photoUrls.length ? <View style={styles.gallery}>
         <ScrollView horizontal pagingEnabled onMomentumScrollEnd={onPhotoScroll} showsHorizontalScrollIndicator={false} style={styles.photoPager}>
-          {photoUrls.map((uri, index) => <Image key={uri} accessibilityLabel={`Ảnh hồ sơ ${index + 1} của bạn`} source={{ uri }} style={[styles.photo, { width: photoWidth }]} />)}
+          {photoUrls.map((photo, index) => <CachedImage key={photo.storagePath} accessibilityLabel={`Ảnh hồ sơ ${index + 1} của bạn`} source={{ uri: photo.url, cacheKey: photo.storagePath }} recyclingKey={photo.storagePath} style={[styles.photo, { width: photoWidth }]} />)}
         </ScrollView>
         <View style={styles.heroScrim}>
           <AppText accessibilityRole="header" style={styles.heroName}>{profile.displayName}, {profile.age}</AppText>
           <View style={styles.metaRow}><AppIcon name="location" color={colors.onPrimary} size={17} /><AppText tone="onPrimary" style={styles.meta}>{profile.publicLocation || 'Chưa thêm khu vực công khai'}</AppText><AppText variant="caption" tone="onPrimary">•</AppText><AppText tone="onPrimary" style={styles.meta}>{profile.photos.length}/6 ảnh</AppText></View>
         </View>
         {photoUrls.length > 1 ? <View accessible accessibilityLabel={`Ảnh ${activePhoto + 1} trên ${photoUrls.length}`} style={styles.dots}>{photoUrls.map((_, index) => <View key={index} style={[styles.dot, index === activePhoto && styles.dotActive]} />)}</View> : null}
-      </View> : <View style={styles.photoPlaceholder}>
+      </View> : profile.photos.length > 0 && photoLoading ? <SkeletonBlock height={photoWidth / 1.34} radius={24} accessibilityLabel="Đang tải ảnh hồ sơ" /> : <View style={styles.photoPlaceholder}>
         <Avatar label={profile.displayName} size={64} />
         <AppText variant="subtitle">Chưa có ảnh hồ sơ</AppText>
         <AppText variant="caption" tone="muted" style={styles.photoPlaceholderText}>Thêm ảnh để hồ sơ dễ được nhận ra hơn.</AppText>

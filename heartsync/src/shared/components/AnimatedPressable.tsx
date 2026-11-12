@@ -1,3 +1,5 @@
+/* Reanimated shared values are intentionally mutated by press lifecycle callbacks. */
+/* eslint-disable react-hooks/immutability */
 import type { PropsWithChildren, ReactNode } from 'react';
 import { Platform, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -15,16 +17,16 @@ type Props = PropsWithChildren<Pick<PressableProps, 'accessibilityHint' | 'acces
 const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
 
 export function AnimatedPressable({ children, style, pressedScale = 0.98, rippleColor = 'rgba(230, 56, 111, 0.12)', disabledOpacity = 0.52, disabled = false, ...props }: Props) {
-  const pressed = useSharedValue(0);
+  const scale = useSharedValue(1);
   const reduceMotion = useReducedMotion();
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withTiming(pressed.value ? pressedScale : 1, motion.press) }],
+    transform: [{ scale: scale.value }],
   }));
 
   return <AnimatedPressableBase {...props} disabled={disabled}
     android_ripple={Platform.OS === 'android' ? { color: rippleColor, borderless: false } : undefined}
-    onPressIn={() => { if (!disabled && !reduceMotion) pressed.value = 1; }}
-    onPressOut={() => { pressed.value = 0; }}
+    onPressIn={() => { if (!disabled && !reduceMotion) scale.value = withTiming(pressedScale, motion.press); }}
+    onPressOut={() => { scale.value = withTiming(1, motion.press); }}
     style={[style, animatedStyle, { opacity: disabled ? disabledOpacity : 1, overflow: 'hidden' }]}>
     {children}
   </AnimatedPressableBase>;

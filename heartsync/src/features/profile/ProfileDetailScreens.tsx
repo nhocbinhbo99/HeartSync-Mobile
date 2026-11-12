@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { AppButton } from '../../shared/components/AppButton';
+import { CachedImage } from '../../shared/components/CachedImage';
 import { AppIcon, type AppIconName } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
@@ -30,7 +31,7 @@ export function OtherProfileScreen({ route, navigation }: NativeStackScreenProps
   const snackbar = useSnackbar();
   const profileId = route.params?.profileId;
   const [profile, setProfile] = useState<ProfilePublic>();
-  const [photoUrl, setPhotoUrl] = useState<string>();
+  const [photo, setPhoto] = useState<{ storagePath: string; url: string }>();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [liking, setLiking] = useState(false);
@@ -46,7 +47,7 @@ export function OtherProfileScreen({ route, navigation }: NativeStackScreenProps
     const primary = profileResult.data.photos.find((photo) => photo.isPrimary) ?? profileResult.data.photos[0];
     if (primary) {
       const url = await services.profile.createPhotoUrl(primary.storagePath);
-      if (url.ok) setPhotoUrl(url.data);
+      if (url.ok) setPhoto({ storagePath: primary.storagePath, url: url.data });
     }
   }, [profileId, services]);
 
@@ -100,7 +101,7 @@ export function OtherProfileScreen({ route, navigation }: NativeStackScreenProps
 
   return <Screen safeTop contentStyle={styles.otherProfileScreen} footer={actions}>
     <View style={styles.heroWrap}>
-      {photoUrl ? <Image accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`} source={{ uri: photoUrl }} style={styles.heroImage} resizeMode="cover" />
+      {photo ? <CachedImage accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`} source={{ uri: photo.url, cacheKey: photo.storagePath }} recyclingKey={profile.id} style={styles.heroImage} />
         : <View style={styles.photoPlaceholder}>
           <Avatar label={profile.displayName} size={64} />
           <AppText variant="subtitle">Chưa có ảnh hiển thị</AppText>

@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { feedback } from '../motion/feedback';
 import { colors, radii, spacing, type } from '../theme/tokens';
-import { AnimatedPressable } from './AnimatedPressable';
 import { AppIcon } from './AppIcon';
 import { IconButton } from './IconButton';
 
@@ -15,40 +15,44 @@ function clamp(value: number, min: number, max: number) { return Math.max(min, M
 
 export function RangeSliderField({ label, min, max, low, high, unit = 'tuổi', onChange, disabled = false }: RangeProps) {
   const [trackWidth, setTrackWidth] = useState(0);
+  const latestRange = useRef({ low, high });
+  useEffect(() => { latestRange.current = { low, high }; }, [high, low]);
   const ratio = (value: number) => ((value - min) / (max - min)) * 100;
-  const valueAt = (locationX: number) => clamp(Math.round(min + (locationX / trackWidth) * (max - min)), min, max);
-  const choosePoint = (locationX: number) => {
+  const valueAt = useCallback((locationX: number) => clamp(Math.round(min + (locationX / trackWidth) * (max - min)), min, max), [max, min, trackWidth]);
+  const choosePoint = useCallback((locationX: number) => {
     if (!trackWidth || disabled) return;
     const value = valueAt(locationX);
-    if (Math.abs(value - low) <= Math.abs(value - high)) onChange(clamp(value, min, high), high);
-    else onChange(low, clamp(value, low, max));
-    feedback('selection');
-  };
-  const drag = Gesture.Pan().runOnJS(true).minDistance(2).onBegin((event) => {
-    if (!trackWidth || disabled) return;
-    feedback('dragStart');
-    choosePoint(event.x);
-  }).onUpdate((event) => {
-    if (!trackWidth || disabled) return;
-    const value = valueAt(event.x);
-    if (Math.abs(value - low) <= Math.abs(value - high)) onChange(clamp(value, min, high), high);
-    else onChange(low, clamp(value, low, max));
-  }).onFinalize(() => {
-    if (!disabled) feedback('dragEnd');
-  });
+    const current = latestRange.current;
+    const next = Math.abs(value - current.low) <= Math.abs(value - current.high)
+      ? { low: clamp(value, min, current.high), high: current.high }
+      : { low: current.low, high: clamp(value, current.low, max) };
+    if (next.low === current.low && next.high === current.high) return;
+    latestRange.current = next;
+    onChange(next.low, next.high);
+  }, [disabled, max, min, onChange, trackWidth, valueAt]);
+  const beginDrag = useCallback((locationX: number) => { feedback('dragStart'); choosePoint(locationX); }, [choosePoint]);
+  const endDrag = useCallback(() => { if (!disabled) feedback('dragEnd'); }, [disabled]);
+  const dragConfig = useMemo(() => ({
+    enabled: !disabled && trackWidth > 0,
+    minDistance: 2,
+    onBegin: (event: { x: number }) => { scheduleOnRN(beginDrag, event.x); },
+    onUpdate: (event: { x: number }) => { scheduleOnRN(choosePoint, event.x); },
+    onFinalize: () => { scheduleOnRN(endDrag); },
+  }), [beginDrag, choosePoint, disabled, endDrag, trackWidth]);
+  const drag = usePanGesture(dragConfig);
   return <View style={styles.group}>
     <View style={styles.heading}><Text style={styles.label}>{label}</Text><Text style={styles.valueSummary}>{low}–{high} {unit}</Text></View>
     <GestureDetector gesture={drag}>
       <View accessible accessibilityRole="adjustable" accessibilityLabel={label} accessibilityValue={{ min, max, now: low, text: `${low} đến ${high} ${unit}` }}
         accessibilityHint="Kéo hai nút tròn hoặc chạm vào thanh để thay đổi khoảng tuổi" onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
         style={[styles.trackTouch, disabled && styles.disabled]}>
-        <AnimatedPressable disabled={disabled} onPress={(event) => choosePoint(event.nativeEvent.locationX)} style={styles.trackPress}>
+        <View style={styles.trackPress}>
           <View pointerEvents="none" style={styles.track}>
             <View style={[styles.selectedTrack, { left: `${ratio(low)}%`, width: `${ratio(high) - ratio(low)}%` }]} />
             <View style={[styles.thumb, { left: `${ratio(low)}%` }]}><AppIcon name="minus" color={colors.onPrimary} size={14} /></View>
             <View style={[styles.thumb, { left: `${ratio(high)}%` }]}><AppIcon name="add" color={colors.onPrimary} size={14} /></View>
           </View>
-        </AnimatedPressable>
+        </View>
       </View>
     </GestureDetector>
     <View style={styles.controls}>
@@ -60,35 +64,39 @@ export function RangeSliderField({ label, min, max, low, high, unit = 'tuổi', 
 
 export function ValueSliderField({ label, min, max, value, unit = 'km', onChange, disabled = false }: ValueProps) {
   const [trackWidth, setTrackWidth] = useState(0);
+  const latestValue = useRef(value);
+  useEffect(() => { latestValue.current = value; }, [value]);
   const ratio = ((value - min) / (max - min)) * 100;
-  const choosePoint = (locationX: number) => {
+  const choosePoint = useCallback((locationX: number) => {
     if (!trackWidth || disabled) return;
     const snapped = Math.round((min + (locationX / trackWidth) * (max - min)) / 5) * 5;
-    onChange(clamp(snapped, min, max));
-    feedback('selection');
-  };
-  const drag = Gesture.Pan().runOnJS(true).minDistance(2).onBegin((event) => {
-    if (!trackWidth || disabled) return;
-    feedback('dragStart');
-    choosePoint(event.x);
-  }).onUpdate((event) => {
-    if (!trackWidth || disabled) return;
-    choosePoint(event.x);
-  }).onFinalize(() => {
-    if (!disabled) feedback('dragEnd');
-  });
+    const next = clamp(snapped, min, max);
+    if (next === latestValue.current) return;
+    latestValue.current = next;
+    onChange(next);
+  }, [disabled, max, min, onChange, trackWidth]);
+  const beginDrag = useCallback((locationX: number) => { feedback('dragStart'); choosePoint(locationX); }, [choosePoint]);
+  const endDrag = useCallback(() => { if (!disabled) feedback('dragEnd'); }, [disabled]);
+  const dragConfig = useMemo(() => ({
+    enabled: !disabled && trackWidth > 0,
+    minDistance: 2,
+    onBegin: (event: { x: number }) => { scheduleOnRN(beginDrag, event.x); },
+    onUpdate: (event: { x: number }) => { scheduleOnRN(choosePoint, event.x); },
+    onFinalize: () => { scheduleOnRN(endDrag); },
+  }), [beginDrag, choosePoint, disabled, endDrag, trackWidth]);
+  const drag = usePanGesture(dragConfig);
   return <View style={styles.group}>
     <View style={styles.heading}><Text style={styles.label}>{label}</Text><Text style={styles.valueSummary}>{value} {unit}</Text></View>
     <GestureDetector gesture={drag}>
       <View accessible accessibilityRole="adjustable" accessibilityLabel={label} accessibilityValue={{ min, max, now: value, text: `${value} ${unit}` }}
         accessibilityHint="Kéo nút tròn hoặc chạm vào thanh để thay đổi khoảng cách" onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
         style={[styles.trackTouch, disabled && styles.disabled]}>
-        <AnimatedPressable disabled={disabled} onPress={(event) => choosePoint(event.nativeEvent.locationX)} style={styles.trackPress}>
+        <View style={styles.trackPress}>
           <View pointerEvents="none" style={styles.track}>
             <View style={[styles.selectedTrack, { left: 0, width: `${ratio}%` }]} />
             <View style={[styles.thumb, { left: `${ratio}%` }]}><AppIcon name="location" color={colors.onPrimary} size={14} /></View>
           </View>
-        </AnimatedPressable>
+        </View>
       </View>
     </GestureDetector>
     <View style={styles.singleControl}><ValueControl label="Khoảng cách tối đa" value={value} min={min} max={max} unit={unit} disabled={disabled} onChange={onChange} /></View>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
@@ -38,7 +38,8 @@ function connectedAt(createdAt: string) {
 }
 
 function MatchAvatar({ profile, photoUrl, size = 64 }: { profile: ProfilePublic; photoUrl?: string; size?: number }) {
-  return <Avatar label={`Ảnh hồ sơ của ${profile.displayName}`} uri={photoUrl} size={size} />;
+  const photo = profile.photos.find((item) => item.isPrimary) ?? profile.photos[0];
+  return <Avatar label={`Ảnh hồ sơ của ${profile.displayName}`} uri={photoUrl} cacheKey={photo?.storagePath} size={size} />;
 }
 
 export function MatchesScreen({ navigation }: Props) {
@@ -49,19 +50,26 @@ export function MatchesScreen({ navigation }: Props) {
   const [incoming, setIncoming] = useState<IncomingCall>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const loadedRef = useRef(false);
+  const requestRef = useRef(0);
 
   const load = useCallback(async () => {
     if (!services) return;
-    setLoading(true);
-    setError('');
+    const request = ++requestRef.current;
+    if (!loadedRef.current) setLoading(true);
     const result = await services.matches.listMatches();
+    if (request !== requestRef.current) return;
     setLoading(false);
-    if (result.ok) setMatches(result.data.items);
-    else setError(result.error.message);
+    if (result.ok) {
+      loadedRef.current = true;
+      setError('');
+      setMatches(result.data.items);
+    } else if (!loadedRef.current) setError(result.error.message);
   }, [services]);
 
   useFocusEffect(useCallback(() => {
     void load();
+    return () => { requestRef.current += 1; };
   }, [load]));
 
   useEffect(() => {
