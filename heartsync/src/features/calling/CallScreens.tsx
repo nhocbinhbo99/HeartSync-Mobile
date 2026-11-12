@@ -156,11 +156,17 @@ function CallSession({
         setStatus('failed');
         gateway.current = null;
       }
-    } catch {
+    } catch (err) {
       terminalFailure.current = true;
       cancelled.current = true;
       void services.calls.endCall(callId);
-      setError(`Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} cần Android development build đã tích hợp WebRTC.`);
+      const raw = err instanceof Error ? err.message : '';
+      const isMissingNative = /livekit|webrtc|native|cannot find module|require/i.test(raw);
+      setError(
+        isMissingNative
+          ? `Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} cần Android development build đã tích hợp WebRTC.`
+          : `Không thể khởi tạo cuộc gọi ${callType === 'video' ? 'video' : 'thoại'}. Hãy kiểm tra quyền camera/micro và thử lại.`,
+      );
       setStatus('failed');
       gateway.current = null;
     } finally {
