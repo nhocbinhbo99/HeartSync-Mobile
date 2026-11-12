@@ -29,6 +29,7 @@ export function Avatar({ label, uri, fallbackSource, size = 48 }: Props) {
   if (source) {
     return (
       <Image
+        key={activeUri ?? 'fallback'}
         source={source}
         fadeDuration={0}
         onError={() => {

@@ -50,12 +50,15 @@ export function ProfileScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const photoWidth = Math.max(0, width - spacing.lg * 2);
   const hasLoadedRef = useRef(false);
+  const requestRef = useRef(0);
 
   const load = useCallback(async (silent = false) => {
     if (!services) return;
+    const request = ++requestRef.current;
     if (!hasLoadedRef.current && !silent) setState('loading');
     if (!silent) setError('');
     const result = await services.profile.getMine();
+    if (request !== requestRef.current) return;
     if (!result.ok) {
       if (result.error.code === 'not_found') {
         setProfile(undefined);
@@ -72,10 +75,12 @@ export function ProfileScreen({ navigation }: Props) {
     const sortedPhotos = [...result.data.public.photos].sort((a, b) => a.sortOrder - b.sortOrder);
     const paths = sortedPhotos.map((p) => p.storagePath);
     const urlMap = await resolvePhotoUrls(services.profile, paths);
+    if (request !== requestRef.current) return;
     const urls = paths.map((path) => urlMap[path] ?? getCachedPhotoUrl(path)).filter((url): url is string => Boolean(url));
     hasLoadedRef.current = true;
     setProfile(result.data.public);
     setPhotoUrls(urls);
+    setActivePhoto((current) => (urls.length > 0 ? Math.min(current, urls.length - 1) : 0));
     setState('empty');
   }, [services]);
 
@@ -182,6 +187,7 @@ export function ProfileScreen({ navigation }: Props) {
                     key={uri}
                     accessibilityLabel={`Ảnh hồ sơ ${index + 1} của bạn`}
                     source={{ uri }}
+                    fadeDuration={0}
                     style={[styles.photo, { width: photoWidth }]}
                   />
                 ))}

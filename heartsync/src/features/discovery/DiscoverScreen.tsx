@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { Animated, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
@@ -6,7 +6,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { useAppServices } from '../../services/AppServicesProvider';
-import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
+import {
+  getCachedPhotoUrl,
+  resolvePhotoUrls,
+  setCachedPublicProfile,
+} from '../../services/photoCache';
 import { claimMatchCelebration } from '../matching/matchCelebrationGuard';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
@@ -58,6 +62,7 @@ export function DiscoverScreen({ navigation }: Props) {
 
   const [swipeX] = useState(() => new Animated.Value(0));
   const [swipeY] = useState(() => new Animated.Value(0));
+  const [cardOpacity] = useState(() => new Animated.Value(1));
 
   const resetCard = useCallback(
     (animated = false) => {
@@ -66,12 +71,13 @@ export function DiscoverScreen({ navigation }: Props) {
         swipeY.setValue(0);
         return;
       }
+      cardOpacity.setValue(1);
       Animated.parallel([
         Animated.spring(swipeX, { toValue: 0, useNativeDriver: true, friction: 6, tension: 80 }),
         Animated.spring(swipeY, { toValue: 0, useNativeDriver: true, friction: 6, tension: 80 }),
       ]).start();
     },
-    [swipeX, swipeY],
+    [cardOpacity, swipeX, swipeY],
   );
 
   const load = useCallback(
@@ -115,6 +121,9 @@ export function DiscoverScreen({ navigation }: Props) {
         const upcomingPaths = result.data.items
           .slice(0, 4)
           .map((item) => (item.photos.find((p) => p.isPrimary) ?? item.photos[0])?.storagePath);
+        for (const item of result.data.items) {
+          setCachedPublicProfile(item);
+        }
         await resolvePhotoUrls(services.profile, upcomingPaths);
         if (request !== requestRef.current) return;
 
@@ -156,8 +165,13 @@ export function DiscoverScreen({ navigation }: Props) {
   const photo = candidate?.photos.find((item) => item.isPrimary) ?? candidate?.photos[0];
   const nextPhoto = nextCandidate?.photos.find((item) => item.isPrimary) ?? nextCandidate?.photos[0];
   const photoPath = photo?.storagePath;
+  const nextPhotoPath = nextPhoto?.storagePath;
   const visiblePhotoUrl = getCachedPhotoUrl(photoPath) ?? null;
-  const nextPhotoUrl = getCachedPhotoUrl(nextPhoto?.storagePath) ?? null;
+  const nextPhotoUrl = getCachedPhotoUrl(nextPhotoPath) ?? null;
+
+  useLayoutEffect(() => {
+    cardOpacity.setValue(1);
+  }, [candidate?.id, cardOpacity]);
 
   useEffect(() => {
     if (!services || candidates.length === 0) return;
@@ -208,6 +222,8 @@ export function DiscoverScreen({ navigation }: Props) {
             resetCard(true);
             return;
           }
+          // Hide off-screen card before resetting coordinates so Android does not flash the previous card at x=0.
+          cardOpacity.setValue(0);
           resetCard();
           if (action === 'pass') {
             setLastPassedCandidate(current);
@@ -229,7 +245,7 @@ export function DiscoverScreen({ navigation }: Props) {
         }
       });
     },
-    [busy, candidate, navigation, resetCard, services, swipeX, swipeY, width],
+    [busy, candidate, cardOpacity, navigation, resetCard, services, swipeX, swipeY, width],
   );
 
   const openProfile = useCallback(() => {
@@ -408,16 +424,19 @@ export function DiscoverScreen({ navigation }: Props) {
             pointerEvents="none"
             style={[styles.card, styles.nextCard, { transform: [{ scale: nextScale }] }]}
           >
-            <Image
-              source={getProfileImageSource(
-                nextPhotoUrl,
-                nextCandidate.id,
-                nextCandidate.gender,
-                nextCandidate.displayName,
-              )}
-              fadeDuration={0}
-              style={styles.photo}
-            />
+            {nextPhotoUrl || !nextPhotoPath ? (
+              <Image
+                key={`${nextCandidate.id}:${nextPhotoUrl ?? 'fallback'}`}
+                source={getProfileImageSource(
+                  nextPhotoUrl,
+                  nextCandidate.id,
+                  nextCandidate.gender,
+                  nextCandidate.displayName,
+                )}
+                fadeDuration={0}
+                style={styles.photo}
+              />
+            ) : null}
             <Image
               source={brandAssets.cardScrimGradient}
               style={styles.gradientOverlay}
@@ -436,20 +455,26 @@ export function DiscoverScreen({ navigation }: Props) {
             accessibilityLabel={cardSummary}
             style={[
               styles.card,
-              { transform: [{ translateX: swipeX }, { translateY: swipeY }, { rotate: rotation }] },
+              {
+                opacity: cardOpacity,
+                transform: [{ translateX: swipeX }, { translateY: swipeY }, { rotate: rotation }],
+              },
             ]}
           >
-            <Image
-              source={getProfileImageSource(
-                visiblePhotoUrl,
-                candidate.id,
-                candidate.gender,
-                candidate.displayName,
-              )}
-              fadeDuration={0}
-              style={styles.photo}
-              accessibilityLabel={`Ảnh đại diện của ${candidate.displayName}`}
-            />
+            {visiblePhotoUrl || !photoPath ? (
+              <Image
+                key={`${candidate.id}:${visiblePhotoUrl ?? 'fallback'}`}
+                source={getProfileImageSource(
+                  visiblePhotoUrl,
+                  candidate.id,
+                  candidate.gender,
+                  candidate.displayName,
+                )}
+                fadeDuration={0}
+                style={styles.photo}
+                accessibilityLabel={`Ảnh đại diện của ${candidate.displayName}`}
+              />
+            ) : null}
 
             <Image
               source={brandAssets.cardScrimGradient}
