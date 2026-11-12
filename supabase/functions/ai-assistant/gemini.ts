@@ -1,12 +1,21 @@
 export type AiGenerationAction = 'generate_bio' | 'generate_icebreaker';
-export type GeminiFailureCode =
-  | 'GEMINI_RATE_LIMITED'
-  | 'GEMINI_CONFIGURATION_ERROR'
+
+export type AiProviderFailureCode =
+  | 'AI_RATE_LIMITED'
+  | 'AI_CONFIGURATION_ERROR'
   | 'AI_TEMPORARILY_UNAVAILABLE'
   | 'AI_OUTPUT_INVALID';
-export type GeminiRequestResult = { ok: true; data: unknown } | { ok: false; code: GeminiFailureCode };
+
+export type GeminiRequestResult =
+  | { ok: true; data: unknown }
+  | { ok: false; code: AiProviderFailureCode; httpStatus?: number };
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+const retryDelayMs = 350;
+const requestTimeoutMs = 25_000;
+const configurationStatuses = new Set([400, 401, 403, 404]);
+const retryableStatuses = new Set([500, 502, 503, 504]);
 
 function record(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -26,9 +35,6 @@ function isIcebreakerSentence(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   const candidate = value.trim();
   const length = textLength(candidate);
-  // The contract requires a natural, polite opening, but legitimate Vietnamese
-  // greetings do not always begin with a fixed word or end in a question mark.
-  // Keep the hard structural/safety checks and let the server instruction guide tone.
   return length >= 20 && length <= 160 && /\p{L}/u.test(candidate);
 }
 
@@ -50,34 +56,30 @@ export function validateGeneratedOutput(action: AiGenerationAction, value: unkno
   return { ok: false };
 }
 
-function extractJson(response: unknown): unknown | null {
+function pause(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function extractStructuredJson(response: unknown): unknown | null {
   const payload = record(response);
   const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
-  const first = record(candidates[0]);
-  const content = record(first?.content);
+  const firstCandidate = record(candidates[0]);
+  const content = record(firstCandidate?.content);
   const parts = Array.isArray(content?.parts) ? content.parts : [];
-  const part = parts.map(record).find((entry) => typeof entry?.text === 'string');
-  if (!part || typeof part.text !== 'string') return null;
-  const text = part.text.trim()
-    .replace(/^```(?:json)?\s*/iu, '')
-    .replace(/\s*```$/u, '');
+  const firstPart = record(parts[0]);
+  if (typeof firstPart?.text !== 'string') return null;
   try {
-    return JSON.parse(text);
+    return JSON.parse(firstPart.text);
   } catch {
-    // A model can occasionally prepend a short label despite responseMimeType.
-    // Parse only a bounded JSON object and still validate the resulting schema below.
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start < 0 || end <= start) return null;
-    try {
-      return JSON.parse(text.slice(start, end + 1));
-    } catch {
-      return null;
-    }
+    return null;
   }
 }
 
-export async function generateGeminiJson({
+/**
+ * Uses Gemini structured output, then applies independent semantic validation
+ * in the Function. Neither profile data nor generated text is logged.
+ */
+export async function generateGeminiStructuredResult({
   apiKey,
   model,
   systemInstruction,
@@ -85,6 +87,7 @@ export async function generateGeminiJson({
   schema,
   maxOutputTokens,
   fetchImpl = fetch,
+  timeoutMs = requestTimeoutMs,
 }: {
   apiKey: string;
   model: string;
@@ -93,13 +96,14 @@ export async function generateGeminiJson({
   schema: Record<string, unknown>;
   maxOutputTokens: number;
   fetchImpl?: FetchLike;
+  timeoutMs?: number;
 }): Promise<GeminiRequestResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12_000);
-  try {
-    const response = await fetchImpl(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetchImpl(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -109,24 +113,37 @@ export async function generateGeminiJson({
           generationConfig: {
             responseMimeType: 'application/json',
             responseJsonSchema: schema,
-            temperature: 0.6,
             maxOutputTokens,
+            temperature: 0.4,
           },
         }),
-      },
-    );
-    if (response.status === 429) return { ok: false, code: 'GEMINI_RATE_LIMITED' };
-    // Do not read or log the provider response body: it may contain request-specific data.
-    // These statuses usually mean a bad/revoked server key or an unavailable model name.
-    if ([400, 401, 403, 404].includes(response.status)) return { ok: false, code: 'GEMINI_CONFIGURATION_ERROR' };
-    if (!response.ok) return { ok: false, code: 'AI_TEMPORARILY_UNAVAILABLE' };
-    const parsed = extractJson(await response.json());
-    return parsed === null
-      ? { ok: false, code: 'AI_OUTPUT_INVALID' }
-      : { ok: true, data: parsed };
-  } catch {
-    return { ok: false, code: 'AI_TEMPORARILY_UNAVAILABLE' };
-  } finally {
-    clearTimeout(timer);
+      });
+      if (response.status === 429) return { ok: false, code: 'AI_RATE_LIMITED', httpStatus: response.status };
+      if (configurationStatuses.has(response.status)) return { ok: false, code: 'AI_CONFIGURATION_ERROR', httpStatus: response.status };
+      if (!response.ok) {
+        if (retryableStatuses.has(response.status) && attempt === 0) {
+          await pause(retryDelayMs);
+          continue;
+        }
+        return { ok: false, code: 'AI_TEMPORARILY_UNAVAILABLE', httpStatus: response.status };
+      }
+      let responseBody: unknown;
+      try {
+        responseBody = await response.json();
+      } catch {
+        return { ok: false, code: 'AI_OUTPUT_INVALID' };
+      }
+      const data = extractStructuredJson(responseBody);
+      return data === null ? { ok: false, code: 'AI_OUTPUT_INVALID' } : { ok: true, data };
+    } catch {
+      if (attempt === 0) {
+        await pause(retryDelayMs);
+        continue;
+      }
+      return { ok: false, code: 'AI_TEMPORARILY_UNAVAILABLE' };
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  return { ok: false, code: 'AI_TEMPORARILY_UNAVAILABLE' };
 }
