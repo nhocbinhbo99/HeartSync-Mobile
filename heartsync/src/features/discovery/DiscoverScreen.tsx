@@ -13,6 +13,7 @@ import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
+import { VerifiedBadge } from '../../shared/components/VerifiedBadge';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { colors, fonts, radii, spacing, type } from '../../shared/theme/tokens';
 import type { ProfilePublic, SwipeAction } from '../../shared/types/domain.types';
@@ -45,6 +46,7 @@ export function DiscoverScreen({ navigation }: Props) {
   const [pageError, setPageError] = useState('');
   const [swipeError, setSwipeError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [lastPassedCandidate, setLastPassedCandidate] = useState<ProfilePublic | null>(null);
   const requestRef = useRef(0);
   const candidatesRef = useRef<ProfilePublic[]>([]);
   const lastFiltersSigRef = useRef<string>('');
@@ -206,6 +208,11 @@ export function DiscoverScreen({ navigation }: Props) {
             return;
           }
           resetCard();
+          if (action === 'pass') {
+            setLastPassedCandidate(current);
+          } else {
+            setLastPassedCandidate(null);
+          }
           setCandidates((items) => (items[0]?.id === current.id ? items.slice(1) : items));
           if (result.data.outcome === 'matched') {
             feedback('confirm');
@@ -227,6 +234,21 @@ export function DiscoverScreen({ navigation }: Props) {
       navigation.navigate('OtherProfile', { profileId: candidate.id });
     }
   }, [busy, candidate, navigation]);
+
+  const undoLastPass = useCallback(() => {
+    if (busy) return;
+    feedback('selection');
+    if (lastPassedCandidate) {
+      const restored = lastPassedCandidate;
+      setLastPassedCandidate(null);
+      setCandidates((items) =>
+        items.some((item) => item.id === restored.id) ? items : [restored, ...items],
+      );
+      resetCard(true);
+      return;
+    }
+    resetCard(true);
+  }, [busy, lastPassedCandidate, resetCard]);
 
   const cardGesture = useMemo(() => {
     const panGesture = Gesture.Pan()
@@ -450,9 +472,7 @@ export function DiscoverScreen({ navigation }: Props) {
                 <Text numberOfLines={1} style={styles.name}>
                   {candidate.displayName}, {candidate.age}
                 </Text>
-                <View style={styles.verifiedBadge}>
-                  <AppIcon name="check" color="#FFFFFF" size={12} />
-                </View>
+                <VerifiedBadge size={24} />
               </View>
 
               <View style={styles.metaRow}>
@@ -514,7 +534,7 @@ export function DiscoverScreen({ navigation }: Props) {
           size={50}
           label="Quay lại"
           disabled={busy}
-          onPress={() => resetCard(true)}
+          onPress={undoLastPass}
         />
         <ActionButton
           icon="close"

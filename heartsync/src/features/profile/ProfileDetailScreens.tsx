@@ -15,6 +15,7 @@ import { SectionHeader } from '../../shared/components/SectionHeader';
 import { SelectedChip } from '../../shared/components/SelectedChip';
 import { StatePanel } from '../../shared/components/StatePanel';
 import { useSnackbar } from '../../shared/components/Snackbar';
+import { VerifiedBadge } from '../../shared/components/VerifiedBadge';
 import { optionLabel, LANGUAGE_OPTIONS } from '../../shared/domain/profileOptions';
 import { colors, fonts, radii, spacing, type } from '../../shared/theme/tokens';
 import type { ProfilePublic } from '../../shared/types/domain.types';
@@ -200,9 +201,7 @@ export function OtherProfileScreen({
             <AppText accessibilityRole="header" tone="onPrimary" style={styles.heroName}>
               {profile.displayName}, {profile.age}
             </AppText>
-            <View style={styles.verifiedBadge}>
-              <AppIcon name="check" color="#FFFFFF" size={12} />
-            </View>
+            <VerifiedBadge size={24} />
           </View>
           <AppText tone="onPrimary" style={styles.heroMeta}>
             {formatNaturalOccupation(profile.occupation) || 'Thành viên HeartSync'}

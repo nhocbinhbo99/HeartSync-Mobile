@@ -81,9 +81,17 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
 }
 
 export function AuthScreen({ navigation, mode }: Props) {
-  const { signIn, signUp, requestPasswordReset, bootstrapError } = useAuth();
+  const {
+    signIn,
+    signUp,
+    requestPasswordReset,
+    bootstrapError,
+    pendingSignInEmail,
+    pendingSignInNotice,
+    clearPendingSignInNotice,
+  } = useAuth();
   const snackbar = useSnackbar();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => (mode === 'sign-in' && pendingSignInEmail ? pendingSignInEmail : ''));
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -98,6 +106,7 @@ export function AuthScreen({ navigation, mode }: Props) {
   const needsPassword = mode !== 'forgot-password';
   const isSignUp = mode === 'sign-up';
   const details = isSignUp && step === 2 ? copy['sign-up-details'] : copy[mode];
+  const effectiveNotice = notice ?? (mode === 'sign-in' ? pendingSignInNotice : undefined);
 
   const dateLimits = useMemo(() => {
     const maximum = new Date();
@@ -140,6 +149,7 @@ export function AuthScreen({ navigation, mode }: Props) {
     setErrors(nextErrors);
     setActionError(undefined);
     setNotice(undefined);
+    clearPendingSignInNotice?.();
     if (Object.keys(nextErrors).length) {
       feedback('error');
       return;
@@ -163,9 +173,14 @@ export function AuthScreen({ navigation, mode }: Props) {
         feedback('selection');
         return;
       }
-      const message = result.notice ?? 'Thao tác đã hoàn tất.';
+      const message = result.notice ?? (isSignUp ? 'Đăng ký thành công! Vui lòng đăng nhập.' : 'Thao tác đã hoàn tất.');
       setNotice(message);
       snackbar.show({ message, tone: 'success' });
+      if (isSignUp) {
+        feedback('confirm');
+        setStep(1);
+        navigation.navigate('SignIn');
+      }
     } else {
       setActionError(result.message);
       snackbar.show({ message: result.message, tone: 'error' });
@@ -217,7 +232,7 @@ export function AuthScreen({ navigation, mode }: Props) {
                   label="Mật khẩu"
                   autoCapitalize="none"
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                  placeholder={isSignUp ? 'Tạo mật khẩu (ít nhất 8 ký tự)' : 'Nhập mật khẩu'}
+                  placeholder={isSignUp ? 'Ít nhất 8 ký tự, gồm chữ hoa, thường và số' : 'Nhập mật khẩu'}
                   secureTextEntry={!passwordVisible}
                   value={password}
                   onChangeText={setPassword}
@@ -280,7 +295,7 @@ export function AuthScreen({ navigation, mode }: Props) {
         {actionError || bootstrapError ? (
           <AuthNotice tone="error" message={actionError ?? bootstrapError ?? ''} />
         ) : null}
-        {notice ? <AuthNotice tone="success" message={notice} /> : null}
+        {effectiveNotice ? <AuthNotice tone="success" message={effectiveNotice} /> : null}
 
         <AppButton
           disabled={busy}
@@ -320,23 +335,6 @@ export function AuthScreen({ navigation, mode }: Props) {
 
         {mode === 'sign-in' ? (
           <View style={styles.signInFooter}>
-            <View style={styles.orRow}>
-              <View style={styles.orLine} />
-              <AppText tone="muted" style={styles.orText}>
-                Hoặc
-              </AppText>
-              <View style={styles.orLine} />
-            </View>
-
-            <View style={styles.socialRow}>
-              <View style={styles.socialCircle}>
-                <AppText style={styles.googleLetter}>G</AppText>
-              </View>
-              <View style={styles.socialCircle}>
-                <AppText style={styles.appleSymbol}></AppText>
-              </View>
-            </View>
-
             <AnimatedPressable
               accessibilityRole="button"
               accessibilityLabel="Tạo tài khoản"

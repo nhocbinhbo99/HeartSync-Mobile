@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuth } from '../auth/AuthProvider';
 import { useAppServices } from '../../services/AppServicesProvider';
-import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
+import {
+  getCachedPhotoUrl,
+  resolvePhotoUrls,
+  setCachedPublicProfile,
+} from '../../services/photoCache';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
@@ -90,6 +94,8 @@ export function MatchesScreen({ navigation }: Props) {
   const [photoUrls, setPhotoUrls] = useState<PhotoUrls>({});
   const [incoming, setIncoming] = useState<IncomingCall>();
   const [filter, setFilter] = useState<MatchFilter>('all');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const hasLoadedRef = useRef(false);
@@ -109,6 +115,9 @@ export function MatchesScreen({ navigation }: Props) {
         return;
       }
       const nextMatches = result.data.items;
+      for (const match of nextMatches) {
+        setCachedPublicProfile(match.otherProfile);
+      }
       const paths = nextMatches.map((m) => primaryPhotoPath(m.otherProfile));
       const resolvedMap = await resolvePhotoUrls(services.profile, paths);
       if (requestId !== requestIdRef.current) return;
@@ -170,10 +179,48 @@ export function MatchesScreen({ navigation }: Props) {
         <AppText accessibilityRole="header" style={styles.pageTitle}>
           Tin nhắn
         </AppText>
-        <View style={styles.searchCircle}>
-          <AppIcon name="search" color={colors.ink} size={20} />
-        </View>
+        <AnimatedPressable
+          accessibilityRole="button"
+          accessibilityLabel={searchOpen ? 'Đóng tìm kiếm tin nhắn' : 'Tìm kiếm tin nhắn'}
+          onPress={() => {
+            feedback('selection');
+            setSearchOpen((prev) => {
+              if (prev) setSearchQuery('');
+              return !prev;
+            });
+          }}
+          style={[styles.searchCircle, searchOpen && styles.searchCircleActive]}
+        >
+          <AppIcon
+            name={searchOpen ? 'close' : 'search'}
+            color={searchOpen ? colors.primaryPressed : colors.ink}
+            size={20}
+          />
+        </AnimatedPressable>
       </View>
+      {searchOpen ? (
+        <View style={styles.searchBox}>
+          <AppIcon name="search" color={colors.inkMuted} size={18} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Tìm theo tên hoặc nội dung tin nhắn..."
+            placeholderTextColor={colors.inkMuted}
+            accessibilityLabel="Tìm kiếm cuộc trò chuyện"
+            style={styles.searchInput}
+          />
+          {searchQuery ? (
+            <AnimatedPressable
+              accessibilityRole="button"
+              accessibilityLabel="Xóa từ khóa tìm kiếm"
+              onPress={() => setSearchQuery('')}
+              style={styles.clearSearchBtn}
+            >
+              <AppIcon name="close" color={colors.inkMuted} size={15} />
+            </AnimatedPressable>
+          ) : null}
+        </View>
+      ) : null}
       <View style={styles.filterTabs}>
         {(
           [
@@ -257,10 +304,18 @@ export function MatchesScreen({ navigation }: Props) {
     );
   }
 
-  const newMatches = matches.filter((match) => match.lastMessagePreview === null);
-  const conversations = matches.filter((match) => match.lastMessagePreview !== null);
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const matchesByQuery = normalizedQuery
+    ? matches.filter(
+        (match) =>
+          match.otherProfile.displayName.toLowerCase().includes(normalizedQuery) ||
+          (match.lastMessagePreview ?? '').toLowerCase().includes(normalizedQuery),
+      )
+    : matches;
+  const newMatches = matchesByQuery.filter((match) => match.lastMessagePreview === null);
+  const conversations = matchesByQuery.filter((match) => match.lastMessagePreview !== null);
   const visibleRows =
-    filter === 'all' ? matches : filter === 'chats' ? conversations : newMatches;
+    filter === 'all' ? matchesByQuery : filter === 'chats' ? conversations : newMatches;
   const openChat = (matchId: string) => navigation.navigate('Chat', { matchId });
 
   return (
@@ -382,6 +437,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
+  },
+  searchCircleActive: {
+    backgroundColor: '#FFF0F5',
+    borderColor: '#F0B6CC',
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F2C9DA',
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 14.5,
+    color: colors.ink,
+    paddingVertical: 8,
+  },
+  clearSearchBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterTabs: {
     flexDirection: 'row',

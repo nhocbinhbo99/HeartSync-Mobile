@@ -4,6 +4,7 @@ import {
   FlatList,
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -23,11 +24,55 @@ import { Screen } from '../../shared/components/Screen';
 import type { RootStackParamList } from '../../navigation/types';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
 import type { ChatMessage, ProfilePublic } from '../../shared/types/domain.types';
-import { getCachedPublicProfile } from '../../services/photoCache';
+import { getCachedPublicProfile, setCachedPublicProfile } from '../../services/photoCache';
 import { brandAssets } from '../../shared/utils/avatarHelper';
+import { feedback } from '../../shared/motion/feedback';
 import { AiIcebreakerAssistant } from '../ai/AiIcebreakerAssistant';
 
 type Message = ChatMessage & { delivery?: 'sending' | 'failed' };
+type ComposerTray = 'none' | 'emoji' | 'actions';
+
+const QUICK_EMOJIS = [
+  '💕',
+  '🥰',
+  '😊',
+  '😍',
+  '😘',
+  '😂',
+  '🤭',
+  '✨',
+  '🌸',
+  '☕',
+  '🧋',
+  '🍜',
+  '🎬',
+  '🎵',
+  '🎉',
+  '👋',
+] as const;
+
+const QUICK_DATING_TEMPLATES = [
+  {
+    id: 'coffee',
+    badge: '☕ Rủ cà phê',
+    text: 'Cuối tuần này bạn rảnh không, mình đi cà phê trò chuyện nhé? ☕✨',
+  },
+  {
+    id: 'compliment',
+    badge: '🌸 Khen hồ sơ',
+    text: 'Mình rất ấn tượng với hồ sơ và năng lượng tích cực của bạn đó 🌸😊',
+  },
+  {
+    id: 'music',
+    badge: '🎵 Hỏi sở thích',
+    text: 'Dạo này bạn hay nghe nhạc gì hoặc có quán nào chill gợi ý cho mình với! 🎵',
+  },
+  {
+    id: 'movie',
+    badge: '🎬 Rủ xem phim',
+    text: 'Tuần này có mấy phim mới hay lắm, đi xem cùng mình nhé? 🎬🍿',
+  },
+] as const;
 
 export function ChatScreen(props: NativeStackScreenProps<RootStackParamList, 'Chat'>) {
   return <Conversation key={props.route.params?.matchId} {...props} />;
@@ -55,7 +100,10 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
     let live = true;
     if (services && matchId) {
       void services.chat.getRecipient(matchId).then((r) => {
-        if (live && r.ok) setRecipient(r.data);
+        if (live && r.ok) {
+          setCachedPublicProfile(r.data);
+          setRecipient(r.data);
+        }
       });
     }
     return () => {
@@ -64,6 +112,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
   }, [services, matchId]);
 
   const [text, setText] = useState('');
+  const [composerTray, setComposerTray] = useState<ComposerTray>('none');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -225,7 +274,14 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
     };
     setMessages((old) => [message, ...old]);
     setText('');
+    setComposerTray('none');
     void send(message);
+  };
+
+  const openRecipientProfile = () => {
+    if (!recipient) return;
+    feedback('selection');
+    navigation.navigate('OtherProfile', { profileId: recipient.id });
   };
 
   const startCall = async (type: 'audio' | 'video') => {
@@ -294,11 +350,89 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
           />
         </View>
       ) : null}
+
+      {composerTray === 'emoji' ? (
+        <View style={styles.trayContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.emojiScroll}
+          >
+            {QUICK_EMOJIS.map((emoji) => (
+              <Pressable
+                key={emoji}
+                accessibilityRole="button"
+                accessibilityLabel={`Chèn biểu tượng ${emoji}`}
+                onPress={() => {
+                  feedback('selection');
+                  setText((prev) => `${prev}${emoji}`);
+                }}
+                style={styles.emojiBtn}
+              >
+                <Text style={styles.emojiChar}>{emoji}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
+      {composerTray === 'actions' ? (
+        <View style={styles.trayContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickActionScroll}
+          >
+            {QUICK_DATING_TEMPLATES.map((tpl) => (
+              <Pressable
+                key={tpl.id}
+                accessibilityRole="button"
+                accessibilityLabel={tpl.badge}
+                onPress={() => {
+                  feedback('selection');
+                  setText(tpl.text);
+                  setComposerTray('none');
+                }}
+                style={styles.quickTemplatePill}
+              >
+                <Text style={styles.quickTemplateText}>{tpl.badge}</Text>
+              </Pressable>
+            ))}
+            {recipient ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Xem hồ sơ của ${recipient.displayName}`}
+                onPress={() => {
+                  setComposerTray('none');
+                  openRecipientProfile();
+                }}
+                style={styles.quickActionPillSecondary}
+              >
+                <Text style={styles.quickActionSecondaryText}>👤 Xem hồ sơ</Text>
+              </Pressable>
+            ) : null}
+          </ScrollView>
+        </View>
+      ) : null}
+
       <View style={styles.composer}>
         <View style={styles.inputCapsule}>
-          <View style={styles.capsuleIcon}>
-            <AppIcon name="smile" color={colors.inkMuted} size={22} />
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Chọn biểu tượng cảm xúc"
+            disabled={!enabled}
+            onPress={() => {
+              feedback('selection');
+              setComposerTray((cur) => (cur === 'emoji' ? 'none' : 'emoji'));
+            }}
+            style={[styles.capsuleIcon, composerTray === 'emoji' && styles.capsuleIconActive]}
+          >
+            <AppIcon
+              name="smile"
+              color={composerTray === 'emoji' ? colors.primaryPressed : colors.inkMuted}
+              size={22}
+            />
+          </Pressable>
           <TextInput
             accessibilityLabel="Tin nhắn"
             value={text}
@@ -310,9 +444,22 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
             editable={enabled}
             style={styles.composerInput}
           />
-          <View style={styles.capsuleIcon}>
-            <AppIcon name="add" color={colors.primaryPressed} size={22} />
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mở tiện ích trò chuyện"
+            disabled={!enabled}
+            onPress={() => {
+              feedback('selection');
+              setComposerTray((cur) => (cur === 'actions' ? 'none' : 'actions'));
+            }}
+            style={[styles.capsuleIcon, composerTray === 'actions' && styles.capsuleIconActive]}
+          >
+            <AppIcon
+              name={composerTray === 'actions' ? 'close' : 'add'}
+              color={colors.primaryPressed}
+              size={22}
+            />
+          </Pressable>
         </View>
 
         <Pressable
@@ -350,27 +497,37 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         />
-        <View style={styles.avatarOnlineWrap}>
-          {recipient ? (
-            <ConversationProfile
-              profileId={recipient.id}
-              profile={getCachedPublicProfile(recipient.id) ?? recipient}
-              presentation="avatar"
-            />
-          ) : null}
-          <View style={styles.headerOnlineDot} />
-        </View>
-        <View style={styles.headerCopy}>
-          <AppText numberOfLines={1} style={styles.headerName}>
-            {recipient?.displayName ?? 'Trò chuyện'}
-          </AppText>
-          <View style={styles.statusRow}>
-            <View style={styles.statusDotInline} />
-            <AppText variant="caption" style={styles.statusText}>
-              Đang hoạt động
-            </AppText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            recipient ? `Xem hồ sơ của ${recipient.displayName}` : 'Xem hồ sơ người trò chuyện'
+          }
+          disabled={!recipient}
+          onPress={openRecipientProfile}
+          style={styles.headerProfileTouch}
+        >
+          <View style={styles.avatarOnlineWrap}>
+            {recipient ? (
+              <ConversationProfile
+                profileId={recipient.id}
+                profile={getCachedPublicProfile(recipient.id) ?? recipient}
+                presentation="avatar"
+              />
+            ) : null}
+            <View style={styles.headerOnlineDot} />
           </View>
-        </View>
+          <View style={styles.headerCopy}>
+            <AppText numberOfLines={1} style={styles.headerName}>
+              {recipient?.displayName ?? 'Trò chuyện'}
+            </AppText>
+            <View style={styles.statusRow}>
+              <View style={styles.statusDotInline} />
+              <AppText variant="caption" style={styles.statusText}>
+                Đang hoạt động · Xem hồ sơ
+              </AppText>
+            </View>
+          </View>
+        </Pressable>
         <View style={styles.headerActions}>
           <Pressable
             accessibilityRole="button"
@@ -498,6 +655,14 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginRight: -4,
+  },
+  headerProfileTouch: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
   },
   avatarOnlineWrap: {
     position: 'relative',
@@ -669,6 +834,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  trayContainer: {
+    paddingHorizontal: spacing.md,
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  emojiScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+  },
+  emojiBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F5D6E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emojiChar: {
+    fontSize: 20,
+  },
+  quickActionScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  quickTemplatePill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFE8F0',
+    borderWidth: 1,
+    borderColor: '#F5B5CB',
+  },
+  quickTemplateText: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.primaryPressed,
+  },
+  quickActionPillSecondary: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3D6E2',
+  },
+  quickActionSecondaryText: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.ink,
+  },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -686,7 +907,7 @@ const styles = StyleSheet.create({
     borderColor: '#F3D6E2',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     shadowColor: '#D67094',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -694,10 +915,14 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   capsuleIcon: {
-    width: 30,
-    height: 36,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  capsuleIconActive: {
+    backgroundColor: '#FFE8F0',
   },
   composerInput: {
     flex: 1,

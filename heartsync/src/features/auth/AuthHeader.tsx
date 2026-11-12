@@ -45,14 +45,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   logoImage: {
-    width: 58,
-    height: 44,
+    width: 64,
+    height: 54,
   },
   brand: {
     fontFamily: fonts.extrabold,
-    fontSize: 22,
+    fontSize: 23,
     lineHeight: 28,
-    color: colors.ink,
+    color: '#7A0B3B',
   },
   copyWrap: {
     gap: 4,

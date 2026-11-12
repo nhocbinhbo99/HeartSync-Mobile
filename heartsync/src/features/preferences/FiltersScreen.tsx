@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
@@ -11,6 +11,7 @@ import { AppIcon } from '../../shared/components/AppIcon';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { BottomActionBar } from '../../shared/components/BottomActionBar';
 import { IconButton } from '../../shared/components/IconButton';
+import { PinkSwitch } from '../../shared/components/PinkSwitch';
 import { RangeSliderField, ValueSliderField } from '../../shared/components/RangeFields';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
@@ -310,11 +311,9 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
                       : `Trong bán kính ${filters.distanceKm} km`}
                   </Text>
                 </View>
-                <Switch
+                <PinkSwitch
                   accessibilityLabel="Giới hạn khoảng cách"
                   value={filters.distanceKm !== null}
-                  trackColor={{ false: '#F2D7E3', true: colors.primarySoft }}
-                  thumbColor={filters.distanceKm !== null ? colors.primary : '#B8A2AD'}
                   onValueChange={(limited) => {
                     feedback(limited ? 'toggleOn' : 'toggleOff');
                     setFilters((current) => ({ ...current, distanceKm: limited ? 25 : null }));

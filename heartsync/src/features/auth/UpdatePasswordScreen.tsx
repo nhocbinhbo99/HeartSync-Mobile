@@ -7,7 +7,7 @@ import { Screen } from '../../shared/components/Screen';
 import { useSnackbar } from '../../shared/components/Snackbar';
 import { spacing } from '../../shared/theme/tokens';
 import { useAuth } from './AuthProvider';
-import { validatePassword } from './validation';
+import { PASSWORD_REQUIREMENT_MESSAGE, validatePassword } from './validation';
 import { AuthHeader } from './AuthHeader';
 import { AuthNotice } from './AuthNotice';
 
@@ -22,8 +22,8 @@ export function UpdatePasswordScreen() {
 
   const submit = async () => {
     if (!validatePassword(password)) {
-      setError('Mật khẩu phải có ít nhất 8 ký tự.');
-      snackbar.show({ message: 'Mật khẩu cần có ít nhất 8 ký tự.', tone: 'error' });
+      setError(PASSWORD_REQUIREMENT_MESSAGE);
+      snackbar.show({ message: PASSWORD_REQUIREMENT_MESSAGE, tone: 'error' });
       return;
     }
     setBusy(true);

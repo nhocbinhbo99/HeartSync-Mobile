@@ -21,6 +21,7 @@ import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { IconButton } from '../../shared/components/IconButton';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
+import { VerifiedBadge } from '../../shared/components/VerifiedBadge';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { useAppServices } from '../../services/AppServicesProvider';
 import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
@@ -166,9 +167,7 @@ export function ProfileScreen({ navigation }: Props) {
                 <AppText accessibilityRole="header" numberOfLines={1} style={styles.profileName}>
                   {profile.displayName}, {profile.age}
                 </AppText>
-                <View style={styles.verifiedBadge}>
-                  <AppIcon name="check" color="#FFFFFF" size={11} />
-                </View>
+                <VerifiedBadge size={22} />
               </View>
               <AppText tone="muted" style={styles.viewProfileHint}>
                 {profile.publicLocation ? `${profile.publicLocation} · Xem hồ sơ của bạn` : 'Xem hồ sơ của bạn'}
