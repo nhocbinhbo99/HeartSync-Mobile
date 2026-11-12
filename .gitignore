@@ -1,5 +1,6 @@
 # Local extraction/rendering artifacts used during repository audits
 /tmp/
+**/tmp/
 
 # Local environment files at repository root
 .env
@@ -17,3 +18,19 @@
 # Local logs and TypeScript caches
 *.log
 *.tsbuildinfo
+
+# Local-only documentation, design references, and historical incremental migrations
+/docs/
+/UI_UX_Design/
+/*.md
+!/README.md
+/heartsync/AGENTS.md
+/supabase/migrations/
+
+# Local IDE, agent skills, and worktree artifacts
+/.idea/
+/.impeccable/
+/.review-worktrees/
+/heartsync/.agents/
+/heartsync/.claude/
+/heartsync/skills-lock.json
