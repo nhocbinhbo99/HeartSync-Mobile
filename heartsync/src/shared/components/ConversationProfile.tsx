@@ -1,67 +1,110 @@
-import { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
-import { useAppServices } from "../../services/AppServicesProvider";
-import type { ProfilePublic } from "../types/domain.types";
-import { colors } from "../theme/tokens";
-export function ConversationProfile({ profileId, presentation = "inline" }: { profileId: string; presentation?: "inline" | "hero" | "callHero" | "callTile" | "avatar" }) {
+import { useEffect, useState } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
+
+import { useAppServices } from '../../services/AppServicesProvider';
+import { getCachedPhotoUrl, getCachedPublicProfile } from '../../services/photoCache';
+import { colors, fonts } from '../theme/tokens';
+import type { ProfilePublic } from '../types/domain.types';
+import { getProfileImageSource } from '../utils/avatarHelper';
+
+export function ConversationProfile({
+  profileId,
+  profile: initialProfile,
+  presentation = 'inline',
+}: {
+  profileId: string;
+  profile?: ProfilePublic;
+  presentation?: 'inline' | 'hero' | 'callHero' | 'callTile' | 'avatar';
+}) {
   const services = useAppServices();
-  const [profile, setProfile] = useState<ProfilePublic>();
-  const [url, setUrl] = useState("");
+  const [loadedProfile, setLoadedProfile] = useState<ProfilePublic>();
+  const profile =
+    initialProfile ??
+    (loadedProfile?.id === profileId ? loadedProfile : undefined) ??
+    getCachedPublicProfile(profileId);
+  const primaryPath =
+    profile?.photos.find((p) => p.isPrimary)?.storagePath ?? profile?.photos[0]?.storagePath;
+
+  const [fetchedUrl, setFetchedUrl] = useState<{ path: string; url: string }>();
+  const resolvedUrl =
+    getCachedPhotoUrl(primaryPath) ??
+    (fetchedUrl && fetchedUrl.path === primaryPath ? fetchedUrl.url : '');
+
   useEffect(() => {
+    if (initialProfile || getCachedPublicProfile(profileId) || !services) return undefined;
     let live = true;
-    void services?.profile.getPublic(profileId).then(async (r) => {
-      if (!live || !r.ok) return;
-      setProfile(r.data);
-      const path = r.data.photos[0]?.storagePath;
-      if (path) {
-        const result = await services.profile.createPhotoUrl(path);
-        if (live && result.ok) setUrl(result.data);
-      }
+    void services.profile.getPublic(profileId).then((r) => {
+      if (live && r.ok) setLoadedProfile(r.data);
     });
     return () => {
       live = false;
     };
-  }, [services, profileId]);
-  const avatarOnly = presentation === "avatar" || presentation === "callTile";
-  const hero = presentation === "hero" || presentation === "callHero";
-  const avatarSize = hero ? 112 : presentation === "callTile" ? 64 : avatarOnly ? 72 : 48;
+  }, [initialProfile, profileId, services]);
+
+  useEffect(() => {
+    if (!services || !primaryPath || getCachedPhotoUrl(primaryPath)) return undefined;
+    let live = true;
+    void services.profile.createPhotoUrl(primaryPath).then((result) => {
+      if (live && result.ok) setFetchedUrl({ path: primaryPath, url: result.data });
+    });
+    return () => {
+      live = false;
+    };
+  }, [primaryPath, services]);
+
+  const avatarOnly = presentation === 'avatar' || presentation === 'callTile';
+  const hero = presentation === 'hero' || presentation === 'callHero';
+  const avatarSize = hero ? 116 : presentation === 'callTile' ? 64 : avatarOnly ? 46 : 48;
+  const imageSource = getProfileImageSource(
+    resolvedUrl || undefined,
+    profileId,
+    profile?.gender,
+    profile?.displayName,
+  );
+
   const content = (
-    <View style={{ flexDirection: hero ? "column" : "row", alignItems: "center", gap: hero ? 16 : 12 }}>
-      {url ? (
-        <Image
-          source={{ uri: url }}
-          style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }}
-        />
-      ) : (
-        <View
+    <View style={{ flexDirection: hero ? 'column' : 'row', alignItems: 'center', gap: hero ? 14 : 10 }}>
+      <Image
+        source={imageSource}
+        fadeDuration={0}
+        style={{
+          width: avatarSize,
+          height: avatarSize,
+          borderRadius: avatarSize / 2,
+          borderWidth: hero ? 3 : 1.5,
+          borderColor: hero ? 'rgba(255,255,255,0.85)' : colors.border,
+          backgroundColor: colors.surfaceMuted,
+        }}
+      />
+      {!avatarOnly ? (
+        <Text
           style={{
-            width: avatarSize,
-            height: avatarSize,
-            borderRadius: avatarSize / 2,
-            backgroundColor: colors.primarySoft,
+            fontFamily: hero ? fonts.bold : fonts.semibold,
+            fontSize: hero ? 24 : 18,
+            color: presentation === 'callHero' ? colors.onPrimary : colors.ink,
           }}
-        />
-      )}
-      {!avatarOnly ? <Text style={{ fontSize: hero ? 24 : 20, fontWeight: hero ? "700" : "400", color: colors.ink }}>
-        {profile?.displayName ?? "Người bạn kết nối"}
-      </Text> : null}
+        >
+          {profile?.displayName ?? 'Người bạn kết nối'}
+        </Text>
+      ) : null}
     </View>
   );
-  if (presentation === "callHero" || presentation === "callTile")
+
+  if (presentation === 'callHero' || presentation === 'callTile') {
     return (
       <View style={styles.callHero}>
-        {url ? <Image source={{ uri: url }} blurRadius={28} resizeMode="cover" style={styles.callHeroBackdrop} /> : <View style={styles.callHeroFallback} />}
+        <Image source={imageSource} blurRadius={28} resizeMode="cover" style={styles.callHeroBackdrop} />
         <View style={styles.callHeroScrim} />
         <View style={styles.callHeroContent}>{content}</View>
       </View>
     );
+  }
   return content;
 }
 
 const styles = StyleSheet.create({
-  callHero: { flex: 1, alignSelf: "stretch", alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  callHeroBackdrop: { ...StyleSheet.absoluteFill, opacity: 0.66, transform: [{ scale: 1.12 }] },
-  callHeroFallback: { ...StyleSheet.absoluteFill, backgroundColor: colors.primarySoft },
-  callHeroScrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(16,42,51,0.48)" },
-  callHeroContent: { alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  callHero: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  callHeroBackdrop: { ...StyleSheet.absoluteFill, opacity: 0.72, transform: [{ scale: 1.15 }] },
+  callHeroScrim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(54, 17, 42, 0.56)' },
+  callHeroContent: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
 });

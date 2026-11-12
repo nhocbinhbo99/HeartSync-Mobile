@@ -1,169 +1,589 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuth } from '../auth/AuthProvider';
 import { useAppServices } from '../../services/AppServicesProvider';
+import {
+  getCachedPhotoUrl,
+  resolvePhotoUrls,
+  setCachedPublicProfile,
+} from '../../services/photoCache';
 import { AppIcon } from '../../shared/components/AppIcon';
+import { AppText } from '../../shared/components/AppText';
+import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
+import { Avatar } from '../../shared/components/Avatar';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
-import { colors, radii, spacing, type } from '../../shared/theme/tokens';
+import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
 import type { IncomingCall, MatchSummary, ProfilePublic } from '../../shared/types/domain.types';
+import { brandAssets, getFallbackAvatar } from '../../shared/utils/avatarHelper';
+import { feedback } from '../../shared/motion/feedback';
 
-type Props = CompositeScreenProps<BottomTabScreenProps<MainTabParamList, 'Matches'>, NativeStackScreenProps<RootStackParamList>>;
+type Props = CompositeScreenProps<
+  BottomTabScreenProps<MainTabParamList, 'Matches'>,
+  NativeStackScreenProps<RootStackParamList>
+>;
 type PhotoUrls = Record<string, string>;
-
-const icons = {
-  heart: { ios: 'heart.fill', android: 'favorite', web: 'favorite' },
-  chat: { ios: 'paperplane.fill', android: 'send', web: 'send' },
-  call: { ios: 'phone.fill', android: 'call', web: 'call' },
-} as const;
-
-function initialFor(name: string) {
-  return name.trim().slice(0, 1).toLocaleUpperCase('vi-VN') || '?';
-}
+type MatchFilter = 'all' | 'chats' | 'new';
 
 function connectedAt(createdAt: string) {
   const timestamp = new Date(createdAt).getTime();
-  if (Number.isNaN(timestamp)) return 'Đã kết nối';
+  if (Number.isNaN(timestamp)) return 'Hôm nay';
+  const date = new Date(timestamp);
   const elapsedHours = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60));
-  if (elapsedHours < 1) return 'Vừa kết nối';
-  if (elapsedHours < 24) return `Kết nối ${elapsedHours} giờ trước`;
+  if (elapsedHours < 24) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
   const elapsedDays = Math.floor(elapsedHours / 24);
-  if (elapsedDays === 1) return 'Kết nối hôm qua';
-  return `Kết nối ${elapsedDays} ngày trước`;
+  if (elapsedDays === 1) return 'Hôm qua';
+  if (elapsedDays < 7) return `Thứ ${((date.getDay() + 6) % 7) + 2}`;
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 }
 
-function MatchAvatar({ profile, photoUrl, size = 64 }: { profile: ProfilePublic; photoUrl?: string; size?: number }) {
-  return <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
-    {photoUrl
-      ? <Image source={{ uri: photoUrl }} accessibilityLabel={`Ảnh hồ sơ của ${profile.displayName}`} style={styles.avatarImage} />
-      : <Text style={[styles.avatarInitial, { fontSize: Math.max(18, size * 0.36) }]}>{initialFor(profile.displayName)}</Text>}
-  </View>;
+function primaryPhotoPath(profile: ProfilePublic): string | undefined {
+  return (profile.photos.find((item) => item.isPrimary) ?? profile.photos[0])?.storagePath;
+}
+
+function areMatchesEqual(a: MatchSummary[], b: MatchSummary[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (
+      a[i].id !== b[i].id ||
+      a[i].lastMessagePreview !== b[i].lastMessagePreview ||
+      a[i].lastMessageAt !== b[i].lastMessageAt ||
+      a[i].unreadCount !== b[i].unreadCount ||
+      primaryPhotoPath(a[i].otherProfile) !== primaryPhotoPath(b[i].otherProfile)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function MatchAvatar({
+  profile,
+  photoUrl,
+  size = 58,
+}: {
+  profile: ProfilePublic;
+  photoUrl?: string;
+  size?: number;
+}) {
+  const path = primaryPhotoPath(profile);
+  const resolved = photoUrl ?? getCachedPhotoUrl(path);
+  return (
+    <Avatar
+      label={`Ảnh hồ sơ của ${profile.displayName}`}
+      uri={resolved}
+      fallbackSource={path ? undefined : getFallbackAvatar(profile.id, profile.gender, profile.displayName)}
+      size={size}
+    />
+  );
 }
 
 export function MatchesScreen({ navigation }: Props) {
   const services = useAppServices();
   const { user } = useAuth();
+  const userId = user?.id;
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [photoUrls, setPhotoUrls] = useState<PhotoUrls>({});
   const [incoming, setIncoming] = useState<IncomingCall>();
+  const [filter, setFilter] = useState<MatchFilter>('all');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const hasLoadedRef = useRef(false);
+  const requestIdRef = useRef(0);
 
-  const load = useCallback(async () => {
-    if (!services) return;
-    setLoading(true);
-    setError('');
-    const result = await services.matches.listMatches();
-    setLoading(false);
-    if (result.ok) setMatches(result.data.items);
-    else setError(result.error.message);
-  }, [services]);
+  const load = useCallback(
+    async (silent = false) => {
+      if (!services) return;
+      const requestId = ++requestIdRef.current;
+      if (!hasLoadedRef.current && !silent) setLoading(true);
+      if (!silent) setError('');
+      const result = await services.matches.listMatches();
+      if (requestId !== requestIdRef.current) return;
+      if (!result.ok) {
+        if (!hasLoadedRef.current) setLoading(false);
+        setError(result.error.message);
+        return;
+      }
+      const nextMatches = result.data.items;
+      for (const match of nextMatches) {
+        setCachedPublicProfile(match.otherProfile);
+      }
+      const paths = nextMatches.map((m) => primaryPhotoPath(m.otherProfile));
+      const resolvedMap = await resolvePhotoUrls(services.profile, paths);
+      if (requestId !== requestIdRef.current) return;
 
-  useFocusEffect(useCallback(() => {
-    void load();
-  }, [load]));
+      const nextPhotos: PhotoUrls = {};
+      for (const match of nextMatches) {
+        const path = primaryPhotoPath(match.otherProfile);
+        if (path && resolvedMap[path]) {
+          nextPhotos[match.id] = resolvedMap[path];
+        }
+      }
+
+      hasLoadedRef.current = true;
+      setLoading(false);
+      setPhotoUrls((prev) => {
+        const prevKeys = Object.keys(prev);
+        const nextKeys = Object.keys(nextPhotos);
+        if (prevKeys.length === nextKeys.length && nextKeys.every((k) => prev[k] === nextPhotos[k])) {
+          return prev;
+        }
+        return nextPhotos;
+      });
+      setMatches((prev) => (areMatchesEqual(prev, nextMatches) ? prev : nextMatches));
+    },
+    [services],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      void load(hasLoadedRef.current);
+    }, [load]),
+  );
 
   useEffect(() => {
-    if (!services || matches.length === 0) return;
-    let active = true;
-    void Promise.all(matches.map(async (match) => {
-      const photo = match.otherProfile.photos.find((item) => item.isPrimary) ?? match.otherProfile.photos[0];
-      if (!photo) return [match.id, null] as const;
-      const result = await services.profile.createPhotoUrl(photo.storagePath);
-      return [match.id, result.ok ? result.data : null] as const;
-    })).then((entries) => {
-      if (!active) return;
-      setPhotoUrls(Object.fromEntries(entries.filter((entry): entry is [string, string] => entry[1] !== null)));
+    if (!services || !userId) return;
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    const inboxSub = services.chat.subscribeInbox(() => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        void load(true);
+      }, 450);
     });
-    return () => { active = false; };
-  }, [matches, services]);
-
-  useEffect(() => {
-    if (!services || !user) return;
-    const subscription = services.calls.subscribeIncoming(
-      (call) => { if (call.status === 'ringing' && call.calleeId === user.id) setIncoming(call); },
+    const callSub = services.calls.subscribeIncoming(
+      (call) => {
+        if (call.status === 'ringing' && call.calleeId === userId) setIncoming(call);
+      },
       (nextError) => setError(nextError.message),
     );
-    return () => subscription.unsubscribe();
-  }, [services, user]);
+    return () => {
+      clearTimeout(debounceTimer);
+      inboxSub.unsubscribe();
+      callSub.unsubscribe();
+    };
+  }, [load, services, userId]);
 
-  if (!services) return <Screen><StatePanel title="Chưa thể tải kết nối" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
-  if (loading) return <Screen><AsyncStatePanel state="loading" title="Đang tải kết nối" description="Chỉ mutual like do máy chủ xác nhận mới có ở đây." /></Screen>;
-  if (error) return <Screen><AsyncStatePanel state="error" title="Không thể tải kết nối" description={error} actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
-  if (matches.length === 0) return <Screen><StatePanel title="Chưa có kết nối" description="Khi cả hai cùng thích, người đó sẽ xuất hiện ở đây." /></Screen>;
+  const header = (
+    <View style={styles.header}>
+      <View style={styles.headerTop}>
+        <AppText accessibilityRole="header" style={styles.pageTitle}>
+          Tin nhắn
+        </AppText>
+        <AnimatedPressable
+          accessibilityRole="button"
+          accessibilityLabel={searchOpen ? 'Đóng tìm kiếm tin nhắn' : 'Tìm kiếm tin nhắn'}
+          onPress={() => {
+            feedback('selection');
+            setSearchOpen((prev) => {
+              if (prev) setSearchQuery('');
+              return !prev;
+            });
+          }}
+          style={[styles.searchCircle, searchOpen && styles.searchCircleActive]}
+        >
+          <AppIcon
+            name={searchOpen ? 'close' : 'search'}
+            color={searchOpen ? colors.primaryPressed : colors.ink}
+            size={20}
+          />
+        </AnimatedPressable>
+      </View>
+      {searchOpen ? (
+        <View style={styles.searchBox}>
+          <AppIcon name="search" color={colors.inkMuted} size={18} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Tìm theo tên hoặc nội dung tin nhắn..."
+            placeholderTextColor={colors.inkMuted}
+            accessibilityLabel="Tìm kiếm cuộc trò chuyện"
+            style={styles.searchInput}
+          />
+          {searchQuery ? (
+            <AnimatedPressable
+              accessibilityRole="button"
+              accessibilityLabel="Xóa từ khóa tìm kiếm"
+              onPress={() => setSearchQuery('')}
+              style={styles.clearSearchBtn}
+            >
+              <AppIcon name="close" color={colors.inkMuted} size={15} />
+            </AnimatedPressable>
+          ) : null}
+        </View>
+      ) : null}
+      <View style={styles.filterTabs}>
+        {(
+          [
+            { key: 'all', label: 'Tất cả' },
+            { key: 'chats', label: 'Đang nhắn' },
+            { key: 'new', label: 'Match mới' },
+          ] as const
+        ).map((tab) => {
+          const active = filter === tab.key;
+          return (
+            <AnimatedPressable
+              key={tab.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              onPress={() => {
+                feedback('selection');
+                setFilter(tab.key);
+              }}
+              style={[styles.filterPill, active && styles.filterPillActive]}
+            >
+              {active ? (
+                <Image
+                  source={brandAssets.pinkButtonGradient}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="stretch"
+                />
+              ) : null}
+              <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>
+                {tab.label}
+              </Text>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 
-  const newMatches = matches.filter((match) => match.lastMessagePreview === null);
-  const conversations = matches.filter((match) => match.lastMessagePreview !== null);
+  if (!services) {
+    return (
+      <Screen safeTop>
+        {header}
+        <StatePanel title="Chưa thể tải kết nối" description="Cấu hình dịch vụ đang thiếu." />
+      </Screen>
+    );
+  }
+  if (loading) {
+    return (
+      <Screen safeTop>
+        {header}
+        <AsyncStatePanel
+          state="loading"
+          title="Đang tải kết nối"
+          description="Những người bạn đã kết nối thành công sẽ hiển thị ở đây."
+        />
+      </Screen>
+    );
+  }
+  if (error) {
+    return (
+      <Screen safeTop>
+        {header}
+        <AsyncStatePanel
+          state="error"
+          title="Không thể tải kết nối"
+          description={error}
+          actionLabel="Thử lại"
+          onAction={() => void load()}
+        />
+      </Screen>
+    );
+  }
+  if (matches.length === 0) {
+    return (
+      <Screen safeTop>
+        {header}
+        <StatePanel
+          title="Chưa có kết nối nào"
+          description="Khi cả hai cùng thả tim ở màn Khám phá, hai bạn sẽ xuất hiện ở đây."
+        />
+      </Screen>
+    );
+  }
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const matchesByQuery = normalizedQuery
+    ? matches.filter(
+        (match) =>
+          match.otherProfile.displayName.toLowerCase().includes(normalizedQuery) ||
+          (match.lastMessagePreview ?? '').toLowerCase().includes(normalizedQuery),
+      )
+    : matches;
+  const newMatches = matchesByQuery.filter((match) => match.lastMessagePreview === null);
+  const conversations = matchesByQuery.filter((match) => match.lastMessagePreview !== null);
+  const visibleRows =
+    filter === 'all' ? matchesByQuery : filter === 'chats' ? conversations : newMatches;
   const openChat = (matchId: string) => navigation.navigate('Chat', { matchId });
 
-  return <Screen contentStyle={styles.screen}>
-    {incoming ? <StatePanel title="Cuộc gọi thoại đến" description="Người bạn kết nối đang gọi. Mic chỉ được bật sau khi bạn chấp nhận." actionLabel="Mở cuộc gọi" onAction={() => navigation.navigate('AudioCall', { matchId: incoming.matchId, callId: incoming.id, incoming: true })} /> : null}
-    {newMatches.length ? <View style={styles.section}>
-      <View style={styles.sectionHeading}><View><Text accessibilityRole="header" style={styles.sectionTitle}>Kết nối mới</Text><Text style={styles.sectionBody}>Cả hai đã cùng bày tỏ sự quan tâm.</Text></View><View style={styles.matchCount}><AppIcon name={icons.heart} color={colors.primaryPressed} size={15} /><Text style={styles.matchCountText}>{newMatches.length}</Text></View></View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newMatches}>
-        {newMatches.map((match) => <Pressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
-          onPress={() => openChat(match.id)} style={({ pressed }) => [styles.matchTile, pressed && styles.pressed]}>
-          <View><MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={74} /><View style={styles.matchBadge}><AppIcon name={icons.heart} color={colors.onPrimary} size={13} /></View></View>
-          <Text numberOfLines={1} style={styles.matchName}>{match.otherProfile.displayName}</Text>
-          <Text numberOfLines={1} style={styles.matchTime}>{connectedAt(match.createdAt)}</Text>
-        </Pressable>)}
-      </ScrollView>
-    </View> : null}
+  return (
+    <Screen safeTop contentStyle={styles.screen}>
+      {header}
+      {incoming ? (
+        <StatePanel
+          title="Cuộc gọi đến"
+          description="Người bạn kết nối đang gọi cho bạn."
+          actionLabel="Mở cuộc gọi"
+          onAction={() =>
+            navigation.navigate(incoming.type === 'video' ? 'VideoCall' : 'AudioCall', {
+              matchId: incoming.matchId,
+              callId: incoming.id,
+              incoming: true,
+            })
+          }
+        />
+      ) : null}
 
-    {conversations.length ? <View style={styles.section}>
-      <Text accessibilityRole="header" style={styles.sectionTitle}>Trò chuyện</Text>
+      {filter === 'all' && newMatches.length > 0 && conversations.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.newMatchesStrip}
+        >
+          {newMatches.map((match) => (
+            <AnimatedPressable
+              key={`strip-${match.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
+              onPress={() => openChat(match.id)}
+              style={styles.matchTile}
+            >
+              <View style={styles.avatarWrap}>
+                <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={64} />
+                <View style={styles.heartMiniBadge}>
+                  <AppIcon name="heart" color={colors.onPrimary} size={11} />
+                </View>
+              </View>
+              <Text numberOfLines={1} style={styles.matchName}>
+                {match.otherProfile.displayName}
+              </Text>
+            </AnimatedPressable>
+          ))}
+        </ScrollView>
+      ) : null}
+
       <View style={styles.conversationList}>
-        {conversations.map((match) => <Pressable key={match.id} accessibilityRole="button" accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
-          onPress={() => openChat(match.id)} style={({ pressed }) => [styles.conversationRow, pressed && styles.pressed]}>
-          <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} />
-          <View style={styles.conversationContent}><View style={styles.conversationTopLine}><Text numberOfLines={1} style={styles.conversationName}>{match.otherProfile.displayName}</Text><Text style={styles.conversationTime}>{connectedAt(match.createdAt)}</Text></View><Text numberOfLines={2} style={styles.preview}>{match.lastMessagePreview}</Text></View>
-          <AppIcon name={icons.chat} color={colors.primaryPressed} size={20} />
-        </Pressable>)}
-      </View>
-    </View> : null}
+        {visibleRows.map((match) => {
+          const isNew = match.lastMessagePreview === null;
+          return (
+            <AnimatedPressable
+              key={match.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
+              onPress={() => openChat(match.id)}
+              style={styles.conversationRow}
+            >
+              <View style={styles.avatarWrap}>
+                <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={60} />
+                <View style={isNew ? styles.heartMiniBadge : styles.onlineDot}>
+                  {isNew ? <AppIcon name="heart" color={colors.onPrimary} size={11} /> : null}
+                </View>
+              </View>
 
-    {newMatches.length && conversations.length === 0 ? <Pressable accessibilityRole="button" accessibilityLabel={`Bắt đầu trò chuyện với ${newMatches[0].otherProfile.displayName}`}
-      onPress={() => openChat(newMatches[0].id)} style={({ pressed }) => [styles.firstMessageCard, pressed && styles.pressed]}>
-      <View style={styles.firstMessageIcon}><AppIcon name={icons.chat} color={colors.primaryPressed} size={22} /></View>
-      <View style={styles.firstMessageContent}><Text style={styles.firstMessageTitle}>Mở lời cùng {newMatches[0].otherProfile.displayName}</Text><Text style={styles.firstMessageBody}>Một lời chào ngắn là đủ để bắt đầu.</Text></View>
-      <AppIcon name={icons.chat} color={colors.primaryPressed} size={20} />
-    </Pressable> : null}
-  </Screen>;
+              <View style={styles.conversationContent}>
+                <View style={styles.conversationTopLine}>
+                  <Text numberOfLines={1} style={styles.conversationName}>
+                    {match.otherProfile.displayName}
+                  </Text>
+                  <Text style={styles.conversationTime}>{connectedAt(match.createdAt)}</Text>
+                </View>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.preview, isNew && styles.previewNewMatch]}
+                >
+                  {match.lastMessagePreview ?? 'Hai bạn vừa kết nối! Gửi lời chào ngay nhé 💕'}
+                </Text>
+              </View>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
+    </Screen>
+  );
 }
 
 const styles = StyleSheet.create({
-  screen: { gap: spacing.xl, paddingTop: spacing.lg },
-  section: { gap: spacing.md },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  sectionTitle: { ...type.title, color: colors.ink },
-  sectionBody: { ...type.caption, color: colors.inkMuted, marginTop: spacing.xxs },
-  matchCount: { minWidth: 36, height: 30, paddingHorizontal: spacing.sm, borderRadius: radii.pill, backgroundColor: colors.primarySoft, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xxs },
-  matchCountText: { ...type.label, color: colors.primaryPressed },
-  newMatches: { gap: spacing.md, paddingRight: spacing.lg },
-  matchTile: { width: 88, alignItems: 'center', gap: spacing.xs },
-  avatar: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.border },
-  avatarImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  avatarInitial: { ...type.subtitle, color: colors.primaryPressed, fontWeight: '700' },
-  matchBadge: { position: 'absolute', right: -2, bottom: -2, width: 25, height: 25, borderRadius: radii.pill, borderWidth: 2, borderColor: colors.surface, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  matchName: { ...type.label, color: colors.ink, textAlign: 'center', width: '100%' },
-  matchTime: { ...type.caption, color: colors.inkMuted, textAlign: 'center', width: '100%' },
-  conversationList: { borderTopWidth: 1, borderColor: colors.border },
-  conversationRow: { minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderColor: colors.border },
-  conversationContent: { flex: 1, minWidth: 0, gap: spacing.xxs },
-  conversationTopLine: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-  conversationName: { ...type.subtitle, color: colors.ink, flex: 1 },
-  conversationTime: { ...type.caption, color: colors.inkMuted },
-  preview: { ...type.body, color: colors.inkMuted },
-  firstMessageCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, backgroundColor: colors.surface },
-  firstMessageIcon: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radii.pill, backgroundColor: colors.primarySoft },
-  firstMessageContent: { flex: 1, gap: spacing.xxs },
-  firstMessageTitle: { ...type.subtitle, color: colors.ink },
-  firstMessageBody: { ...type.caption, color: colors.inkMuted },
-  pressed: { opacity: 0.72 },
+  screen: {
+    gap: spacing.md,
+    paddingTop: 4,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: '#FFF7F9',
+  },
+  header: { gap: spacing.md },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pageTitle: {
+    fontFamily: fonts.extrabold,
+    fontSize: 28,
+    lineHeight: 34,
+    color: colors.ink,
+  },
+  searchCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F5D6E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#D67094',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  searchCircleActive: {
+    backgroundColor: '#FFF0F5',
+    borderColor: '#F0B6CC',
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F2C9DA',
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 14.5,
+    color: colors.ink,
+    paddingVertical: 8,
+  },
+  clearSearchBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  filterPill: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1,
+    borderColor: '#F3D0DF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  filterPillActive: {
+    borderWidth: 0,
+    shadowColor: '#E6386F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  filterPillText: {
+    fontFamily: fonts.semibold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  filterPillTextActive: {
+    fontFamily: fonts.bold,
+    color: '#FFFFFF',
+  },
+  newMatchesStrip: {
+    gap: spacing.md,
+    paddingVertical: 4,
+  },
+  matchTile: {
+    width: 74,
+    alignItems: 'center',
+    gap: 6,
+  },
+  avatarWrap: {
+    position: 'relative',
+  },
+  heartMiniBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onlineDot: {
+    position: 'absolute',
+    right: 1,
+    bottom: 1,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    backgroundColor: colors.online,
+  },
+  matchName: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.ink,
+    textAlign: 'center',
+    width: '100%',
+  },
+  conversationList: {
+    gap: 2,
+  },
+  conversationRow: {
+    minHeight: 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F6E0E9',
+  },
+  conversationContent: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  conversationTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  conversationName: {
+    fontFamily: fonts.bold,
+    fontSize: 17,
+    color: colors.ink,
+    flex: 1,
+  },
+  conversationTime: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    color: colors.inkMuted,
+  },
+  preview: {
+    fontFamily: fonts.regular,
+    fontSize: 14.5,
+    lineHeight: 20,
+    color: colors.inkMuted,
+  },
+  previewNewMatch: {
+    fontFamily: fonts.semibold,
+    color: colors.primaryPressed,
+  },
 });

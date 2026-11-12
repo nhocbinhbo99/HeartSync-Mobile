@@ -8,6 +8,8 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
+  Welcome: undefined;
+  Onboarding: undefined;
   SignIn: undefined;
   SignUp: undefined;
   ForgotPassword: undefined;
@@ -17,6 +19,8 @@ export type RootStackParamList = {
   ProfileSetup: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   EditProfile: undefined;
+  Interests: undefined;
+  Settings: undefined;
   Filters: undefined;
   OtherProfile: { profileId?: string } | undefined;
   Chat: { matchId?: string } | undefined;
@@ -24,6 +28,7 @@ export type RootStackParamList = {
   VideoCall: { matchId: string; callId: string; incoming?: boolean };
   MatchFound: { matchId?: string } | undefined;
   Safety: { profileId?: string } | undefined;
+  Report: { profileId?: string } | undefined;
 };
 
 declare global {

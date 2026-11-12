@@ -7,8 +7,14 @@ export function toSafeAuthMessage(error: ErrorLike) {
   if (code.includes('email_not_confirmed') || message.includes('email not confirmed')) {
     return 'Email này chưa được xác nhận. Hãy mở hộp thư và bấm liên kết xác nhận.';
   }
+  if (code.includes('over_email_send_rate_limit') || message.includes('email rate limit')) {
+    return 'Hệ thống gửi email của Supabase đã chạm giới hạn (tối đa 2-3 email/giờ). Hãy thử đăng nhập hoặc tắt "Confirm email" trên Supabase.';
+  }
+  if (code.includes('user_already_exists') || message.includes('already registered')) {
+    return 'Email này đã được đăng ký. Vui lòng chuyển sang màn hình Đăng nhập.';
+  }
   if (status === 429 || code.includes('rate') || message.includes('rate limit')) {
-    return 'Bạn đã thử quá nhiều lần. Vui lòng đợi rồi thử lại.';
+    return 'Bạn đã thử quá nhiều lần. Vui lòng đợi một lát rồi thử lại.';
   }
   if (status === 400 || code.includes('invalid') || message.includes('invalid login')) {
     return 'Email hoặc mật khẩu không đúng.';

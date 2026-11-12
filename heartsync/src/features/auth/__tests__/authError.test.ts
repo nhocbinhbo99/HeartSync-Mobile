@@ -10,4 +10,9 @@ describe('auth error messages', () => {
     expect(toSafeAuthMessage({ status: 400, message: 'Invalid login credentials' }))
       .toBe('Email hoặc mật khẩu không đúng.');
   });
+
+  it('distinguishes email send rate limit from generic rate limits', () => {
+    expect(toSafeAuthMessage({ status: 429, code: 'over_email_send_rate_limit', message: 'email rate limit exceeded' }))
+      .toContain('Hệ thống gửi email của Supabase đã chạm giới hạn');
+  });
 });

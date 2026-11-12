@@ -1,33 +1,32 @@
 $ErrorActionPreference = 'Stop'
 
-$root = Resolve-Path (Join-Path $PSScriptRoot '..')
-$schema = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194000_initial_schema.sql')
-$security = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194100_rls_and_rpcs.sql')
-$storage = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261029194200_profile_photo_storage.sql')
-$profileContracts = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261103120000_profile_preferences_contracts.sql')
-$reorderRepair = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261105080739_fix_reorder_profile_photos_constraint.sql')
-$callLiveness = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261105120000_call_liveness.sql')
-$videoCall = Get-Content -Raw -LiteralPath (Join-Path $root 'migrations\20261107065833_enable_video_calls_with_liveness.sql')
-$rlsTests = Get-Content -Raw -LiteralPath (Join-Path $root 'tests\rls_security.sql')
+$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$schemaPath = Join-Path $repoRoot 'db\heartsync_schema.sql'
+if (-not (Test-Path -LiteralPath $schemaPath)) {
+  throw "Missing consolidated database schema: $schemaPath"
+}
+
+$sql = Get-Content -Raw -LiteralPath $schemaPath
+$rlsTests = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'rls_security.sql')
 
 $tables = @(
   'profiles', 'profile_private', 'profile_photos', 'interests', 'profile_interests',
   'profile_languages', 'user_preferences', 'saved_profiles', 'swipes', 'matches',
-  'messages', 'calls', 'blocks', 'reports'
+  'messages', 'calls', 'blocks', 'reports', 'ai_quota_buckets'
 )
 
 foreach ($table in $tables) {
-  if ($schema -notmatch "create table public\.$table\s*\(") { throw "Missing table: $table" }
-  if ($security -notmatch "alter table public\.$table enable row level security") { throw "RLS not enabled: $table" }
-  if ($security -notmatch "revoke all on table[\s\S]*public\.$table[\s\S]*from anon, authenticated") {
+  if ($sql -notmatch "create table public\.$table\s*\(") { throw "Missing table: $table" }
+  if ($sql -notmatch "alter table public\.$table enable row level security") { throw "RLS not enabled: $table" }
+  if ($sql -notmatch "revoke all on table[\s\S]*public\.$table[\s\S]*from (?:public,\s*)?anon, authenticated") {
     throw "Explicit grants not revoked: $table"
   }
 }
 
-if ($security -match 'using\s*\(\s*true\s*\)') { throw 'Unconditional USING (true) policy found.' }
+if ($sql -match 'using\s*\(\s*true\s*\)') { throw 'Unconditional USING (true) policy found.' }
 
 $functionBlocks = [regex]::Matches(
-  "$security`n$profileContracts`n$callLiveness",
+  $sql,
   'create or replace function[\s\S]*?\$\$;',
   [Text.RegularExpressions.RegexOptions]::IgnoreCase
 )
@@ -37,64 +36,57 @@ foreach ($block in $functionBlocks) {
   }
 }
 
-foreach ($rpc in @('record_swipe', 'unmatch', 'block_user', 'start_call')) {
-  if ($security -notmatch "revoke execute on function public\.$rpc[\s\S]*from public, anon") {
+$publicRpcs = @(
+  'record_swipe', 'unmatch', 'block_user', 'start_call', 'call_heartbeat',
+  'save_my_profile', 'save_my_private_location', 'save_my_preferences',
+  'reorder_profile_photos', 'set_primary_profile_photo', 'list_saved_profiles',
+  'reserve_ai_request', 'finalize_ai_request', 'fail_ai_request',
+  'get_ai_quotas', 'ai_icebreaker_context'
+)
+foreach ($rpc in $publicRpcs) {
+  if ($sql -notmatch "revoke all on function public\.$rpc\([^\)]*\)\s+from public, anon") {
     throw "RPC execute not revoked from public/anon: $rpc"
   }
-  if ($security -notmatch "grant execute on function public\.$rpc[\s\S]*to authenticated") {
+  if ($sql -notmatch "grant execute on function public\.$rpc\([^\)]*\)\s+to authenticated") {
     throw "RPC execute not granted to authenticated: $rpc"
   }
 }
 
-if ($callLiveness -notmatch 'create or replace function public\.call_heartbeat') {
-  throw 'Missing participant call heartbeat RPC.'
-}
-if ($callLiveness -notmatch 'caller_heartbeat_at[\s\S]*callee_heartbeat_at') {
-  throw 'Missing independent caller/callee call leases.'
-}
-if ($callLiveness -notmatch "interval '90 seconds'") {
-  throw 'Missing abandoned accepted-call lease timeout.'
-}
-if ($callLiveness -notmatch "revoke all on function public\.call_heartbeat\(uuid\) from public, anon") {
-  throw 'call_heartbeat must be revoked from public/anon.'
-}
-if ($callLiveness -notmatch "grant execute on function public\.call_heartbeat\(uuid\) to authenticated") {
-  throw 'call_heartbeat must be granted only to authenticated clients.'
-}
-if ($videoCall -notmatch "'audio'::public\.call_type[\s\S]*'video'::public\.call_type") {
-  throw 'Final start_call contract must accept audio and video call types.'
-}
-if ($videoCall -notmatch 'caller_heartbeat_at[\s\S]*interval ''90 seconds''') {
-  throw 'Video call migration must preserve participant heartbeat leases.'
-}
-if ($videoCall -notmatch "revoke execute on function public\.start_call\(uuid, public\.call_type\)[\s\S]*from public, anon") {
-  throw 'Final start_call contract must remain revoked from public/anon.'
+foreach ($fragment in @(
+  'create table private.ai_generation_requests',
+  'create policy ai_quota_buckets_select_own',
+  'private.ai_period_key',
+  'Asia/Ho_Chi_Minh',
+  'reserved_count',
+  'REQUEST_EXPIRED',
+  'caller_heartbeat_at',
+  'callee_heartbeat_at',
+  "interval '90 seconds'",
+  "'audio'::public.call_type",
+  "'video'::public.call_type",
+  "period_key ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'",
+  "notify pgrst, 'reload schema'"
+)) {
+  if ($sql -notmatch [regex]::Escape($fragment)) { throw "Missing database schema invariant: $fragment" }
 }
 
-$profileRpcs = @(
-  'save_my_profile', 'save_my_private_location', 'save_my_preferences',
-  'reorder_profile_photos', 'set_primary_profile_photo', 'list_saved_profiles'
+if ($sql -match 'grant\s+(all|insert|update|delete)\s+on table public\.ai_quota_buckets\s+to authenticated') {
+  throw 'Authenticated clients must not be granted AI quota mutations.'
+}
+
+$reorderMatch = [regex]::Match(
+  $sql,
+  'create or replace function public\.reorder_profile_photos[\s\S]*?\$\$;',
+  [Text.RegularExpressions.RegexOptions]::IgnoreCase
 )
-foreach ($rpc in $profileRpcs) {
-  if ($profileContracts -notmatch "revoke execute on function public\.$rpc[\s\S]*from public, anon") {
-    throw "Profile RPC execute not revoked from public/anon: $rpc"
-  }
-  if ($profileContracts -notmatch "grant execute on function public\.$rpc[\s\S]*to authenticated") {
-    throw "Profile RPC execute not granted to authenticated: $rpc"
-  }
+if (-not $reorderMatch.Success) {
+  throw 'Missing reorder_profile_photos function.'
+}
+if ($reorderMatch.Value -match '(?mi)^\s*set\s+constraints\b') {
+  throw 'reorder_profile_photos must rely on the DEFERRABLE INITIALLY DEFERRED unique constraint, not SET CONSTRAINTS.'
 }
 
-if ($reorderRepair -notmatch 'create or replace function public\.reorder_profile_photos') {
-  throw 'Missing forward-only reorder_profile_photos repair.'
-}
-if ($reorderRepair -notmatch "set search_path = ''") {
-  throw 'Reorder repair must retain an empty SECURITY DEFINER search_path.'
-}
-if ($reorderRepair -match '(?mi)^\s*set\s+constraints\b') {
-  throw 'Reorder repair must rely on the DEFERRABLE INITIALLY DEFERRED unique constraint, not a search_path lookup.'
-}
-
-if ($storage -notmatch "'profile-photos'[\s\S]*false[\s\S]*5242880") { throw 'Private photo bucket limits missing.' }
+if ($sql -notmatch "'profile-photos'[\s\S]*false[\s\S]*5242880") { throw 'Private photo bucket limits missing.' }
 foreach ($case in @('anonymous users cannot read profiles', 'user A cannot change user B profile',
     'non-participant chat is denied', 'self-like is denied', 'canonical pair has exactly one match',
     'duplicate like is idempotent', 'blocked pair cannot insert', 'reported user cannot read report',
@@ -103,5 +95,5 @@ foreach ($case in @('anonymous users cannot read profiles', 'user A cannot chang
   if ($rlsTests -notmatch [regex]::Escape($case)) { throw "Missing SQL test case: $case" }
 }
 
-Write-Output "Static migration checks passed for $($tables.Count) RLS tables and $((4 + $profileRpcs.Count)) public RPCs."
+Write-Output "Static schema checks passed for $($tables.Count) RLS tables and $($publicRpcs.Count) public RPCs."
 Write-Output 'This is not a PostgreSQL execution test.'

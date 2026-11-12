@@ -1,5 +1,6 @@
 import type { MatchRepository } from "./contracts";
 import { mapServiceError } from "./errors";
+import { setCachedPublicProfile } from "./photoCache";
 import { parseRecordSwipeResponse } from "../shared/domain/swipe";
 import { parseProfilePublic, recordValue } from "./profileMapper";
 import type {
@@ -43,6 +44,7 @@ export class SupabaseMatchRepository implements MatchRepository {
         typeof item.created_at !== "string"
       )
         return [];
+      setCachedPublicProfile(profile);
       return [
         {
           id: item.id,

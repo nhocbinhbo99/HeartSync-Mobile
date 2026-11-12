@@ -14,6 +14,9 @@ const messages: Record<ApiErrorCode, string> = {
   not_found: "Không tìm thấy dữ liệu được yêu cầu.",
   conflict: "Dữ liệu đã thay đổi hoặc thao tác bị xung đột.",
   rate_limited: "Bạn thao tác quá nhanh. Vui lòng thử lại sau.",
+  quota_exhausted: "Bạn đã dùng hết lượt AI miễn phí.",
+  unavailable: "Dịch vụ tạm thời chưa khả dụng. Vui lòng thử lại sau.",
+  request_in_progress: "Yêu cầu đang được xử lý. Vui lòng đợi một chút.",
 };
 
 function isRecord(value: unknown): value is ErrorRecord {
@@ -30,6 +33,9 @@ export function apiError(
 /** Maps transport/server details to stable UX-safe codes without exposing raw SQL or provider messages. */
 export function mapServiceError(value: unknown): ApiError {
   if (!isRecord(value)) return apiError("network");
+  if (typeof __DEV__ !== "undefined" && __DEV__ && (typeof process === "undefined" || !process.env.JEST_WORKER_ID)) {
+    console.warn("[HeartSync ServiceError]", value);
+  }
 
   const code = typeof value.code === "string" ? value.code.toUpperCase() : "";
   const status = typeof value.status === "number" ? value.status : Number.NaN;

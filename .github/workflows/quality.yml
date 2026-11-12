@@ -45,6 +45,10 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: 2.122.0
+      - name: Stage consolidated schema for Supabase CLI
+        run: |
+          mkdir -p supabase/migrations
+          cp db/heartsync_schema.sql supabase/migrations/20261112000000_heartsync_schema.sql
       - name: Start local database and apply all migrations
         run: supabase db start
       - name: Verify migrations can reset from zero

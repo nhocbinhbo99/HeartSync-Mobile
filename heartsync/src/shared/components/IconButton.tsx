@@ -1,6 +1,6 @@
 import { StyleSheet, type ViewStyle } from 'react-native';
 
-import { colors, radii } from '../theme/tokens';
+import { colors, componentSize, radii } from '../theme/tokens';
 import { AnimatedPressable } from './AnimatedPressable';
 import { AppIcon, type AppIconName } from './AppIcon';
 
@@ -21,13 +21,38 @@ const tones = {
   onPrimary: colors.onPrimary,
 } as const;
 
-export function IconButton({ icon, label, onPress, disabled = false, tone = 'default', size = 22, style }: Props) {
-  return <AnimatedPressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}
-    disabled={disabled} onPress={onPress} hitSlop={8} style={[styles.button, style]}>
-    <AppIcon name={icon} color={tones[tone]} size={size} />
-  </AnimatedPressable>;
+export function IconButton({
+  icon,
+  label,
+  onPress,
+  disabled = false,
+  tone = 'default',
+  size = 22,
+  style,
+}: Props) {
+  const color = disabled ? colors.inkMuted : tones[tone];
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      hitSlop={8}
+      rippleColor="rgba(255, 77, 125, 0.14)"
+      style={[styles.button, style]}
+    >
+      <AppIcon name={icon} color={color} size={size} />
+    </AnimatedPressable>
+  );
 }
 
 const styles = StyleSheet.create({
-  button: { width: 48, height: 48, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
+  button: {
+    width: componentSize.iconButton,
+    height: componentSize.iconButton,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

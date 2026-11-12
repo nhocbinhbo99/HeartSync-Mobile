@@ -16,6 +16,13 @@ import type {
   SwipeAction,
   SwipeResult,
 } from "../shared/types/domain.types";
+import type {
+  AiBioGeneration,
+  AiBioInput,
+  AiIcebreakerGeneration,
+  AiIcebreakerInput,
+  AiQuotas,
+} from "../shared/domain/ai";
 
 export type AuthCredentials = { email: string; password: string };
 export type SignUpInput = AuthCredentials & {
@@ -49,6 +56,7 @@ export interface ProfileRepository {
   reorderPhotos(photoIds: string[]): Promise<Result<ProfilePhoto[]>>;
   setPrimaryPhoto(photoId: string): Promise<Result<void>>;
   createPhotoUrl(storagePath: string): Promise<Result<string>>;
+  createPhotoUrls?(storagePaths: string[]): Promise<Record<string, string>>;
 }
 
 export interface PreferencesRepository {
@@ -103,6 +111,13 @@ export interface ChatRepository {
     onMessage: (message: ChatMessage) => void,
     onError: (error: ApiError) => void,
   ): MessageSubscription;
+}
+
+/** Optional text suggestions only. The server owns quota, authorization, and generation. */
+export interface AiAssistantRepository {
+  getQuotas(): Promise<Result<AiQuotas>>;
+  generateBio(input: AiBioInput): Promise<Result<AiBioGeneration>>;
+  generateIcebreaker(input: AiIcebreakerInput): Promise<Result<AiIcebreakerGeneration>>;
 }
 
 export type CallJoinGrant = {
