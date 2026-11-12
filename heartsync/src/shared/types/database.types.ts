@@ -5,7 +5,21 @@ export type Database = {
 
   "private": {
           Tables: {
-            "call_media_cleanup": {
+            "ai_generation_requests": {
+                  Row: {
+                    "completed_at": string | null,"created_at": string,"error_code": string | null,"expires_at": string,"feature": string,"match_id": string | null,"period_key": string,"request_id": string,"result_json": Json | null,"status": string,"user_id": string,"ai_request_state": Json | null
+                  }
+                  ComputedFields: "ai_request_state"
+                  Insert: {
+                    "completed_at"?: string | null,"created_at"?: string,"error_code"?: string | null,"expires_at": string,"feature": string,"match_id"?: string | null,"period_key": string,"request_id": string,"result_json"?: Json | null,"status": string,"user_id": string
+                  }
+                  Update: {
+                    "completed_at"?: string | null,"created_at"?: string,"error_code"?: string | null,"expires_at"?: string,"feature"?: string,"match_id"?: string | null,"period_key"?: string,"request_id"?: string,"result_json"?: Json | null,"status"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"call_media_cleanup": {
                   Row: {
                     "call_id": string,"callee_id": string,"caller_id": string,"queued_at": string
                   }
@@ -25,7 +39,16 @@ export type Database = {
             [_ in never]: never
           }
           Functions: {
-            "can_read_match_history":
+            "ai_period_key":
+{ Args: { "p_feature": string }; Returns: string
+                           },
+"ai_quota_json":
+{ Args: { "p_feature": string,"p_period_key": string,"p_user_id": string }; Returns: Json
+                           },
+"ai_request_state":
+{ Args: { "p_request": Omit<Database["private"]['Tables']["ai_generation_requests"]['Row'], Database["private"]['Tables']["ai_generation_requests"]['ComputedFields']> }; Returns: Json
+                           },
+"can_read_match_history":
 { Args: { "p_match_id": string }; Returns: boolean
                            },
 "can_use_active_match":
@@ -52,7 +75,21 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "blocks": {
+            "ai_quota_buckets": {
+                  Row: {
+                    "feature": string,"period_key": string,"reserved_count": number,"updated_at": string,"used_count": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "feature": string,"period_key": string,"reserved_count"?: number,"updated_at"?: string,"used_count"?: number,"user_id": string
+                  }
+                  Update: {
+                    "feature"?: string,"period_key"?: string,"reserved_count"?: number,"updated_at"?: string,"used_count"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+
+                  ]
+                },"blocks": {
                   Row: {
                     "blocked_id": string,"blocker_id": string,"created_at": string
                   }
@@ -392,6 +429,11 @@ isOneToOne: true
 "ack_call_cleanup":
 { Args: { "p_call_id": string }; Returns: undefined
                            },
+"ai_icebreaker_context":
+{ Args: { "p_match_id": string }; Returns: {
+              "partner_interests": (string)[],"self_interests": (string)[]
+            }[]
+                           },
 "block_user":
 { Args: { "p_target_id": string }; Returns: undefined
                            },
@@ -403,8 +445,20 @@ isOneToOne: true
               "last_message_at": string,"last_read_at": string,"match_id": string,"unread_count": number
             }[]
                            },
+"confirm_user_email_for_dev":
+{ Args: { "target_email": string }; Returns: boolean
+                           },
 "end_call":
 { Args: { "p_call_id": string }; Returns: string
+                           },
+"fail_ai_request":
+{ Args: { "p_error_code": string,"p_request_id": string }; Returns: Json
+                           },
+"finalize_ai_request":
+{ Args: { "p_request_id": string,"p_result": Json }; Returns: Json
+                           },
+"get_ai_quotas":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "get_discovery_candidates":
 { Args: { "p_age_max": number,"p_age_min": number,"p_cursor_created_at"?: string,"p_distance_km"?: number,"p_limit"?: number,"p_preferred_genders"?: (string)[],"p_preferred_languages"?: (string)[] }; Returns: {
@@ -453,6 +507,9 @@ isOneToOne: true
                            },
 "reorder_profile_photos":
 { Args: { "p_photo_ids": (string)[] }; Returns: Json
+                           },
+"reserve_ai_request":
+{ Args: { "p_feature": string,"p_match_id"?: string,"p_request_id": string }; Returns: Json
                            },
 "save_my_preferences":
 { Args: { "p_age_max": number,"p_age_min": number,"p_distance_km"?: number,"p_preferred_genders"?: (string)[],"p_preferred_languages"?: (string)[] }; Returns: Json
