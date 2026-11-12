@@ -356,6 +356,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
             contentContainerStyle={styles.emojiScroll}
           >
             {QUICK_EMOJIS.map((emoji) => (
@@ -367,7 +368,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
                   feedback('selection');
                   setText((prev) => `${prev}${emoji}`);
                 }}
-                style={styles.emojiBtn}
+                style={({ pressed }) => [styles.emojiBtn, pressed && styles.pressableFeedback]}
               >
                 <Text style={styles.emojiChar}>{emoji}</Text>
               </Pressable>
@@ -381,6 +382,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
             contentContainerStyle={styles.quickActionScroll}
           >
             {QUICK_DATING_TEMPLATES.map((tpl) => (
@@ -393,7 +395,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
                   setText(tpl.text);
                   setComposerTray('none');
                 }}
-                style={styles.quickTemplatePill}
+                style={({ pressed }) => [styles.quickTemplatePill, pressed && styles.pressableFeedback]}
               >
                 <Text style={styles.quickTemplateText}>{tpl.badge}</Text>
               </Pressable>
@@ -406,7 +408,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
                   setComposerTray('none');
                   openRecipientProfile();
                 }}
-                style={styles.quickActionPillSecondary}
+                style={({ pressed }) => [styles.quickActionPillSecondary, pressed && styles.pressableFeedback]}
               >
                 <Text style={styles.quickActionSecondaryText}>👤 Xem hồ sơ</Text>
               </Pressable>
@@ -425,7 +427,11 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
               feedback('selection');
               setComposerTray((cur) => (cur === 'emoji' ? 'none' : 'emoji'));
             }}
-            style={[styles.capsuleIcon, composerTray === 'emoji' && styles.capsuleIconActive]}
+            style={({ pressed }) => [
+              styles.capsuleIcon,
+              composerTray === 'emoji' && styles.capsuleIconActive,
+              pressed && styles.pressableFeedback,
+            ]}
           >
             <AppIcon
               name="smile"
@@ -452,7 +458,11 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
               feedback('selection');
               setComposerTray((cur) => (cur === 'actions' ? 'none' : 'actions'));
             }}
-            style={[styles.capsuleIcon, composerTray === 'actions' && styles.capsuleIconActive]}
+            style={({ pressed }) => [
+              styles.capsuleIcon,
+              composerTray === 'actions' && styles.capsuleIconActive,
+              pressed && styles.pressableFeedback,
+            ]}
           >
             <AppIcon
               name={composerTray === 'actions' ? 'close' : 'add'}
@@ -467,7 +477,11 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
           accessibilityLabel="Gửi tin nhắn"
           disabled={!canSend}
           onPress={submit}
-          style={[styles.sendCircle, !canSend && styles.sendCircleDisabled]}
+          style={({ pressed }) => [
+            styles.sendCircle,
+            !canSend && styles.sendCircleDisabled,
+            pressed && canSend && styles.pressableFeedback,
+          ]}
         >
           {canSend ? (
             <Image
@@ -504,7 +518,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
           }
           disabled={!recipient}
           onPress={openRecipientProfile}
-          style={styles.headerProfileTouch}
+          style={({ pressed }) => [styles.headerProfileTouch, pressed && styles.pressableFeedback]}
         >
           <View style={styles.avatarOnlineWrap}>
             {recipient ? (
@@ -534,7 +548,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
             accessibilityLabel="Gọi thoại"
             disabled={!enabled || startingCall}
             onPress={() => void startCall('audio')}
-            style={styles.callIconCircle}
+            style={({ pressed }) => [styles.callIconCircle, pressed && styles.pressableFeedback]}
           >
             <AppIcon name="phone" color={colors.primaryPressed} size={19} />
           </Pressable>
@@ -543,7 +557,7 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
             accessibilityLabel="Gọi video"
             disabled={!enabled || startingCall}
             onPress={() => void startCall('video')}
-            style={styles.callIconCircle}
+            style={({ pressed }) => [styles.callIconCircle, pressed && styles.pressableFeedback]}
           >
             <AppIcon name="video" color={colors.primaryPressed} size={20} />
           </Pressable>
@@ -604,13 +618,6 @@ function Conversation({ route, navigation }: NativeStackScreenProps<RootStackPar
 
               <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
                 <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
-                  {mine ? (
-                    <Image
-                      source={brandAssets.pinkButtonGradient}
-                      style={StyleSheet.absoluteFill}
-                      resizeMode="stretch"
-                    />
-                  ) : null}
                   <AppText style={[styles.content, { color: mine ? '#FFFFFF' : colors.ink }]}>
                     {item.content}
                   </AppText>
@@ -663,6 +670,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: radii.lg,
+  },
+  pressableFeedback: {
+    opacity: 0.78,
+    transform: [{ scale: 0.96 }],
+  },
+  horizontalScroll: {
+    flexGrow: 0,
   },
   avatarOnlineWrap: {
     position: 'relative',
@@ -715,7 +731,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFF0F5',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAD6DF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -737,7 +755,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 4,
     borderRadius: radii.pill,
-    backgroundColor: '#F9E4ED',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAD6DF',
     marginVertical: 8,
   },
   dayText: {
@@ -823,6 +843,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7F9',
     borderTopWidth: 1,
     borderTopColor: '#F6E0E9',
+    paddingBottom: 6,
   },
   composerWrap: {
     width: '100%',
@@ -851,7 +872,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F5D6E2',
+    borderColor: '#EAD6DF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -868,9 +889,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radii.pill,
-    backgroundColor: '#FFE8F0',
-    borderWidth: 1,
-    borderColor: '#F5B5CB',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: colors.primary,
   },
   quickTemplateText: {
     fontFamily: fonts.bold,
@@ -883,7 +904,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F3D6E2',
+    borderColor: '#EAD6DF',
   },
   quickActionSecondaryText: {
     fontFamily: fonts.semibold,
@@ -904,7 +925,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F3D6E2',
+    borderColor: '#EAD6DF',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
@@ -922,7 +943,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   capsuleIconActive: {
-    backgroundColor: '#FFE8F0',
+    backgroundColor: '#F4EEF1',
   },
   composerInput: {
     flex: 1,

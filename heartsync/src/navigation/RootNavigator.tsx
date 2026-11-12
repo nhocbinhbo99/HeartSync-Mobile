@@ -1,10 +1,19 @@
-import { IncomingCallOverlay } from '../features/calling/IncomingCallOverlay';
+import { useEffect } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { createNavigationContainerRef, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppIcon } from '../shared/components/AppIcon';
+import { IncomingCallOverlay } from '../features/calling/IncomingCallOverlay';
+import { RealtimeMatchListener } from '../features/matching/RealtimeMatchListener';
+import { AppIcon, type AppIconName } from '../shared/components/AppIcon';
 import { AuthScreen } from '../features/auth/AuthScreen';
 import { AuthLoadingScreen, SetupRequiredScreen } from '../features/auth/AuthStateScreens';
 import { UpdatePasswordScreen } from '../features/auth/UpdatePasswordScreen';
@@ -35,26 +44,74 @@ const navigationRef = createNavigationContainerRef<RootStackParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<MainTabParamList>();
 
-const tabIcons = {
+const tabIcons: Record<
+  keyof MainTabParamList,
+  { active: AppIconName; inactive: AppIconName }
+> = {
   Discover: {
-    active: { ios: 'heart.fill', android: 'favorite', web: 'favorite' },
-    inactive: { ios: 'heart', android: 'favorite_border', web: 'favorite_border' },
+    active: 'compassFilled',
+    inactive: 'compass',
   },
   Saved: {
-    active: { ios: 'bookmark.fill', android: 'bookmark', web: 'bookmark' },
-    inactive: { ios: 'bookmark', android: 'bookmark_border', web: 'bookmark_border' },
+    active: 'heart',
+    inactive: 'heartOutline',
   },
   Matches: {
-    active: { ios: 'bubble.left.fill', android: 'chat_bubble', web: 'chat_bubble' },
-    inactive: { ios: 'bubble.left', android: 'chat_bubble_outline', web: 'chat_bubble_outline' },
+    active: 'chatBubbleFilled',
+    inactive: 'chatBubble',
   },
   Profile: {
-    active: { ios: 'person.fill', android: 'person', web: 'person' },
-    inactive: { ios: 'person', android: 'person_outline', web: 'person_outline' },
+    active: 'personFilled',
+    inactive: 'person',
   },
-} as const;
+};
+
+function AnimatedTabIcon({
+  routeName,
+  color,
+  focused,
+}: {
+  routeName: keyof MainTabParamList;
+  color: string;
+  focused: boolean;
+}) {
+  const scale = useSharedValue(focused ? 1.1 : 1);
+  const translateY = useSharedValue(focused ? -2 : 0);
+  const indicatorWidth = useSharedValue(focused ? 18 : 0);
+  const indicatorOpacity = useSharedValue(focused ? 1 : 0);
+
+  useEffect(() => {
+    scale.value = withSpring(focused ? 1.12 : 1, { damping: 13, stiffness: 190 });
+    translateY.value = withSpring(focused ? -2 : 0, { damping: 14, stiffness: 190 });
+    indicatorWidth.value = withSpring(focused ? 18 : 0, { damping: 15, stiffness: 200 });
+    indicatorOpacity.value = withTiming(focused ? 1 : 0, { duration: 180 });
+  }, [focused, indicatorOpacity, indicatorWidth, scale, translateY]);
+
+  const iconWrapStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }, { scale: scale.value }],
+  }));
+
+  const barStyle = useAnimatedStyle(() => ({
+    width: indicatorWidth.value,
+    opacity: indicatorOpacity.value,
+  }));
+
+  const icons = tabIcons[routeName];
+
+  return (
+    <View style={styles.tabIconContainer}>
+      <Animated.View style={[styles.iconBox, iconWrapStyle]}>
+        <AppIcon name={focused ? icons.active : icons.inactive} color={color} size={23} />
+      </Animated.View>
+      <Animated.View style={[styles.activeBar, barStyle]} />
+    </View>
+  );
+}
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 12);
+
   return (
     <Tabs.Navigator
       screenOptions={({ route }) => ({
@@ -63,36 +120,36 @@ function MainTabs() {
         headerStyle: { backgroundColor: colors.surface },
         tabBarActiveTintColor: colors.primaryPressed,
         tabBarInactiveTintColor: colors.inkMuted,
-        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 15, marginTop: 2 },
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabItem,
+        tabBarButton: ({ style, children, ...rest }) => (
+          <Pressable
+            {...rest}
+            android_ripple={{ color: 'transparent' }}
+            style={(state) => [
+              style,
+              styles.tabPressable,
+              state.pressed && styles.tabPressablePressed,
+            ]}
+          >
+            {children}
+          </Pressable>
+        ),
         tabBarStyle: {
-          minHeight: 68,
+          height: 62 + bottomPad,
           paddingTop: 8,
-          paddingBottom: 10,
+          paddingBottom: bottomPad,
           backgroundColor: '#FFFFFF',
-          borderTopColor: '#F7E1EA',
+          borderTopColor: '#F2DCE5',
           borderTopWidth: 1,
-          shadowColor: '#D67094',
+          shadowColor: '#24111A',
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.06,
           shadowRadius: 12,
-          elevation: 8,
+          elevation: 10,
         },
         tabBarIcon: ({ color, focused }) => (
-          <View style={{ alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-            <AppIcon
-              name={focused ? tabIcons[route.name].active : tabIcons[route.name].inactive}
-              color={color}
-              size={23}
-            />
-            <View
-              style={{
-                width: focused ? 18 : 0,
-                height: 3,
-                borderRadius: 99,
-                backgroundColor: focused ? colors.primary : 'transparent',
-              }}
-            />
-          </View>
+          <AnimatedTabIcon routeName={route.name} color={color} focused={focused} />
         ),
       })}
     >
@@ -188,18 +245,72 @@ export function RootNavigator() {
         ) : null}
       </Stack.Navigator>
       {mode === 'main' ? (
-        <IncomingCallOverlay
-          onOpen={(call) => {
-            if (navigationRef.isReady()) {
-              navigationRef.navigate(call.type === 'video' ? 'VideoCall' : 'AudioCall', {
-                matchId: call.matchId,
-                callId: call.id,
-                incoming: true,
-              });
-            }
-          }}
-        />
+        <>
+          <IncomingCallOverlay
+            onOpen={(call) => {
+              if (navigationRef.isReady()) {
+                navigationRef.navigate(call.type === 'video' ? 'VideoCall' : 'AudioCall', {
+                  matchId: call.matchId,
+                  callId: call.id,
+                  incoming: true,
+                });
+              }
+            }}
+          />
+          <RealtimeMatchListener
+            canPresentNow={() => {
+              if (!navigationRef.isReady()) return false;
+              const currentName = navigationRef.getCurrentRoute()?.name;
+              return (
+                currentName !== 'AudioCall' &&
+                currentName !== 'VideoCall' &&
+                currentName !== 'MatchFound'
+              );
+            }}
+            onMatchFound={(matchId) => {
+              if (navigationRef.isReady()) {
+                navigationRef.navigate('MatchFound', { matchId });
+              }
+            }}
+          />
+        </>
       ) : null}
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  tabIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    minHeight: 30,
+  },
+  iconBox: {
+    width: 36,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeBar: {
+    height: 3,
+    borderRadius: 99,
+    backgroundColor: colors.primary,
+  },
+  tabLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 11.5,
+    lineHeight: 15,
+    marginTop: 2,
+  },
+  tabItem: {
+    paddingVertical: 2,
+  },
+  tabPressable: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  tabPressablePressed: {
+    opacity: 0.78,
+  },
+});

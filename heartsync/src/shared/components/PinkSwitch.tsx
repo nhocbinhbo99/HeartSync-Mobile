@@ -44,6 +44,8 @@ const styles = StyleSheet.create({
   wrap: {
     width: 64,
     height: 30,
+    borderRadius: 15,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -140,6 +140,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
   const [customLocation, setCustomLocation] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<NavigationAction>();
   const allowNextNavigation = useRef(false);
+  const hasServerProfileRef = useRef(false);
   const isDirty = initialSnapshot !== '' && snapshot(draft) !== initialSnapshot;
 
   const dateLimits = useMemo(() => {
@@ -160,16 +161,21 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     async (photos: ProfilePhoto[]) => {
       if (!services) return;
       const withCached = photos.map((photo): PhotoGridItem => {
+        if (photo.id.startsWith('local:')) {
+          return { ...photo, url: photo.storagePath };
+        }
         const cached = getCachedPhotoUrl(photo.storagePath);
         return cached ? { ...photo, url: cached } : { ...photo, loading: true };
       });
       setPhotoItems(withCached);
-      const urlMap = await resolvePhotoUrls(
-        services.profile,
-        photos.map((photo) => photo.storagePath),
-      );
+      const remotePaths = photos.filter((photo) => !photo.id.startsWith('local:')).map((photo) => photo.storagePath);
+      if (remotePaths.length === 0) return;
+      const urlMap = await resolvePhotoUrls(services.profile, remotePaths);
       setPhotoItems(
         photos.map((photo): PhotoGridItem => {
+          if (photo.id.startsWith('local:')) {
+            return { ...photo, url: photo.storagePath };
+          }
           const url = urlMap[photo.storagePath] ?? getCachedPhotoUrl(photo.storagePath);
           return url ? { ...photo, url } : { ...photo, error: true };
         }),
@@ -197,6 +203,7 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
         label: interest.label,
       })),
     );
+    hasServerProfileRef.current = profileResult.ok;
     const nextDraft = profileResult.ok
       ? fromProfile(profileResult.data.public, profileResult.data.private)
       : fromMetadata(user);
@@ -290,8 +297,20 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
       quality: 0.65,
     });
     if (picked.canceled || !picked.assets[0]) return;
-    setPhotoBusy(true);
     setError('');
+    if (!hasServerProfileRef.current) {
+      const localPhoto: ProfilePhoto = {
+        id: `local:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        storagePath: picked.assets[0].uri,
+        sortOrder: draft.photos.length,
+        isPrimary: draft.photos.length === 0,
+      };
+      const photos = [...draft.photos, localPhoto];
+      setDraft((current) => ({ ...current, photos }));
+      await loadPhotoUrls(photos);
+      return;
+    }
+    setPhotoBusy(true);
     const result = await services.profile.uploadPhoto(picked.assets[0].uri, draft.photos.length);
     setPhotoBusy(false);
     if (!result.ok) {
@@ -312,8 +331,23 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
 
   const confirmRemovePhoto = async (photo: ProfilePhoto) => {
     if (!services) return;
-    setPhotoBusy(true);
     setError('');
+    if (!hasServerProfileRef.current || photo.id.startsWith('local:')) {
+      const remaining = draft.photos
+        .filter((item) => item.id !== photo.id)
+        .map((item, idx) => ({
+          ...item,
+          sortOrder: idx,
+          isPrimary: idx === 0 ? true : item.isPrimary,
+        }));
+      if (remaining.length > 0 && !remaining.some((item) => item.isPrimary)) {
+        remaining[0] = { ...remaining[0], isPrimary: true };
+      }
+      setDraft((current) => ({ ...current, photos: remaining }));
+      await loadPhotoUrls(remaining);
+      return;
+    }
+    setPhotoBusy(true);
     const deleted = await services.profile.deletePhoto(photo);
     if (!deleted.ok) {
       setPhotoBusy(false);
@@ -338,6 +372,15 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
     const ids = draft.photos.map((photo) => photo.id);
     const currentIndex = ids.indexOf(photoId);
     if (currentIndex < 0 || targetIndex < 0 || targetIndex >= ids.length || targetIndex === currentIndex) return;
+    if (!hasServerProfileRef.current || draft.photos.some((p) => p.id.startsWith('local:'))) {
+      const copy = [...draft.photos];
+      const [movedLocal] = copy.splice(currentIndex, 1);
+      copy.splice(targetIndex, 0, movedLocal);
+      const reordered = copy.map((photo, index) => ({ ...photo, sortOrder: index }));
+      setDraft((current) => ({ ...current, photos: reordered }));
+      await loadPhotoUrls(reordered);
+      return;
+    }
     const [moved] = ids.splice(currentIndex, 1);
     ids.splice(targetIndex, 0, moved);
     setPhotoBusy(true);
@@ -353,6 +396,14 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
 
   const setPrimaryPhoto = async (photoId: string) => {
     if (!services) return;
+    if (!hasServerProfileRef.current || draft.photos.some((p) => p.id.startsWith('local:'))) {
+      const photos = [...draft.photos]
+        .sort((a, b) => (a.id === photoId ? -1 : b.id === photoId ? 1 : a.sortOrder - b.sortOrder))
+        .map((photo, index) => ({ ...photo, sortOrder: index, isPrimary: photo.id === photoId }));
+      setDraft((current) => ({ ...current, photos }));
+      await loadPhotoUrls(photos);
+      return;
+    }
     setPhotoBusy(true);
     const result = await services.profile.setPrimaryPhoto(photoId);
     setPhotoBusy(false);
@@ -403,7 +454,35 @@ export function ProfileEditor({ mode, onCompleted, onCancel }: Props) {
       feedback('error');
       return;
     }
-    const nextDraft = { ...fromProfile(result.data.public, result.data.private), photos: draft.photos };
+    hasServerProfileRef.current = true;
+    let finalPhotos = [...draft.photos].sort((a, b) => a.sortOrder - b.sortOrder);
+    if (finalPhotos.some((p) => p.id.startsWith('local:'))) {
+      const uploaded: ProfilePhoto[] = [];
+      let primaryUploadedId: string | null = null;
+      for (let idx = 0; idx < finalPhotos.length; idx += 1) {
+        const item = finalPhotos[idx];
+        if (item.id.startsWith('local:')) {
+          const up = await services.profile.uploadPhoto(item.storagePath, idx);
+          if (!up.ok) {
+            setSaving(false);
+            setError(up.error.message);
+            feedback('error');
+            return;
+          }
+          uploaded.push(up.data);
+          if (item.isPrimary) primaryUploadedId = up.data.id;
+        } else {
+          uploaded.push({ ...item, sortOrder: idx });
+          if (item.isPrimary) primaryUploadedId = item.id;
+        }
+      }
+      if (primaryUploadedId && uploaded[0]?.id !== primaryUploadedId) {
+        await services.profile.setPrimaryPhoto(primaryUploadedId);
+      }
+      finalPhotos = uploaded;
+      await loadPhotoUrls(finalPhotos);
+    }
+    const nextDraft = { ...fromProfile(result.data.public, result.data.private), photos: finalPhotos };
     setDraft(nextDraft);
     setInitialSnapshot(snapshot(nextDraft));
     if (mode === 'setup') {

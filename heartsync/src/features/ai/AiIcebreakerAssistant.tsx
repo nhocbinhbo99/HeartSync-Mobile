@@ -210,9 +210,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#FFF0F5',
-    borderWidth: 1,
-    borderColor: '#F4BFD4',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -220,7 +218,7 @@ const styles = StyleSheet.create({
   indexText: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.primaryPressed,
+    color: '#FFFFFF',
   },
   optionText: {
     flex: 1,
@@ -236,9 +234,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: radii.pill,
-    backgroundColor: '#FFF0F5',
-    borderWidth: 1,
-    borderColor: '#F4BFD4',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: colors.primary,
   },
   pickPillText: {
     fontFamily: fonts.bold,

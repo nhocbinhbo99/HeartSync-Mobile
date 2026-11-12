@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Image, Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedPressable } from '../../shared/components/AnimatedPressable';
 import { AppIcon } from '../../shared/components/AppIcon';
@@ -34,7 +35,7 @@ export function AiTriggerPill({
       style={[styles.triggerBase, compact ? styles.triggerCompact : styles.triggerFull]}
     >
       <View style={[styles.triggerIconCircle, compact && styles.triggerIconCompact]}>
-        <AppIcon name="sparkle" color={colors.primaryPressed} size={compact ? 14 : 16} />
+        <AppIcon name="sparkle" color="#FFFFFF" size={compact ? 13 : 15} />
       </View>
       <AppText style={[styles.triggerLabel, compact && styles.triggerLabelCompact]}>
         {label}
@@ -65,6 +66,8 @@ export function AiSheetShell({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const insets = useSafeAreaInsets();
+  const bottomSafePad = Math.max(insets.bottom, Platform.OS === 'android' ? 28 : 16);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -86,7 +89,7 @@ export function AiSheetShell({
           <ScrollView
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomSafePad + spacing.md }]}
           >
             <AppText tone="muted" style={styles.subtitle}>
               {subtitle}
@@ -125,10 +128,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: radii.pill,
-    backgroundColor: '#FFF0F5',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.2,
-    borderColor: '#F4BFD4',
-    shadowColor: '#E6386F',
+    borderColor: '#EAD6DF',
+    shadowColor: '#D67094',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -151,7 +154,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -164,7 +167,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.bold,
     fontSize: 14.5,
-    color: colors.primaryPressed,
+    color: colors.ink,
   },
   triggerLabelCompact: {
     flex: 0,
@@ -174,14 +177,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: radii.pill,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F5D6E2',
+    backgroundColor: colors.primary,
   },
   triggerRightText: {
     fontFamily: fonts.bold,
     fontSize: 11.5,
-    color: colors.primaryPressed,
+    color: '#FFFFFF',
   },
   backdrop: {
     flex: 1,
@@ -257,9 +258,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radii.pill,
-    backgroundColor: '#FFF0F5',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F5D6E2',
+    borderColor: '#EAD6DF',
   },
   quotaPillExhausted: {
     backgroundColor: colors.warningSoft,
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
   quotaText: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.primaryPressed,
+    color: colors.ink,
   },
   quotaTextExhausted: {
     color: '#A16207',
@@ -279,9 +280,9 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: '#FFF0F5',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F5D6E2',
+    borderColor: '#EAD6DF',
   },
   noticeIcon: {
     marginTop: 1,

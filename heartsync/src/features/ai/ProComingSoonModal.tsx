@@ -78,9 +78,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: radii.pill,
-    backgroundColor: '#FFF0F5',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F4BFD4',
+    borderColor: '#EAD6DF',
   },
   proPillText: {
     fontFamily: fonts.bold,

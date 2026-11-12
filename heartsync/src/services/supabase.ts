@@ -1,9 +1,33 @@
 import "react-native-url-polyfill/auto";
 import "expo-sqlite/localStorage/install";
 
+import * as Crypto from "expo-crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../shared/types/database.types";
 import { supabaseConfig } from "./supabaseConfig";
+
+function ensureCryptoPolyfill() {
+  const g = globalThis as unknown as {
+    crypto?: {
+      getRandomValues?: <T extends ArrayBufferView>(array: T) => T;
+      randomUUID?: () => string;
+    };
+  };
+  if (!g.crypto) {
+    g.crypto = {};
+  }
+  if (typeof g.crypto.getRandomValues !== "function" && typeof Crypto.getRandomValues === "function") {
+    g.crypto.getRandomValues = ((array: ArrayBufferView) =>
+      Crypto.getRandomValues(
+        array as Parameters<typeof Crypto.getRandomValues>[0],
+      )) as unknown as <T extends ArrayBufferView>(array: T) => T;
+  }
+  if (typeof g.crypto.randomUUID !== "function" && typeof Crypto.randomUUID === "function") {
+    g.crypto.randomUUID = () => Crypto.randomUUID();
+  }
+}
+
+ensureCryptoPolyfill();
 
 type Module3Database = Omit<Database, "public"> & {
   public: Omit<Database["public"], "Functions"> & {

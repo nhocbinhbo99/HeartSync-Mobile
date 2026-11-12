@@ -20,10 +20,11 @@ export function SelectedChip({ label, onRemove, disabled = false }: Props) {
       }}
       style={[styles.chip, disabled && styles.disabled]}
     >
+      <View style={styles.accentDot} />
       <Text style={styles.label}>{label}</Text>
       {onRemove ? (
         <View pointerEvents="none" accessible={false} style={styles.remove}>
-          <AppIcon name="close" color={colors.primaryPressed} size={13} />
+          <AppIcon name="close" color={colors.inkMuted} size={11} />
         </View>
       ) : null}
     </AnimatedPressable>
@@ -34,25 +35,31 @@ const styles = StyleSheet.create({
   chip: {
     minHeight: 36,
     borderRadius: radii.pill,
-    backgroundColor: '#FFE8F0',
-    borderWidth: 1,
-    borderColor: '#F5B5CB',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: '#E5CAD6',
     paddingHorizontal: 14,
     paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    shadowColor: '#E6386F',
+    gap: 7,
+    shadowColor: '#24111A',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
     elevation: 1,
+  },
+  accentDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
   },
   label: {
     fontFamily: fonts.bold,
     fontSize: 13.5,
     lineHeight: 18,
-    color: colors.primaryPressed,
+    color: colors.ink,
   },
   remove: {
     width: 18,
@@ -60,7 +67,8 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F4EEF1',
+    marginLeft: 2,
   },
   disabled: { opacity: 0.55 },
 });
