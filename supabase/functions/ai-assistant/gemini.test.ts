@@ -1,56 +1,90 @@
-import { generateGeminiJson, validateGeneratedOutput } from './gemini.ts';
+import { generateGeminiStructuredResult, validateGeneratedOutput } from './gemini.ts';
 
 const bio = 'Mình thích nhâm nhi cà phê, đọc những cuốn sách hay và dành cuối tuần cho một chuyến đi dạo thư thả để tìm thêm điều thú vị.';
+const icebreakers = [
+  'Nếu có một buổi cà phê lý tưởng, bạn sẽ chọn góc ngồi như thế nào?',
+  'Cuối tuần bạn thích khám phá nơi mới hay thư giãn với một cuốn sách hơn?',
+  'Chào bạn, có bộ phim nào gần đây khiến bạn muốn kể lại không?',
+];
 
-Deno.test('validates structured Bio and exactly three distinct Icebreakers', () => {
-  if (!validateGeneratedOutput('generate_bio', { suggestion: bio }).ok) throw new Error('valid Bio was rejected');
-  if (!validateGeneratedOutput('generate_icebreaker', {
-    suggestions: [
-      'Nếu có một buổi cà phê lý tưởng, bạn sẽ chọn góc ngồi như thế nào?',
-      'Cuối tuần bạn thích khám phá nơi mới hay thư giãn với một cuốn sách hơn?',
-      'Chào bạn, có bộ phim nào gần đây khiến bạn muốn kể lại không?',
-    ],
-  }).ok) throw new Error('valid Icebreakers were rejected');
-  if (validateGeneratedOutput('generate_icebreaker', { suggestions: ['Chào bạn, bạn khoẻ không?', 'Chào bạn, bạn khoẻ không?', 'Câu thứ ba có hợp lệ không?'] }).ok) {
-    throw new Error('duplicate Icebreakers were accepted');
+const request = {
+  apiKey: 'test-key-not-a-secret',
+  model: 'gemini-3.5-flash-lite',
+  systemInstruction: 'System rule.',
+  prompt: 'Prompt.',
+  schema: { type: 'object', properties: { suggestion: { type: 'string' } }, required: ['suggestion'] },
+  maxOutputTokens: 256,
+};
+
+function jsonResponse(value: unknown, status = 200) {
+  return new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
+Deno.test('validates Gemini Bio and exactly three distinct Icebreakers', () => {
+  if (!validateGeneratedOutput('generate_bio', { suggestion: bio }).ok) throw new Error('Expected valid Bio');
+  if (!validateGeneratedOutput('generate_icebreaker', { suggestions: icebreakers }).ok) throw new Error('Expected valid Icebreakers');
+  if (validateGeneratedOutput('generate_icebreaker', { suggestions: [icebreakers[0], icebreakers[0], icebreakers[2]] }).ok) {
+    throw new Error('Expected duplicate Icebreakers to be rejected');
   }
-  if (!validateGeneratedOutput('generate_icebreaker', {
-    suggestions: [
-      'Chào bạn, mong hôm nay của bạn đang diễn ra thật nhẹ nhàng và vui vẻ.',
-      'Mình thấy cuộc trò chuyện này khá thú vị, rất vui được làm quen với bạn.',
-      'Hy vọng bạn có một buổi tối thư giãn, mình rất mong nghe thêm về bạn.',
-    ],
-  }).ok) throw new Error('valid non-question greetings were rejected');
 });
 
-Deno.test('maps a mocked Gemini 429 without reading or logging response details', async () => {
-  const result = await generateGeminiJson({
-    apiKey: 'test-key-not-a-secret', model: 'test-model', systemInstruction: 'system', prompt: 'prompt', schema: { type: 'object' }, maxOutputTokens: 10,
-    fetchImpl: async () => new Response(JSON.stringify({ error: { message: 'ignored' } }), { status: 429 }),
+Deno.test('sends Gemini structured-output config and parses JSON text', async () => {
+  let sent: Record<string, unknown> | null = null;
+  const result = await generateGeminiStructuredResult({
+    ...request,
+    fetchImpl: async (_url, init) => {
+      sent = JSON.parse(String(init?.body));
+      return jsonResponse({ candidates: [{ content: { parts: [{ text: JSON.stringify({ suggestion: bio }) }] } }] });
+    },
   });
-  if (result.ok || result.code !== 'GEMINI_RATE_LIMITED') throw new Error('429 was not mapped safely');
+  if (!result.ok || result.data === null) throw new Error('Expected a structured Gemini result');
+  const sentRequest = sent as Record<string, unknown> | null;
+  const config = sentRequest?.generationConfig as Record<string, unknown> | undefined;
+  if (config?.responseMimeType !== 'application/json' || !config.responseJsonSchema) {
+    throw new Error('Expected Gemini response schema configuration');
+  }
 });
 
-Deno.test('maps a mocked Gemini configuration status without reading response details', async () => {
-  const result = await generateGeminiJson({
-    apiKey: 'test-key-not-a-secret', model: 'test-model', systemInstruction: 'system', prompt: 'prompt', schema: { type: 'object' }, maxOutputTokens: 10,
-    fetchImpl: async () => new Response(JSON.stringify({ error: { message: 'ignored' } }), { status: 403 }),
+Deno.test('rejects Gemini response without valid structured JSON', async () => {
+  const result = await generateGeminiStructuredResult({
+    ...request,
+    fetchImpl: async () => jsonResponse({ candidates: [{ content: { parts: [{ text: 'not json' }] } }] }),
   });
-  if (result.ok || result.code !== 'GEMINI_CONFIGURATION_ERROR') throw new Error('configuration status was not mapped safely');
+  if (result.ok || result.code !== 'AI_OUTPUT_INVALID') throw new Error('Expected invalid output');
 });
 
-Deno.test('parses structured JSON from a mocked Gemini response', async () => {
-  const result = await generateGeminiJson({
-    apiKey: 'test-key-not-a-secret', model: 'test-model', systemInstruction: 'system', prompt: 'prompt', schema: { type: 'object' }, maxOutputTokens: 10,
-    fetchImpl: async () => Response.json({ candidates: [{ content: { parts: [{ text: JSON.stringify({ suggestion: bio }) }] } }] }),
-  });
-  if (!result.ok || !validateGeneratedOutput('generate_bio', result.data).ok) throw new Error('structured response was not parsed');
+Deno.test('maps Gemini key/configuration and rate-limit statuses safely', async () => {
+  const unauthorized = await generateGeminiStructuredResult({ ...request, fetchImpl: async () => jsonResponse({}, 401) });
+  if (unauthorized.ok || unauthorized.code !== 'AI_CONFIGURATION_ERROR' || unauthorized.httpStatus !== 401) {
+    throw new Error('Expected configuration error');
+  }
+  const limited = await generateGeminiStructuredResult({ ...request, fetchImpl: async () => jsonResponse({}, 429) });
+  if (limited.ok || limited.code !== 'AI_RATE_LIMITED') throw new Error('Expected rate-limit error');
+  const missingModel = await generateGeminiStructuredResult({ ...request, fetchImpl: async () => jsonResponse({}, 404) });
+  if (missingModel.ok || missingModel.code !== 'AI_CONFIGURATION_ERROR') throw new Error('Expected model configuration error');
 });
 
-Deno.test('parses a structured response wrapped in a JSON code fence', async () => {
-  const result = await generateGeminiJson({
-    apiKey: 'test-key-not-a-secret', model: 'test-model', systemInstruction: 'system', prompt: 'prompt', schema: { type: 'object' }, maxOutputTokens: 10,
-    fetchImpl: async () => Response.json({ candidates: [{ content: { parts: [{ text: `\`\`\`json\n${JSON.stringify({ suggestion: bio })}\n\`\`\`` }] } }] }),
+Deno.test('retries one temporary Gemini overload before succeeding', async () => {
+  let calls = 0;
+  const result = await generateGeminiStructuredResult({
+    ...request,
+    fetchImpl: async () => {
+      calls += 1;
+      return calls === 1
+        ? jsonResponse({}, 503)
+        : jsonResponse({ candidates: [{ content: { parts: [{ text: JSON.stringify({ suggestion: bio }) }] } }] });
+    },
   });
-  if (!result.ok || !validateGeneratedOutput('generate_bio', result.data).ok) throw new Error('fenced structured response was not parsed');
+  if (!result.ok || calls !== 2) throw new Error('Expected one retry then success');
+});
+
+Deno.test('retries one timeout then returns temporary unavailable', async () => {
+  const result = await generateGeminiStructuredResult({
+    ...request,
+    timeoutMs: 10,
+    fetchImpl: async (_url, init) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+    }),
+  });
+  if (result.ok || result.code !== 'AI_TEMPORARILY_UNAVAILABLE') throw new Error('Expected unavailable error');
 });

@@ -79,8 +79,10 @@ function isIcebreakerSentence(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   const suggestion = value.trim();
   const length = textLength(suggestion);
-  return length >= 20 && length <= 160
-    && (suggestion.includes('?') || /^(chào|hello|hi|mình|dạo này|cuối tuần)/iu.test(suggestion));
+  // This mirrors the Function contract. Wording can be a question or a natural
+  // greeting, so client-side parsing must not reject a server-validated result
+  // merely because it lacks one particular punctuation/style pattern.
+  return length >= 20 && length <= 160 && /\p{L}/u.test(suggestion);
 }
 
 export function isValidIcebreakerSuggestions(value: unknown): value is [string, string, string] {
@@ -110,15 +112,24 @@ const errorByServerCode: Record<string, ApiErrorCode> = {
   INVALID_INPUT: 'validation',
   MATCH_NOT_ALLOWED: 'forbidden',
   AI_QUOTA_EXHAUSTED: 'quota_exhausted',
+  AI_RATE_LIMITED: 'rate_limited',
+  // Supports previously stored Function responses during the provider migration.
   GEMINI_RATE_LIMITED: 'rate_limited',
+  AI_CONFIGURATION_ERROR: 'unavailable',
   AI_TEMPORARILY_UNAVAILABLE: 'unavailable',
   AI_OUTPUT_INVALID: 'unavailable',
   REQUEST_IN_PROGRESS: 'request_in_progress',
 };
 
+const messageByServerCode: Record<string, string> = {
+  // Deliberately does not expose provider credentials, billing, or HTTP details.
+  AI_CONFIGURATION_ERROR: 'Trợ lý AI đang được cấu hình lại. Vui lòng liên hệ quản trị viên và thử lại sau.',
+};
+
 export function mapAiServerError(value: unknown): ApiError | null {
   const payload = record(value);
-  const code = typeof payload?.code === 'string' ? errorByServerCode[payload.code] : undefined;
+  const serverCode = typeof payload?.code === 'string' ? payload.code : undefined;
+  const code = serverCode ? errorByServerCode[serverCode] : undefined;
   if (!code) return null;
   const messages: Record<ApiErrorCode, string> = {
     unauthorized: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.',
@@ -132,5 +143,9 @@ export function mapAiServerError(value: unknown): ApiError | null {
     unavailable: 'AI tạm thời chưa khả dụng. Vui lòng thử lại sau.',
     request_in_progress: 'Yêu cầu AI đang được xử lý. Vui lòng đợi một chút.',
   };
-  return { code, message: messages[code], retryable: code === 'network' || code === 'rate_limited' || code === 'unavailable' || code === 'request_in_progress' };
+  return {
+    code,
+    message: (serverCode ? messageByServerCode[serverCode] : undefined) ?? messages[code],
+    retryable: code === 'network' || code === 'rate_limited' || code === 'unavailable' || code === 'request_in_progress',
+  };
 }

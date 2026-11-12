@@ -2,7 +2,7 @@
 -- Database integration: quotas, idempotency, RLS, refund and active-Match authorization.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(18);
+select plan(19);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data)
 values
@@ -45,6 +45,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000012
 select is(public.reserve_ai_request('profile_bio', '20000000-0000-4000-8000-000000000011', null)->>'state', 'reserved', 'second user can reserve independently');
 select is(public.fail_ai_request('20000000-0000-4000-8000-000000000011', 'AI_OUTPUT_INVALID')->>'state', 'failed', 'invalid provider output releases reservation');
 select is((public.get_ai_quotas()->'profile_bio'->>'used')::integer, 0, 'provider failure does not consume a Bio generation');
+select is((public.get_ai_quotas()->'profile_bio'->>'remaining')::integer, 2, 'provider failure restores the reserved Bio generation');
 reset role;
 
 set local role authenticated;

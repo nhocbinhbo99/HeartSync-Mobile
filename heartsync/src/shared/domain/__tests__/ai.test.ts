@@ -41,6 +41,14 @@ describe('AI request and response validation', () => {
     })?.suggestions).toEqual(icebreakers);
   });
 
+  it('accepts a natural server-validated greeting without forcing a question mark', () => {
+    expect(isValidIcebreakerSuggestions([
+      'Chúc bạn hôm nay có thật nhiều niềm vui và năng lượng tích cực nhé',
+      icebreakers[1],
+      icebreakers[2],
+    ])).toBe(true);
+  });
+
   const malformedOutputs: unknown[] = [
     [],
     [icebreakers[0], icebreakers[1]],
@@ -59,5 +67,6 @@ describe('AI request and response validation', () => {
   it('maps safe server codes without preserving provider messages', () => {
     expect(mapAiServerError({ code: 'AI_QUOTA_EXHAUSTED', message: 'sensitive provider text' })?.code).toBe('quota_exhausted');
     expect(mapAiServerError({ code: 'GEMINI_RATE_LIMITED' })?.retryable).toBe(true);
+    expect(mapAiServerError({ code: 'AI_CONFIGURATION_ERROR' })?.message).toContain('cấu hình lại');
   });
 });
