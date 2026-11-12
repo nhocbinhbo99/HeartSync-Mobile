@@ -1,9 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppServices } from '../../services/AppServicesProvider';
-import { getCachedPhotoUrl, getCachedPublicProfile } from '../../services/photoCache';
+import { getCachedPhotoUrl, getCachedPublicProfile, resolvePhotoUrls } from '../../services/photoCache';
+import { claimMatchCelebration } from '../matching/matchCelebrationGuard';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon, type AppIconName } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
@@ -38,12 +50,20 @@ export function OtherProfileScreen({
 }: NativeStackScreenProps<RootStackParamList, 'OtherProfile'>) {
   const services = useAppServices();
   const snackbar = useSnackbar();
+  const { width, height } = useWindowDimensions();
+  const heroWidth = Math.max(1, width);
+  const heroHeight = Math.max(360, Math.round(Math.min(width * 1.18, height * 0.62)));
   const profileId = route.params?.profileId;
   const cachedProfile = getCachedPublicProfile(profileId);
-  const cachedPrimaryPath =
-    cachedProfile?.photos.find((photo) => photo.isPrimary)?.storagePath ?? cachedProfile?.photos[0]?.storagePath;
   const [profile, setProfile] = useState<ProfilePublic | undefined>(cachedProfile);
-  const [photoUrl, setPhotoUrl] = useState<string | undefined>(() => getCachedPhotoUrl(cachedPrimaryPath));
+  const [photoUrls, setPhotoUrls] = useState<string[]>(() => {
+    if (!cachedProfile?.photos.length) return [];
+    return [...cachedProfile.photos]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((photo) => getCachedPhotoUrl(photo.storagePath))
+      .filter((url): url is string => Boolean(url));
+  });
+  const [activePhoto, setActivePhoto] = useState(0);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [liking, setLiking] = useState(false);
@@ -62,10 +82,15 @@ export function OtherProfileScreen({
     }
     setProfile(profileResult.data);
     if (savedResult.ok) setSaved(savedResult.data);
-    const primary = profileResult.data.photos.find((photo) => photo.isPrimary) ?? profileResult.data.photos[0];
-    if (primary) {
-      const url = await services.profile.createPhotoUrl(primary.storagePath);
-      if (url.ok) setPhotoUrl(url.data);
+    const paths = [...profileResult.data.photos]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((photo) => photo.storagePath);
+    if (paths.length > 0) {
+      const urlMap = await resolvePhotoUrls(services.profile, paths);
+      const urls = paths
+        .map((path) => urlMap[path] ?? getCachedPhotoUrl(path))
+        .filter((url): url is string => Boolean(url));
+      if (urls.length > 0) setPhotoUrls(urls);
     }
   }, [profileId, services]);
 
@@ -107,10 +132,17 @@ export function OtherProfileScreen({
       return;
     }
     if (result.data.outcome === 'matched') {
-      navigation.navigate('MatchFound', { matchId: result.data.matchId });
+      if (claimMatchCelebration(result.data.matchId)) {
+        navigation.navigate('MatchFound', { matchId: result.data.matchId });
+      }
       return;
     }
     snackbar.show({ message: 'Đã thả tim tới người này!', tone: 'success' });
+  };
+
+  const onPhotoScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const w = event.nativeEvent.layoutMeasurement.width;
+    if (w) setActivePhoto(Math.round(event.nativeEvent.contentOffset.x / w));
   };
 
   if (!profileId) {
@@ -171,15 +203,36 @@ export function OtherProfileScreen({
 
   return (
     <Screen safeTop contentStyle={styles.otherProfileScreen} footer={actions}>
-      <View style={styles.heroWrap}>
-        <Image
-          accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`}
-          source={getProfileImageSource(photoUrl, profile.id, profile.gender, profile.displayName)}
-          fadeDuration={0}
-          style={styles.heroImage}
-          resizeMode="cover"
-        />
-        <Image source={brandAssets.cardScrimGradient} style={styles.heroScrimImage} resizeMode="stretch" />
+      <View style={[styles.heroWrap, { width: heroWidth, height: heroHeight }]}>
+        {photoUrls.length > 0 ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            onMomentumScrollEnd={onPhotoScroll}
+            showsHorizontalScrollIndicator={false}
+            style={{ flexGrow: 0, width: heroWidth, height: heroHeight }}
+          >
+            {photoUrls.map((uri, index) => (
+              <Image
+                key={uri}
+                accessibilityLabel={`Ảnh ${index + 1} của ${profile.displayName}`}
+                source={{ uri }}
+                fadeDuration={0}
+                style={[styles.heroImage, { width: heroWidth, height: heroHeight }]}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <Image
+            accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`}
+            source={getProfileImageSource(undefined, profile.id, profile.gender, profile.displayName)}
+            fadeDuration={0}
+            style={[styles.heroImage, { width: heroWidth, height: heroHeight }]}
+            resizeMode="cover"
+          />
+        )}
+        <Image source={brandAssets.cardScrimGradient} pointerEvents="none" style={styles.heroScrimImage} resizeMode="stretch" />
         <View style={styles.heroTopActions}>
           <IconButton
             icon="back"
@@ -188,6 +241,13 @@ export function OtherProfileScreen({
             onPress={() => navigation.goBack()}
             style={styles.heroTopButton}
           />
+          {photoUrls.length > 1 ? (
+            <View style={styles.heroDots}>
+              {photoUrls.map((_, index) => (
+                <View key={index} style={[styles.heroDot, index === activePhoto && styles.heroDotActive]} />
+              ))}
+            </View>
+          ) : null}
           <IconButton
             icon="more"
             label={`Tùy chọn cho ${profile.displayName}`}
@@ -196,7 +256,7 @@ export function OtherProfileScreen({
             style={styles.heroTopButton}
           />
         </View>
-        <View style={styles.heroDetails}>
+        <View pointerEvents="none" style={styles.heroDetails}>
           <View style={styles.heroNameRow}>
             <AppText accessibilityRole="header" tone="onPrimary" style={styles.heroName}>
               {profile.displayName}, {profile.age}
@@ -406,11 +466,21 @@ export function ReportScreen({ route, navigation }: NativeStackScreenProps<RootS
   );
 }
 
-function SafetyItem({ icon, title, description }: { icon: AppIconName; title: string; description: string }) {
+function SafetyItem({
+  icon,
+  badgeColor = colors.primary,
+  title,
+  description,
+}: {
+  icon: AppIconName;
+  badgeColor?: string;
+  title: string;
+  description: string;
+}) {
   return (
     <View style={styles.safetyItem}>
-      <View style={styles.safetyItemIcon}>
-        <AppIcon name={icon} color={colors.primaryPressed} size={21} />
+      <View style={[styles.safetyItemIcon, { backgroundColor: badgeColor }]}>
+        <AppIcon name={icon} color="#FFFFFF" size={20} />
       </View>
       <View style={styles.safetyItemCopy}>
         <AppText style={styles.safetyItemTitle}>{title}</AppText>
@@ -424,8 +494,28 @@ function SafetyItem({ icon, title, description }: { icon: AppIconName; title: st
 
 const styles = StyleSheet.create({
   otherProfileScreen: { padding: 0, gap: spacing.md },
-  heroWrap: { position: 'relative' },
-  heroImage: { width: '100%', aspectRatio: 0.88, backgroundColor: colors.surfaceMuted },
+  heroWrap: { position: 'relative', overflow: 'hidden', backgroundColor: colors.surfaceMuted },
+  heroImage: { backgroundColor: colors.surfaceMuted },
+  heroDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(20, 10, 16, 0.36)',
+    alignSelf: 'center',
+  },
+  heroDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.50)',
+  },
+  heroDotActive: {
+    width: 16,
+    backgroundColor: '#FFFFFF',
+  },
   heroScrimImage: {
     position: 'absolute',
     right: 0,
@@ -482,14 +572,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: Platform.OS === 'android' ? spacing.lg : spacing.sm,
   },
   footerSave: {
     width: 52,
     height: 52,
     borderWidth: 1.5,
     borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
   },
   likeButton: { flex: 1 },
   error: {
@@ -534,10 +625,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   safetyItemIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

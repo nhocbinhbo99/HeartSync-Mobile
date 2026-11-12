@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { colors, fonts, radii, spacing } from '../theme/tokens';
-import { brandAssets } from '../utils/avatarHelper';
 import { AnimatedPressable } from './AnimatedPressable';
 import { AppIcon, type AppIconName } from './AppIcon';
 
@@ -20,8 +19,8 @@ type AppButtonProps = {
 };
 
 const variants = {
-  primary: { background: colors.primary, border: 'transparent', text: colors.onPrimary },
-  secondary: { background: '#FFF0F5', border: '#F6C6D8', text: colors.primaryPressed },
+  primary: { background: colors.primary, border: colors.primary, text: colors.onPrimary },
+  secondary: { background: '#FFFFFF', border: '#E4C5D3', text: colors.ink },
   quiet: { background: 'transparent', border: 'transparent', text: colors.primaryPressed },
   danger: { background: colors.surface, border: colors.danger, text: colors.danger },
 } as const;
@@ -59,26 +58,22 @@ export function AppButton({
         style,
       ]}
     >
-      {isPrimary && !disabled ? (
-        <Image
-          source={brandAssets.pinkButtonGradient}
-          style={StyleSheet.absoluteFill}
-          resizeMode="stretch"
-        />
-      ) : null}
       <View style={styles.contentRow}>
         {loading ? (
           <ActivityIndicator color={isPrimary ? colors.onPrimary : palette.text} />
         ) : leadingIcon ? (
-          <AppIcon name={leadingIcon} color={palette.text} size={20} />
+          <AppIcon name={leadingIcon} color={palette.text} size={19} />
         ) : (
           icon
         )}
-        <Text style={[styles.label, { color: disabled || loading ? colors.inkMuted : palette.text }]}>
+        <Text
+          numberOfLines={1}
+          style={[styles.label, { color: disabled || loading ? colors.inkMuted : palette.text }]}
+        >
           {label}
         </Text>
         {trailingIcon && !loading ? (
-          <AppIcon name={trailingIcon} color={palette.text} size={20} />
+          <AppIcon name={trailingIcon} color={palette.text} size={19} />
         ) : null}
       </View>
     </AnimatedPressable>
@@ -105,14 +100,15 @@ const styles = StyleSheet.create({
   primaryShadow: {
     shadowColor: '#E6386F',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.26,
     shadowRadius: 12,
     elevation: 4,
   },
   label: {
     fontFamily: fonts.bold,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15.5,
+    lineHeight: 21,
+    flexShrink: 1,
   },
   disabled: {
     backgroundColor: colors.disabled,

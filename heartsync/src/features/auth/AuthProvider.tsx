@@ -165,77 +165,85 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
 
   const signIn = useCallback(async (email: string, password: string): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
-    const normalizedEmail = email.trim();
-    const { error } = await client.auth.signInWithPassword({ email: normalizedEmail, password });
-    if (error) {
-      const code = error.code?.toLowerCase() ?? '';
-      const msg = error.message?.toLowerCase() ?? '';
-      if (code.includes('email_not_confirmed') || msg.includes('email not confirmed')) {
-        const confirmed = await tryConfirmEmailForDev(client, normalizedEmail);
-        if (confirmed) {
-          const retry = await client.auth.signInWithPassword({ email: normalizedEmail, password });
-          if (!retry.error) {
-            setPendingSignInNotice(undefined);
-            return { ok: true };
+    try {
+      const normalizedEmail = email.trim();
+      const { error } = await client.auth.signInWithPassword({ email: normalizedEmail, password });
+      if (error) {
+        const code = error.code?.toLowerCase() ?? '';
+        const msg = error.message?.toLowerCase() ?? '';
+        if (code.includes('email_not_confirmed') || msg.includes('email not confirmed')) {
+          const confirmed = await tryConfirmEmailForDev(client, normalizedEmail);
+          if (confirmed) {
+            const retry = await client.auth.signInWithPassword({ email: normalizedEmail, password });
+            if (!retry.error) {
+              setPendingSignInNotice(undefined);
+              return { ok: true };
+            }
           }
         }
+        return { ok: false, message: toSafeAuthMessage(error) };
       }
-      return { ok: false, message: toSafeAuthMessage(error) };
+      setPendingSignInNotice(undefined);
+      return { ok: true };
+    } catch {
+      return { ok: false, message: 'Không thể đăng nhập lúc này. Vui lòng thử lại.' };
     }
-    setPendingSignInNotice(undefined);
-    return { ok: true };
   }, [client]);
 
   const signUp = useCallback(async (input: SignUpInput): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
     const normalizedEmail = input.email.trim();
     setPendingSignInEmail(normalizedEmail);
-    const { data, error } = await client.auth.signUp({
-      email: normalizedEmail,
-      password: input.password,
-      options: {
-        emailRedirectTo: AUTH_CALLBACK_URL,
-        data: {
-          onboarding_display_name: input.displayName.trim(),
-          onboarding_date_of_birth: input.dateOfBirth,
-          onboarding_gender: input.gender,
+    try {
+      const { data, error } = await client.auth.signUp({
+        email: normalizedEmail,
+        password: input.password,
+        options: {
+          emailRedirectTo: AUTH_CALLBACK_URL,
+          data: {
+            onboarding_display_name: input.displayName.trim(),
+            onboarding_date_of_birth: input.dateOfBirth,
+            onboarding_gender: input.gender,
+          },
         },
-      },
-    });
-    if (error) {
-      const code = error.code?.toLowerCase() ?? '';
-      const msg = error.message?.toLowerCase() ?? '';
-      if (
-        error.status === 429 ||
-        code.includes('rate') ||
-        msg.includes('rate limit') ||
-        code.includes('already') ||
-        msg.includes('already registered')
-      ) {
-        const confirmed = await tryConfirmEmailForDev(client, normalizedEmail);
-        if (confirmed || code.includes('already') || msg.includes('already registered')) {
-          const notice = 'Tài khoản đã được tạo! Vui lòng đăng nhập để tiếp tục.';
-          setPendingSignInNotice(notice);
-          return { ok: true, notice };
+      });
+      if (error) {
+        const code = error.code?.toLowerCase() ?? '';
+        const msg = error.message?.toLowerCase() ?? '';
+        if (
+          error.status === 429 ||
+          code.includes('rate') ||
+          msg.includes('rate limit') ||
+          code.includes('already') ||
+          msg.includes('already registered')
+        ) {
+          const confirmed = await tryConfirmEmailForDev(client, normalizedEmail);
+          if (confirmed || code.includes('already') || msg.includes('already registered')) {
+            const notice = 'Tài khoản đã được tạo! Vui lòng đăng nhập để tiếp tục.';
+            setPendingSignInNotice(notice);
+            return { ok: true, notice };
+          }
         }
+        return { ok: false, message: toSafeAuthMessage(error) };
       }
-      return { ok: false, message: toSafeAuthMessage(error) };
-    }
-    const identities = (data as { user?: { identities?: unknown[] } | null })?.user?.identities;
-    if (Array.isArray(identities) && identities.length === 0) {
-      await tryConfirmEmailForDev(client, normalizedEmail);
-      const notice = 'Email này đã có tài khoản. Vui lòng đăng nhập để tiếp tục.';
-      setPendingSignInNotice(notice);
+      const identities = (data as { user?: { identities?: unknown[] } | null })?.user?.identities;
+      if (Array.isArray(identities) && identities.length === 0) {
+        await tryConfirmEmailForDev(client, normalizedEmail);
+        const notice = 'Email này đã có tài khoản. Vui lòng đăng nhập để tiếp tục.';
+        setPendingSignInNotice(notice);
+        return { ok: true, notice };
+      }
+      if (!data.session) {
+        await tryConfirmEmailForDev(client, normalizedEmail);
+      }
+      const notice = data.session
+        ? undefined
+        : 'Đăng ký thành công! Vui lòng đăng nhập (hoặc kiểm tra email xác nhận nếu được yêu cầu).';
+      if (notice) setPendingSignInNotice(notice);
       return { ok: true, notice };
+    } catch {
+      return { ok: false, message: 'Không thể hoàn tất đăng ký lúc này. Vui lòng thử lại.' };
     }
-    if (!data.session) {
-      await tryConfirmEmailForDev(client, normalizedEmail);
-    }
-    const notice = data.session
-      ? undefined
-      : 'Đăng ký thành công! Vui lòng đăng nhập (hoặc kiểm tra email xác nhận nếu được yêu cầu).';
-    if (notice) setPendingSignInNotice(notice);
-    return { ok: true, notice };
   }, [client]);
 
   const refreshProfileStatus = useCallback(async () => {
@@ -244,41 +252,57 @@ export function AuthProvider({ children, client = getSupabaseClient() }: AuthPro
 
   const completeOnboarding = useCallback(async (): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
-    const { error } = await client.auth.updateUser({ data: {
-      onboarding_display_name: null,
-      onboarding_date_of_birth: null,
-      onboarding_gender: null,
-    } });
-    if (error) return { ok: false, message: toSafeAuthMessage(error) };
-    const { data } = await client.auth.getSession();
-    await resolveProfileStatus(data.session, true);
-    return { ok: true };
+    try {
+      const { error } = await client.auth.updateUser({ data: {
+        onboarding_display_name: null,
+        onboarding_date_of_birth: null,
+        onboarding_gender: null,
+      } });
+      if (error) return { ok: false, message: toSafeAuthMessage(error) };
+      const { data } = await client.auth.getSession();
+      await resolveProfileStatus(data.session, true);
+      return { ok: true };
+    } catch {
+      return { ok: false, message: 'Không thể hoàn tất hồ sơ lúc này. Vui lòng thử lại.' };
+    }
   }, [client, resolveProfileStatus]);
 
   const requestPasswordReset = useCallback(async (email: string): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
-    const normalizedEmail = email.trim();
-    await tryConfirmEmailForDev(client, normalizedEmail);
-    const { error } = await client.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: PASSWORD_RECOVERY_URL });
-    if (error) return { ok: false, message: toSafeAuthMessage(error) };
-    return {
-      ok: true,
-      notice: 'Đã gửi liên kết khôi phục mật khẩu về email. Vui lòng kiểm tra cả Hộp thư đến và mục Thư rác (Spam).',
-    };
+    try {
+      const normalizedEmail = email.trim();
+      await tryConfirmEmailForDev(client, normalizedEmail);
+      const { error } = await client.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: PASSWORD_RECOVERY_URL });
+      if (error) return { ok: false, message: toSafeAuthMessage(error) };
+      return {
+        ok: true,
+        notice: 'Đã gửi liên kết khôi phục mật khẩu về email. Vui lòng kiểm tra cả Hộp thư đến và mục Thư rác (Spam).',
+      };
+    } catch {
+      return { ok: false, message: 'Không thể gửi liên kết khôi phục mật khẩu lúc này. Vui lòng thử lại.' };
+    }
   }, [client]);
 
   const updatePassword = useCallback(async (password: string): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
-    const { error } = await client.auth.updateUser({ password });
-    if (error) return { ok: false, message: toSafeAuthMessage(error) };
-    setRecoveryPending(false);
-    return { ok: true, notice: 'Mật khẩu đã được cập nhật.' };
+    try {
+      const { error } = await client.auth.updateUser({ password });
+      if (error) return { ok: false, message: toSafeAuthMessage(error) };
+      setRecoveryPending(false);
+      return { ok: true, notice: 'Mật khẩu đã được cập nhật.' };
+    } catch {
+      return { ok: false, message: 'Không thể cập nhật mật khẩu lúc này. Vui lòng thử lại.' };
+    }
   }, [client]);
 
   const signOut = useCallback(async (): Promise<AuthActionResult> => {
     if (!client) return { ok: false, message: 'Supabase chưa được cấu hình.' };
-    const { error } = await client.auth.signOut();
-    return error ? { ok: false, message: toSafeAuthMessage(error) } : { ok: true };
+    try {
+      const { error } = await client.auth.signOut();
+      return error ? { ok: false, message: toSafeAuthMessage(error) } : { ok: true };
+    } catch {
+      return { ok: false, message: 'Không thể đăng xuất lúc này. Vui lòng thử lại.' };
+    }
   }, [client]);
 
   const value = useMemo<AuthContextValue>(() => ({

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 
 import { useAppServices } from '../../services/AppServicesProvider';
@@ -10,7 +10,6 @@ import { AppTextField } from '../../shared/components/AppTextField';
 import type { AiBioGeneration, AiQuota } from '../../shared/domain/ai';
 import { feedback } from '../../shared/motion/feedback';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
-import { brandAssets } from '../../shared/utils/avatarHelper';
 import { useAuth } from '../auth/AuthProvider';
 import { AiConsentNotice, AiSheetShell, AiTriggerPill } from './AiSheetChrome';
 import { hasAiConsent, recordAiConsent } from './aiConsent';
@@ -170,13 +169,6 @@ export function AiBioAssistant({
                       }}
                       style={[styles.tonePill, active && styles.tonePillActive]}
                     >
-                      {active ? (
-                        <Image
-                          source={brandAssets.pinkButtonGradient}
-                          style={StyleSheet.absoluteFill}
-                          resizeMode="stretch"
-                        />
-                      ) : null}
                       <AppText style={[styles.toneText, active && styles.toneTextActive]}>
                         {item.label}
                       </AppText>
@@ -258,7 +250,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tonePillActive: {
-    borderWidth: 0,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
     shadowColor: '#E6386F',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.22,

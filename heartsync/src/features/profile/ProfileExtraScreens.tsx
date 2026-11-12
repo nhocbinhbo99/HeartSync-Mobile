@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/types';
@@ -226,12 +226,25 @@ export function SettingsScreen({ navigation }: SettingsProps) {
           TRẢI NGHIỆM
         </AppText>
         <View style={styles.settingCard}>
-          <SettingsRow icon="moon" title="Giao diện" description="Pink Romance (Hồng dịu)" />
           <SettingsRow
-            icon="heartOutline"
+            icon="sparkle"
+            badgeColor="#FF4D7D"
+            title="Giao diện"
+            description="Pink Romance · Chuẩn hiện đại"
+          />
+          <SettingsRow
+            icon="heart"
+            badgeColor="#8B5CF6"
             title="Hồ sơ và sở thích"
             description="Chỉnh sửa thông tin bạn chia sẻ"
             onPress={() => navigation.navigate('EditProfile')}
+          />
+          <SettingsRow
+            icon="filter"
+            badgeColor="#0EA5E9"
+            title="Tiêu chí khám phá"
+            description="Độ tuổi, giới tính và bán kính"
+            onPress={() => navigation.navigate('Filters')}
             isLast
           />
         </View>
@@ -242,13 +255,8 @@ export function SettingsScreen({ navigation }: SettingsProps) {
         </AppText>
         <View style={styles.settingCard}>
           <SettingsRow
-            icon="shield"
-            title="Trung tâm an toàn"
-            description="Chặn, báo cáo và hỗ trợ"
-            onPress={() => navigation.navigate('Safety')}
-          />
-          <SettingsRow
             icon="lock"
+            badgeColor="#10B981"
             title="Dữ liệu hồ sơ"
             description="Ngày sinh và tọa độ luôn được giữ riêng tư"
             isLast
@@ -262,6 +270,7 @@ export function SettingsScreen({ navigation }: SettingsProps) {
         <View style={styles.settingCard}>
           <SettingsRow
             icon="logout"
+            badgeColor={colors.danger}
             title={busy ? 'Đang đăng xuất' : 'Đăng xuất'}
             description="Kết thúc phiên trên thiết bị này"
             destructive
@@ -280,6 +289,7 @@ export function SettingsScreen({ navigation }: SettingsProps) {
 
 function SettingsRow({
   icon,
+  badgeColor = colors.primary,
   title,
   description,
   destructive = false,
@@ -288,6 +298,7 @@ function SettingsRow({
   isLast = false,
 }: {
   icon: AppIconName;
+  badgeColor?: string;
   title: string;
   description: string;
   destructive?: boolean;
@@ -297,8 +308,8 @@ function SettingsRow({
 }) {
   const content = (
     <>
-      <View style={[styles.settingIcon, destructive && styles.settingIconDanger]}>
-        <AppIcon name={icon} color={destructive ? colors.danger : colors.primaryPressed} size={20} />
+      <View style={[styles.settingIcon, { backgroundColor: badgeColor }]}>
+        <AppIcon name={icon} color="#FFFFFF" size={19} />
       </View>
       <View style={styles.settingCopy}>
         <AppText variant="label" tone={destructive ? 'danger' : 'default'}>
@@ -308,7 +319,7 @@ function SettingsRow({
           {description}
         </AppText>
       </View>
-      {onPress ? <AppIcon name="forward" color={destructive ? colors.danger : colors.inkMuted} size={18} /> : null}
+      {onPress ? <AppIcon name="chevronRight" color={destructive ? colors.danger : colors.inkMuted} size={18} /> : null}
     </>
   );
   if (!onPress) {
@@ -340,7 +351,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingBottom: Platform.OS === 'android' ? spacing.lg : spacing.md,
   },
   interestsScreen: { paddingTop: spacing.xs, gap: spacing.lg },
   settingsScreen: { paddingTop: spacing.xs, gap: spacing.lg },
@@ -355,7 +366,7 @@ const styles = StyleSheet.create({
   interestsIntro: { gap: spacing.xs },
   interestsLead: { fontSize: 15, lineHeight: 22 },
   interestsCount: { fontFamily: fonts.bold, fontSize: 15, marginTop: spacing.xs },
-  progressTrack: { height: 8, backgroundColor: colors.primarySoft, borderRadius: radii.pill, overflow: 'hidden' },
+  progressTrack: { height: 8, backgroundColor: '#EADCE3', borderRadius: radii.pill, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: radii.pill },
   interestGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   interestOption: {
@@ -392,14 +403,13 @@ const styles = StyleSheet.create({
   },
   settingRowLast: { borderBottomWidth: 0 },
   settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primarySoft,
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingIconDanger: { backgroundColor: colors.dangerSoft },
   settingCopy: { flex: 1, gap: 2 },
   version: { textAlign: 'center', marginTop: spacing.sm, paddingBottom: spacing.md },
 });

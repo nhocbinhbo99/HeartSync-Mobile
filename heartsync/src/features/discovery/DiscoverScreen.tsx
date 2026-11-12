@@ -7,6 +7,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { useAppServices } from '../../services/AppServicesProvider';
 import { getCachedPhotoUrl, resolvePhotoUrls } from '../../services/photoCache';
+import { claimMatchCelebration } from '../matching/matchCelebrationGuard';
 import { AppButton } from '../../shared/components/AppButton';
 import { AppIcon } from '../../shared/components/AppIcon';
 import { AsyncStatePanel } from '../../shared/components/AsyncStatePanel';
@@ -216,7 +217,9 @@ export function DiscoverScreen({ navigation }: Props) {
           setCandidates((items) => (items[0]?.id === current.id ? items.slice(1) : items));
           if (result.data.outcome === 'matched') {
             feedback('confirm');
-            navigation.navigate('MatchFound', { matchId: result.data.matchId });
+            if (claimMatchCelebration(result.data.matchId)) {
+              navigation.navigate('MatchFound', { matchId: result.data.matchId });
+            }
           }
         } catch {
           setSwipeError('Không thể lưu thao tác. Vui lòng thử lại.');

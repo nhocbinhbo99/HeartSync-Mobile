@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, type CompositeScreenProps } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,7 +21,7 @@ import { StatePanel } from '../../shared/components/StatePanel';
 import type { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { colors, fonts, radii, spacing } from '../../shared/theme/tokens';
 import type { IncomingCall, MatchSummary, ProfilePublic } from '../../shared/types/domain.types';
-import { brandAssets, getFallbackAvatar } from '../../shared/utils/avatarHelper';
+import { getFallbackAvatar } from '../../shared/utils/avatarHelper';
 import { feedback } from '../../shared/motion/feedback';
 
 type Props = CompositeScreenProps<
@@ -193,7 +193,7 @@ export function MatchesScreen({ navigation }: Props) {
         >
           <AppIcon
             name={searchOpen ? 'close' : 'search'}
-            color={searchOpen ? colors.primaryPressed : colors.ink}
+            color={searchOpen ? '#FFFFFF' : colors.ink}
             size={20}
           />
         </AnimatedPressable>
@@ -241,13 +241,6 @@ export function MatchesScreen({ navigation }: Props) {
               }}
               style={[styles.filterPill, active && styles.filterPillActive]}
             >
-              {active ? (
-                <Image
-                  source={brandAssets.pinkButtonGradient}
-                  style={StyleSheet.absoluteFill}
-                  resizeMode="stretch"
-                />
-              ) : null}
               <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>
                 {tab.label}
               </Text>
@@ -337,31 +330,34 @@ export function MatchesScreen({ navigation }: Props) {
       ) : null}
 
       {filter === 'all' && newMatches.length > 0 && conversations.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.newMatchesStrip}
-        >
-          {newMatches.map((match) => (
-            <AnimatedPressable
-              key={`strip-${match.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
-              onPress={() => openChat(match.id)}
-              style={styles.matchTile}
-            >
-              <View style={styles.avatarWrap}>
-                <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={64} />
-                <View style={styles.heartMiniBadge}>
-                  <AppIcon name="heart" color={colors.onPrimary} size={11} />
+        <View style={styles.newMatchesSection}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.newMatchesScroll}
+            contentContainerStyle={styles.newMatchesStrip}
+          >
+            {newMatches.map((match) => (
+              <AnimatedPressable
+                key={`strip-${match.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Mở trò chuyện với ${match.otherProfile.displayName}`}
+                onPress={() => openChat(match.id)}
+                style={styles.matchTile}
+              >
+                <View style={styles.avatarWrap}>
+                  <MatchAvatar profile={match.otherProfile} photoUrl={photoUrls[match.id]} size={64} />
+                  <View style={styles.heartMiniBadge}>
+                    <AppIcon name="heart" color={colors.onPrimary} size={11} />
+                  </View>
                 </View>
-              </View>
-              <Text numberOfLines={1} style={styles.matchName}>
-                {match.otherProfile.displayName}
-              </Text>
-            </AnimatedPressable>
-          ))}
-        </ScrollView>
+                <Text numberOfLines={1} style={styles.matchName}>
+                  {match.otherProfile.displayName}
+                </Text>
+              </AnimatedPressable>
+            ))}
+          </ScrollView>
+        </View>
       ) : null}
 
       <View style={styles.conversationList}>
@@ -439,8 +435,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchCircleActive: {
-    backgroundColor: '#FFF0F5',
-    borderColor: '#F0B6CC',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   searchBox: {
     flexDirection: 'row',
@@ -451,7 +447,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F2C9DA',
+    borderColor: '#EAD6DF',
   },
   searchInput: {
     flex: 1,
@@ -464,6 +460,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
+    backgroundColor: '#F4EEF1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -475,15 +472,16 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 40,
     borderRadius: radii.pill,
-    backgroundColor: '#FFF0F5',
-    borderWidth: 1,
-    borderColor: '#F3D0DF',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: '#EAD6DF',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   filterPillActive: {
-    borderWidth: 0,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
     shadowColor: '#E6386F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.22,
@@ -499,12 +497,24 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     color: '#FFFFFF',
   },
+  newMatchesSection: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  newMatchesScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   newMatchesStrip: {
     gap: spacing.md,
     paddingVertical: 4,
+    alignItems: 'flex-start',
   },
   matchTile: {
-    width: 74,
+    width: 76,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: radii.lg,
     alignItems: 'center',
     gap: 6,
   },

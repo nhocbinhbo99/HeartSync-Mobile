@@ -10,6 +10,8 @@ import { AppIcon } from '../../shared/components/AppIcon';
 import { AppText } from '../../shared/components/AppText';
 import { Screen } from '../../shared/components/Screen';
 import { StatePanel } from '../../shared/components/StatePanel';
+import { feedback } from '../../shared/motion/feedback';
+import { claimMatchCelebration } from './matchCelebrationGuard';
 import { colors, fonts, spacing } from '../../shared/theme/tokens';
 import type { ProfilePublic } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
@@ -29,6 +31,13 @@ export function MatchFoundScreen({
   const services = useAppServices();
   const matchId = route.params?.matchId;
   const [people, setPeople] = useState<MatchPeople>();
+
+  useEffect(() => {
+    if (matchId) {
+      claimMatchCelebration(matchId);
+      feedback('confirm');
+    }
+  }, [matchId]);
 
   useEffect(() => {
     let live = true;
@@ -74,7 +83,7 @@ export function MatchFoundScreen({
     );
   }
 
-  const otherName = people?.other.displayName ?? 'Ngọc Anh';
+  const otherName = people?.other.displayName ?? 'người ấy';
 
   return (
     <Screen scroll={false} safeTop contentStyle={styles.screen}>

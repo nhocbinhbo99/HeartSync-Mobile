@@ -282,7 +282,7 @@ export function FiltersScreen({ navigation }: NativeStackScreenProps<RootStackPa
             <View style={styles.locationCompactCard}>
               <View style={styles.locationCompactLeft}>
                 <View style={styles.noticeIcon}>
-                  <AppIcon name="location" color={colors.primaryPressed} size={18} />
+                  <AppIcon name="location" color="#FFFFFF" size={18} />
                 </View>
                 <View style={styles.locationCompactCopy}>
                   <Text style={styles.noticeTitle}>Khoảng cách quanh bạn</Text>
@@ -488,8 +488,8 @@ const styles = StyleSheet.create({
   noticeIcon: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FFF0F5',
+    borderRadius: 11,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -511,14 +511,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radii.pill,
-    backgroundColor: '#FFF0F5',
-    borderWidth: 1,
-    borderColor: '#F6C6D8',
+    backgroundColor: colors.primary,
   },
   enableLocText: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.primaryPressed,
+    color: '#FFFFFF',
   },
   switchRow: {
     flexDirection: 'row',

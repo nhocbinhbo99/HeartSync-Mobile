@@ -7,13 +7,14 @@ import { PinkSwitch } from './PinkSwitch';
 type Props = { value: boolean; onChange: (value: boolean) => void; disabled?: boolean; hasCoordinates: boolean };
 
 export function LocationConsentField({ value, onChange, disabled = false, hasCoordinates }: Props) {
+  const active = value && hasCoordinates;
   return (
     <View style={styles.container}>
-      <View style={styles.icon}>
+      <View style={[styles.icon, active && styles.iconActive]}>
         <AppIcon
-          name={value && hasCoordinates ? 'location' : 'locationOff'}
-          color={value && hasCoordinates ? colors.primaryPressed : colors.inkMuted}
-          size={21}
+          name={active ? 'location' : 'locationOff'}
+          color={active ? '#FFFFFF' : colors.inkMuted}
+          size={20}
         />
       </View>
       <View style={styles.copy}>
@@ -54,12 +55,15 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   icon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FFF0F5',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F4EEF1',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconActive: {
+    backgroundColor: colors.primary,
   },
   copy: { flex: 1, gap: spacing.xxs },
   title: { ...type.label, color: colors.ink },

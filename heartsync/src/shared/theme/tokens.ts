@@ -1,14 +1,14 @@
 export const colors = {
-  /** Pink Romance Design System */
-  background: '#FFF7F9',
+  /** Pink Romance Design System — Clean High-Contrast Palette (No AI Pastel Slop) */
+  background: '#FFF9FB',
   surface: '#FFFFFF',
-  surfaceMuted: '#FFF0F5',
+  surfaceMuted: '#F6F1F4',
   ink: '#24111A',
   inkMuted: '#78626E',
-  border: '#F5D6E2',
+  border: '#EAD6DF',
   primary: '#FF4D7D',
   primaryPressed: '#E6386F',
-  primarySoft: '#FFD6E1',
+  primarySoft: '#F6EEF2',
   secondary: '#FF8FAB',
   onPrimary: '#FFFFFF',
   verified: '#2B8CFF',
@@ -19,7 +19,7 @@ export const colors = {
   warningSoft: '#FFF5E0',
   danger: '#E53955',
   dangerSoft: '#FDECEF',
-  disabled: '#F4E3EA',
+  disabled: '#EDE4E8',
   callBackdrop: '#230C1A',
 } as const;
 

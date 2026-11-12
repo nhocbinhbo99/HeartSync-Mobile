@@ -51,7 +51,9 @@ export function PhotoGrid({ photos, busy = false, onAdd, onDelete, onReorder, on
           onPress={onAdd}
           style={styles.add}
         >
-          <AppIcon name="photoAdd" color={colors.primaryPressed} size={30} />
+          <View style={styles.addIconCircle}>
+            <AppIcon name="camera" color="#FFFFFF" size={22} />
+          </View>
           <Text style={styles.addTitle}>Thêm ảnh</Text>
           <Text style={styles.addBody}>{photos.length}/6 ảnh</Text>
         </AnimatedPressable>
@@ -135,7 +137,7 @@ function PhotoTile({
         />
       ) : (
         <View style={styles.imagePlaceholder}>
-          <AppIcon name={photo.error ? 'warning' : 'photoAdd'} color={colors.inkMuted} size={24} />
+          <AppIcon name={photo.error ? 'warning' : 'camera'} color={colors.inkMuted} size={24} />
           <Text style={styles.placeholderText}>
             {photo.error ? 'Không tải được ảnh' : 'Đang tải ảnh…'}
           </Text>
@@ -143,7 +145,7 @@ function PhotoTile({
       )}
       {photo.isPrimary ? (
         <View accessible accessibilityLabel="Ảnh chính" style={styles.badge}>
-          <AppIcon name="star" color={colors.onPrimary} size={13} />
+          <AppIcon name="star" color={colors.onPrimary} size={12} />
           <Text style={styles.badgeText}>Ảnh chính</Text>
         </View>
       ) : null}
@@ -155,7 +157,7 @@ function PhotoTile({
             accessibilityHint="Giữ trong giây lát rồi kéo để đổi thứ tự"
             style={styles.dragHandle}
           >
-            <AppIcon name="drag" color={colors.onPrimary} size={18} />
+            <AppIcon name="drag" color={colors.onPrimary} size={17} />
           </Animated.View>
         </GestureDetector>
         <IconButton
@@ -247,17 +249,36 @@ const styles = StyleSheet.create({
   },
   add: {
     width: '48%',
-    minHeight: 180,
+    minHeight: 184,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: colors.primary,
+    borderColor: '#DFBECA',
     borderRadius: radii.lg,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
     padding: spacing.md,
+    shadowColor: '#24111A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  addTitle: { ...type.subtitle, color: colors.primaryPressed },
+  addIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+    shadowColor: '#E6386F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  addTitle: { fontFamily: fonts.bold, fontSize: 15.5, color: colors.ink },
   addBody: { ...type.caption, color: colors.inkMuted },
 });

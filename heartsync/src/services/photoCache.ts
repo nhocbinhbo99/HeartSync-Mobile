@@ -1,5 +1,6 @@
 import { Image } from 'react-native';
 
+import { clearMatchCelebrationHistory } from '../features/matching/matchCelebrationGuard';
 import type { ProfilePublic, Result } from '../shared/types/domain.types';
 import type { ProfileRepository } from './contracts';
 
@@ -139,5 +140,6 @@ export function clearAllAppCaches(): void {
   inFlightPhotoUrls.clear();
   prefetchedUrls.clear();
   publicProfileCache.clear();
+  clearMatchCelebrationHistory();
 }
 

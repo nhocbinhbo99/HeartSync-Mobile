@@ -155,36 +155,44 @@ export function AuthScreen({ navigation, mode }: Props) {
       return;
     }
     setBusy(true);
-    const result =
-      mode === 'sign-in'
-        ? await signIn(email.trim(), password)
-        : isSignUp
-          ? await signUp({
-              email: email.trim(),
-              password,
-              displayName: displayName.trim(),
-              dateOfBirth,
-              gender,
-            })
-          : await requestPasswordReset(email.trim());
-    setBusy(false);
-    if (result.ok) {
-      if (mode === 'sign-in') {
-        feedback('selection');
-        return;
+    try {
+      const result =
+        mode === 'sign-in'
+          ? await signIn(email.trim(), password)
+          : isSignUp
+            ? await signUp({
+                email: email.trim(),
+                password,
+                displayName: displayName.trim(),
+                dateOfBirth,
+                gender,
+              })
+            : await requestPasswordReset(email.trim());
+      if (result.ok) {
+        if (mode === 'sign-in') {
+          feedback('selection');
+          return;
+        }
+        const message = result.notice ?? (isSignUp ? 'Đăng ký thành công! Vui lòng đăng nhập.' : 'Thao tác đã hoàn tất.');
+        setNotice(message);
+        snackbar.show({ message, tone: 'success' });
+        if (isSignUp && result.notice) {
+          feedback('confirm');
+          setStep(1);
+          navigation.navigate('SignIn');
+        }
+      } else {
+        setActionError(result.message);
+        snackbar.show({ message: result.message, tone: 'error' });
+        feedback('error');
       }
-      const message = result.notice ?? (isSignUp ? 'Đăng ký thành công! Vui lòng đăng nhập.' : 'Thao tác đã hoàn tất.');
-      setNotice(message);
-      snackbar.show({ message, tone: 'success' });
-      if (isSignUp) {
-        feedback('confirm');
-        setStep(1);
-        navigation.navigate('SignIn');
-      }
-    } else {
-      setActionError(result.message);
-      snackbar.show({ message: result.message, tone: 'error' });
+    } catch {
+      const fallbackMsg = 'Không thể hoàn tất yêu cầu lúc này. Vui lòng thử lại.';
+      setActionError(fallbackMsg);
+      snackbar.show({ message: fallbackMsg, tone: 'error' });
       feedback('error');
+    } finally {
+      setBusy(false);
     }
   };
 
