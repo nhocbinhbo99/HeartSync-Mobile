@@ -22,20 +22,45 @@ export class LiveKitCallGateway implements CallGateway {
   private connected = false;
   private callType: CallType | null = null;
   private previewTrack: Awaited<ReturnType<typeof createLocalVideoTrack>> | null = null;
+  private previewPending: Promise<Awaited<ReturnType<typeof createLocalVideoTrack>>> | null = null;
+  private previewAbort = false;
 
   constructor(private readonly client: AppSupabaseClient) {}
 
   async startCameraPreview(): Promise<Result<unknown>> {
     if (this.previewTrack) return { ok: true, data: this.previewTrack };
+    this.previewAbort = false;
     try {
-      this.previewTrack = await createLocalVideoTrack({ facingMode: this.cameraFacing });
+      const pending = createLocalVideoTrack({ facingMode: this.cameraFacing });
+      this.previewPending = pending;
+      const track = await pending;
+      if (this.previewAbort) {
+        track.stop();
+        return {
+          ok: false,
+          error: { code: "conflict", message: "Xem trước camera đã dừng.", retryable: false },
+        };
+      }
+      this.previewTrack = track;
       return { ok: true, data: this.previewTrack };
     } catch (error) {
       return { ok: false, error: mapServiceError(error) };
+    } finally {
+      this.previewPending = null;
     }
   }
 
   async stopCameraPreview(): Promise<void> {
+    this.previewAbort = true;
+    const pending = this.previewPending;
+    if (pending) {
+      try {
+        const track = await pending;
+        track.stop();
+      } catch {
+        // Ignore preview startup failure during teardown.
+      }
+    }
     this.previewTrack?.stop();
     this.previewTrack = null;
   }
@@ -156,12 +181,26 @@ export class LiveKitCallGateway implements CallGateway {
         return { ok: false, error: { code: "conflict", message: "Cuộc gọi đã kết thúc.", retryable: false } };
       }
       if (grant.callType === "video") {
-        if (AppState.currentState !== "active") throw new Error("App is not active for camera capture");
-        await room.localParticipant.setCameraEnabled(true);
-        if (AppState.currentState !== "active") await room.localParticipant.setCameraEnabled(false);
+        if (AppState.currentState === "background") {
+          await room.localParticipant.setCameraEnabled(false);
+        } else {
+          try {
+            await room.localParticipant.setCameraEnabled(true);
+          } catch {
+            // Android Camera2 may need a brief tick to finish releasing the preview track.
+            await new Promise<void>((resolve) => setTimeout(resolve, 250));
+            if (this.room !== room) {
+              await room.disconnect();
+              await this.stopAudioSession();
+              return { ok: false, error: { code: "conflict", message: "Cuộc gọi đã kết thúc.", retryable: false } };
+            }
+            await room.localParticipant.setCameraEnabled(true);
+          }
+          if (AppState.currentState === "background") await room.localParticipant.setCameraEnabled(false);
+        }
         if (this.room !== room) {
           await room.disconnect();
-          await AudioSession.stopAudioSession();
+          await this.stopAudioSession();
           return { ok: false, error: { code: "conflict", message: "Cuộc gọi đã kết thúc.", retryable: false } };
         }
         tracksChanged();
@@ -173,7 +212,21 @@ export class LiveKitCallGateway implements CallGateway {
       await room.disconnect();
       await this.stopAudioSession();
       onMediaEvent({ type: "failed", reason: "media_connection_failed" });
-      return { ok: false, error: mapServiceError(error) };
+      const mapped = mapServiceError(error);
+      if (mapped.code === "conflict") {
+        return {
+          ok: false,
+          error: {
+            code: "unavailable",
+            message:
+              grant.callType === "video"
+                ? "Không thể mở camera hoặc kết nối phòng gọi video. Hãy kiểm tra quyền camera/micro và mạng."
+                : "Không thể kết nối phòng gọi thoại. Hãy kiểm tra quyền micro và mạng.",
+            retryable: true,
+          },
+        };
+      }
+      return { ok: false, error: mapped };
     }
   }
 

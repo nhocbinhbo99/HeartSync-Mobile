@@ -66,3 +66,14 @@ it.each(["audio", "video"] as const)("publishes only the requested %s media", as
   await gateway.disconnect();
   expect(room.disconnect).toHaveBeenCalledTimes(1);
 });
+
+it("still enables camera when AppState briefly reports inactive after permission prompt", async () => {
+  Object.defineProperty(AppState, "currentState", { value: "inactive", configurable: true });
+  const gateway = new LiveKitCallGateway({} as AppSupabaseClient);
+  const events: CallMediaEvent[] = [];
+  const res = await gateway.connect(grant("video"), (event) => events.push(event));
+  expect(res.ok).toBe(true);
+  expect(latestRoom().localParticipant.setCameraEnabled).toHaveBeenCalledWith(true);
+  await gateway.disconnect();
+  Object.defineProperty(AppState, "currentState", { value: "active", configurable: true });
+});
