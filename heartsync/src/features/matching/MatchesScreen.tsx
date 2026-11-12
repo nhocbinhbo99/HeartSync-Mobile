@@ -18,7 +18,8 @@ import { colors, radii, spacing, type } from '../../shared/theme/tokens';
 import type { IncomingCall, MatchSummary, ProfilePublic } from '../../shared/types/domain.types';
 
 type Props = CompositeScreenProps<BottomTabScreenProps<MainTabParamList, 'Matches'>, NativeStackScreenProps<RootStackParamList>>;
-type PhotoUrls = Record<string, string>;
+type ResolvedPhoto = { storagePath: string; url: string };
+type PhotoUrls = Record<string, ResolvedPhoto>;
 
 const icons = {
   heart: { ios: 'heart.fill', android: 'favorite', web: 'favorite' },
@@ -37,9 +38,10 @@ function connectedAt(createdAt: string) {
   return `Kết nối ${elapsedDays} ngày trước`;
 }
 
-function MatchAvatar({ profile, photoUrl, size = 64 }: { profile: ProfilePublic; photoUrl?: string; size?: number }) {
+function MatchAvatar({ profile, photoUrl, size = 64 }: { profile: ProfilePublic; photoUrl?: ResolvedPhoto; size?: number }) {
   const photo = profile.photos.find((item) => item.isPrimary) ?? profile.photos[0];
-  return <Avatar label={`Ảnh hồ sơ của ${profile.displayName}`} uri={photoUrl} cacheKey={photo?.storagePath} size={size} />;
+  const visibleUrl = photoUrl?.storagePath === photo?.storagePath ? photoUrl.url : undefined;
+  return <Avatar label={`Ảnh hồ sơ của ${profile.displayName}`} uri={visibleUrl} cacheKey={photo?.storagePath} size={size} />;
 }
 
 export function MatchesScreen({ navigation }: Props) {
@@ -79,10 +81,10 @@ export function MatchesScreen({ navigation }: Props) {
       const photo = match.otherProfile.photos.find((item) => item.isPrimary) ?? match.otherProfile.photos[0];
       if (!photo) return [match.id, null] as const;
       const result = await services.profile.createPhotoUrl(photo.storagePath);
-      return [match.id, result.ok ? result.data : null] as const;
+      return [match.id, result.ok ? { storagePath: photo.storagePath, url: result.data } : null] as const;
     })).then((entries) => {
       if (!active) return;
-      setPhotoUrls(Object.fromEntries(entries.filter((entry): entry is [string, string] => entry[1] !== null)));
+      setPhotoUrls(Object.fromEntries(entries.filter((entry): entry is [string, ResolvedPhoto] => entry[1] !== null)));
     });
     return () => { active = false; };
   }, [matches, services]);

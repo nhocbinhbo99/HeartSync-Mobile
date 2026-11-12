@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -30,28 +30,36 @@ export function OtherProfileScreen({ route, navigation }: NativeStackScreenProps
   const services = useAppServices();
   const snackbar = useSnackbar();
   const profileId = route.params?.profileId;
-  const [profile, setProfile] = useState<ProfilePublic>();
-  const [photo, setPhoto] = useState<{ storagePath: string; url: string }>();
+  const [loadedProfile, setLoadedProfile] = useState<{ profileId: string; profile: ProfilePublic }>();
+  const [photo, setPhoto] = useState<{ profileId: string; storagePath: string; url: string }>();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [liking, setLiking] = useState(false);
   const [error, setError] = useState('');
+  const requestRef = useRef(0);
+  const profile = loadedProfile && loadedProfile.profileId === profileId ? loadedProfile.profile : undefined;
 
   const load = useCallback(async () => {
     if (!services || !profileId) return;
+    const request = ++requestRef.current;
     setError('');
     const [profileResult, savedResult] = await Promise.all([services.profile.getPublic(profileId), services.saved.isSaved(profileId)]);
+    if (request !== requestRef.current) return;
     if (!profileResult.ok) { setError(profileResult.error.message); return; }
-    setProfile(profileResult.data);
+    setLoadedProfile({ profileId, profile: profileResult.data });
     if (savedResult.ok) setSaved(savedResult.data);
     const primary = profileResult.data.photos.find((photo) => photo.isPrimary) ?? profileResult.data.photos[0];
+    setPhoto((current) => current?.profileId === profileId && current.storagePath === primary?.storagePath ? current : undefined);
     if (primary) {
       const url = await services.profile.createPhotoUrl(primary.storagePath);
-      if (url.ok) setPhoto({ storagePath: primary.storagePath, url: url.data });
+      if (request === requestRef.current && url.ok) setPhoto({ profileId, storagePath: primary.storagePath, url: url.data });
     }
   }, [profileId, services]);
 
-  useEffect(() => { const timer = setTimeout(() => void load(), 0); return () => clearTimeout(timer); }, [load]);
+  useEffect(() => {
+    const timer = setTimeout(() => void load(), 0);
+    return () => { clearTimeout(timer); requestRef.current += 1; };
+  }, [load]);
 
   const toggleSaved = async () => {
     if (!services || !profile || saving) return;
@@ -93,6 +101,8 @@ export function OtherProfileScreen({ route, navigation }: NativeStackScreenProps
   if (!services) return <Screen><StatePanel title="Chưa thể tải hồ sơ" description="Cấu hình dịch vụ đang thiếu." /></Screen>;
   if (error && !profile) return <Screen><AsyncStatePanel state="error" title="Không thể xem hồ sơ" description={error} actionLabel="Thử lại" onAction={() => void load()} /></Screen>;
   if (!profile) return <Screen><AsyncStatePanel state="loading" title="Đang tải hồ sơ" description="Chỉ dữ liệu công khai được tải." /></Screen>;
+  const primaryPhoto = profile.photos.find((item) => item.isPrimary) ?? profile.photos[0];
+  const visiblePhoto = photo?.profileId === profileId && photo.storagePath === primaryPhoto?.storagePath ? photo : undefined;
 
   const actions = <View style={styles.profileActions}>
     <IconButton icon={saved ? 'bookmarkFilled' : 'bookmark'} label={saved ? `Bỏ lưu ${profile.displayName}` : `Lưu ${profile.displayName}`} tone="primary" disabled={saving || liking} onPress={() => void toggleSaved()} style={styles.footerSave} />
@@ -101,7 +111,7 @@ export function OtherProfileScreen({ route, navigation }: NativeStackScreenProps
 
   return <Screen safeTop contentStyle={styles.otherProfileScreen} footer={actions}>
     <View style={styles.heroWrap}>
-      {photo ? <CachedImage accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`} source={{ uri: photo.url, cacheKey: photo.storagePath }} recyclingKey={profile.id} style={styles.heroImage} />
+      {visiblePhoto ? <CachedImage accessibilityLabel={`Ảnh đại diện của ${profile.displayName}`} source={{ uri: visiblePhoto.url, cacheKey: visiblePhoto.storagePath }} recyclingKey={profile.id} style={styles.heroImage} />
         : <View style={styles.photoPlaceholder}>
           <Avatar label={profile.displayName} size={64} />
           <AppText variant="subtitle">Chưa có ảnh hiển thị</AppText>

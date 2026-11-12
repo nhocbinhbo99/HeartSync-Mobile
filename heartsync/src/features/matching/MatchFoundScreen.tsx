@@ -14,7 +14,7 @@ import type { ProfilePublic } from '../../shared/types/domain.types';
 import type { RootStackParamList } from '../../navigation/types';
 
 type ResolvedPhoto = { storagePath: string; url: string };
-type MatchPeople = { other: ProfilePublic; mine: ProfilePublic; otherPhoto?: ResolvedPhoto; myPhoto?: ResolvedPhoto };
+type MatchPeople = { matchId: string; other: ProfilePublic; mine: ProfilePublic; otherPhoto?: ResolvedPhoto; myPhoto?: ResolvedPhoto };
 
 export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'MatchFound'>) {
   const services = useAppServices();
@@ -36,6 +36,7 @@ export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<R
       ]);
       if (!live) return;
       setPeople({
+        matchId,
         other: match.otherProfile,
         mine: mine.data.public,
         otherPhoto: otherPath && otherUrl?.ok ? { storagePath: otherPath, url: otherUrl.data } : undefined,
@@ -46,16 +47,17 @@ export function MatchFoundScreen({ route, navigation }: NativeStackScreenProps<R
   }, [matchId, services]);
 
   if (!matchId) return <Screen><StatePanel title="Chưa có match được xác nhận" description="Match chỉ xuất hiện sau khi máy chủ xác nhận mutual like." /><AppButton label="Quay lại" variant="quiet" onPress={() => navigation.goBack()} /></Screen>;
-  const names = people ? `${people.mine.displayName} × ${people.other.displayName}` : 'Một kết nối mới';
+  const visiblePeople = people?.matchId === matchId ? people : undefined;
+  const names = visiblePeople ? `${visiblePeople.mine.displayName} × ${visiblePeople.other.displayName}` : 'Một kết nối mới';
 
   return <Screen scroll={false} safeTop contentStyle={styles.screen}>
     <View style={styles.intro}>
       <AppText accessibilityRole="header" tone="onPrimary" style={styles.title}>Đã kết nối!</AppText>
       <AppText tone="onPrimary" style={styles.copy}>Hai người đã cùng chọn nhau.</AppText>
     </View>
-    <View accessible accessibilityRole="image" accessibilityLabel={people ? `Kết nối giữa ${names}` : 'Kết nối mới được xác nhận'} style={styles.portraits}>
-      <Portrait photoUrl={people?.otherPhoto} label={people?.other.displayName ?? 'Người bạn kết nối'} style={styles.otherPortrait} />
-      <Portrait photoUrl={people?.myPhoto} label={people?.mine.displayName ?? 'Hồ sơ của bạn'} style={styles.myPortrait} />
+    <View accessible accessibilityRole="image" accessibilityLabel={visiblePeople ? `Kết nối giữa ${names}` : 'Kết nối mới được xác nhận'} style={styles.portraits}>
+      <Portrait photoUrl={visiblePeople?.otherPhoto} label={visiblePeople?.other.displayName ?? 'Người bạn kết nối'} style={styles.otherPortrait} />
+      <Portrait photoUrl={visiblePeople?.myPhoto} label={visiblePeople?.mine.displayName ?? 'Hồ sơ của bạn'} style={styles.myPortrait} />
       <View pointerEvents="none" accessible={false} style={styles.heartSignal}><AppIcon name="heartOutline" color={colors.primary} size={44} /></View>
     </View>
     <View style={styles.confirmationCopy}>

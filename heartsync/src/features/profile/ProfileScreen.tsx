@@ -53,6 +53,11 @@ export function ProfileScreen({ navigation }: Props) {
     loadedRef.current = true;
     setState('empty');
     const orderedPhotos = [...result.data.public.photos].sort((a, b) => a.sortOrder - b.sortOrder);
+    setPhotoUrls((current) => orderedPhotos.flatMap((photo) => {
+      const loaded = current.find((item) => item.storagePath === photo.storagePath);
+      return loaded ? [loaded] : [];
+    }));
+    setActivePhoto(0);
     if (orderedPhotos.length === 0) {
       setPhotoUrls([]);
       setPhotoLoading(false);
@@ -66,7 +71,6 @@ export function ProfileScreen({ navigation }: Props) {
       }));
     if (request !== requestRef.current) return;
     setPhotoUrls(urls.filter((photo): photo is ResolvedPhoto => Boolean(photo)));
-    setActivePhoto(0);
     setPhotoLoading(false);
   }, [services]);
 

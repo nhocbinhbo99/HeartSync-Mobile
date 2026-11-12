@@ -4,25 +4,37 @@ import { useAppServices } from "../../services/AppServicesProvider";
 import type { ProfilePublic } from "../types/domain.types";
 import { colors } from "../theme/tokens";
 import { CachedImage } from "./CachedImage";
+
+type ConversationProfileData = {
+  profileId: string;
+  profile: ProfilePublic;
+  photo?: { storagePath: string; url: string };
+};
+
 export function ConversationProfile({ profileId, presentation = "inline" }: { profileId: string; presentation?: "inline" | "hero" | "callHero" | "callTile" | "avatar" }) {
   const services = useAppServices();
-  const [profile, setProfile] = useState<ProfilePublic>();
-  const [photo, setPhoto] = useState<{ storagePath: string; url: string }>();
+  const [data, setData] = useState<ConversationProfileData>();
   useEffect(() => {
     let live = true;
     void services?.profile.getPublic(profileId).then(async (r) => {
       if (!live || !r.ok) return;
-      setProfile(r.data);
-      const path = r.data.photos[0]?.storagePath;
+      const next: ConversationProfileData = { profileId, profile: r.data };
+      setData(next);
+      const path = (r.data.photos.find((item) => item.isPrimary) ?? r.data.photos[0])?.storagePath;
       if (path) {
         const result = await services.profile.createPhotoUrl(path);
-        if (live && result.ok) setPhoto({ storagePath: path, url: result.data });
+        if (live && result.ok) setData((current) => current?.profileId === profileId
+          ? { ...current, photo: { storagePath: path, url: result.data } }
+          : current);
       }
     });
     return () => {
       live = false;
     };
   }, [services, profileId]);
+  const visibleData = data?.profileId === profileId ? data : undefined;
+  const profile = visibleData?.profile;
+  const photo = visibleData?.photo;
   const avatarOnly = presentation === "avatar" || presentation === "callTile";
   const hero = presentation === "hero" || presentation === "callHero";
   const avatarSize = hero ? 112 : presentation === "callTile" ? 64 : avatarOnly ? 72 : 48;

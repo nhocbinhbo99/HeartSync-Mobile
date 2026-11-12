@@ -22,9 +22,17 @@ import type { ProfilePublic } from '../../shared/types/domain.types';
 type Props = CompositeScreenProps<BottomTabScreenProps<MainTabParamList, 'Saved'>, NativeStackScreenProps<RootStackParamList>>;
 type SavedItem = { profile: ProfilePublic; photoUrl?: string };
 
+function primaryPhotoPath(profile: ProfilePublic) {
+  return (profile.photos.find((photo) => photo.isPrimary) ?? profile.photos[0])?.storagePath;
+}
+
+function preservedPhotoUrl(profile: ProfilePublic, current?: SavedItem) {
+  return current && primaryPhotoPath(current.profile) === primaryPhotoPath(profile) ? current.photoUrl : undefined;
+}
+
 function preserveLoadedPhotos(profiles: ProfilePublic[], current: SavedItem[]) {
-  const currentUrls = new Map(current.map((item) => [item.profile.id, item.photoUrl]));
-  return profiles.map((profile) => ({ profile, photoUrl: currentUrls.get(profile.id) }));
+  const currentItems = new Map(current.map((item) => [item.profile.id, item]));
+  return profiles.map((profile) => ({ profile, photoUrl: preservedPhotoUrl(profile, currentItems.get(profile.id)) }));
 }
 
 export function SavedScreen({ navigation }: Props) {
@@ -72,7 +80,7 @@ export function SavedScreen({ navigation }: Props) {
     if (request !== requestRef.current) return;
     setItems((current) => hydrated.map((item) => ({
       ...item,
-      photoUrl: item.photoUrl ?? current.find((saved) => saved.profile.id === item.profile.id)?.photoUrl,
+      photoUrl: item.photoUrl ?? preservedPhotoUrl(item.profile, current.find((saved) => saved.profile.id === item.profile.id)),
     })));
   }, [services, withPhotoUrls]);
 
