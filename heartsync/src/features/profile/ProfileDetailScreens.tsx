@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
   Platform,
@@ -55,48 +55,63 @@ export function OtherProfileScreen({
   const heroHeight = Math.max(360, Math.round(Math.min(width * 1.18, height * 0.62)));
   const profileId = route.params?.profileId;
   const cachedProfile = getCachedPublicProfile(profileId);
-  const [profile, setProfile] = useState<ProfilePublic | undefined>(cachedProfile);
-  const [photoUrls, setPhotoUrls] = useState<string[]>(() => {
-    if (!cachedProfile?.photos.length) return [];
-    return [...cachedProfile.photos]
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((photo) => getCachedPhotoUrl(photo.storagePath))
-      .filter((url): url is string => Boolean(url));
-  });
+  const [loadedProfile, setLoadedProfile] = useState<{ profileId: string; profile: ProfilePublic }>();
+  const [loadedPhotos, setLoadedPhotos] = useState<{ profileId: string; urls: string[] }>();
   const [activePhoto, setActivePhoto] = useState(0);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [liking, setLiking] = useState(false);
   const [error, setError] = useState('');
+  const requestRef = useRef(0);
+
+  const profile =
+    (loadedProfile && loadedProfile.profileId === profileId ? loadedProfile.profile : undefined) ?? cachedProfile;
+  const cachedUrls = profile?.photos.length
+    ? [...profile.photos]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((photo) => getCachedPhotoUrl(photo.storagePath))
+        .filter((url): url is string => Boolean(url))
+    : [];
+  const photoUrls =
+    loadedPhotos && loadedPhotos.profileId === profileId && loadedPhotos.urls.length > 0
+      ? loadedPhotos.urls
+      : cachedUrls;
 
   const load = useCallback(async () => {
     if (!services || !profileId) return;
+    const request = ++requestRef.current;
     setError('');
+    setActivePhoto(0);
     const [profileResult, savedResult] = await Promise.all([
       services.profile.getPublic(profileId),
       services.saved.isSaved(profileId),
     ]);
+    if (request !== requestRef.current) return;
     if (!profileResult.ok) {
       setError(profileResult.error.message);
       return;
     }
-    setProfile(profileResult.data);
+    setLoadedProfile({ profileId, profile: profileResult.data });
     if (savedResult.ok) setSaved(savedResult.data);
     const paths = [...profileResult.data.photos]
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((photo) => photo.storagePath);
     if (paths.length > 0) {
       const urlMap = await resolvePhotoUrls(services.profile, paths);
+      if (request !== requestRef.current) return;
       const urls = paths
         .map((path) => urlMap[path] ?? getCachedPhotoUrl(path))
         .filter((url): url is string => Boolean(url));
-      if (urls.length > 0) setPhotoUrls(urls);
+      if (urls.length > 0) setLoadedPhotos({ profileId, urls });
     }
   }, [profileId, services]);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), 0);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      requestRef.current += 1;
+    };
   }, [load]);
 
   const toggleSaved = async () => {

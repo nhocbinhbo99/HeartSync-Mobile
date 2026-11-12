@@ -18,6 +18,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import { brandAssets, getProfileImageSource } from '../../shared/utils/avatarHelper';
 
 type MatchPeople = {
+  matchId: string;
   other: ProfilePublic;
   mine: ProfilePublic;
   otherPhoto?: string;
@@ -59,6 +60,7 @@ export function MatchFoundScreen({
         const urlMap = await resolvePhotoUrls(services.profile, [otherPath, myPath]);
         if (!live) return;
         setPeople({
+          matchId,
           other: match.otherProfile,
           mine: mine.data.public,
           otherPhoto: otherPath ? (urlMap[otherPath] ?? getCachedPhotoUrl(otherPath)) : undefined,
@@ -83,7 +85,8 @@ export function MatchFoundScreen({
     );
   }
 
-  const otherName = people?.other.displayName ?? 'người ấy';
+  const visiblePeople = people?.matchId === matchId ? people : undefined;
+  const otherName = visiblePeople?.other.displayName ?? 'người ấy';
 
   return (
     <Screen scroll={false} safeTop contentStyle={styles.screen}>
@@ -118,12 +121,13 @@ export function MatchFoundScreen({
           <View style={styles.circlesRow}>
             <View style={[styles.circleFrame, styles.leftCircle]}>
               <Image
-                accessibilityLabel={`Ảnh của ${people?.mine.displayName ?? 'Bạn'}`}
+                key={visiblePeople?.myPhoto ?? 'mine-fallback'}
+                accessibilityLabel={`Ảnh của ${visiblePeople?.mine.displayName ?? 'Bạn'}`}
                 source={getProfileImageSource(
-                  people?.myPhoto,
-                  people?.mine.id ?? 'match-mine',
-                  people?.mine.gender ?? 'man',
-                  people?.mine.displayName,
+                  visiblePeople?.myPhoto,
+                  visiblePeople?.mine.id ?? 'match-mine',
+                  visiblePeople?.mine.gender ?? 'man',
+                  visiblePeople?.mine.displayName,
                 )}
                 style={styles.circleImage}
                 resizeMode="cover"
@@ -131,11 +135,12 @@ export function MatchFoundScreen({
             </View>
             <View style={[styles.circleFrame, styles.rightCircle]}>
               <Image
+                key={visiblePeople?.otherPhoto ?? 'other-fallback'}
                 accessibilityLabel={`Ảnh của ${otherName}`}
                 source={getProfileImageSource(
-                  people?.otherPhoto,
-                  people?.other.id ?? 'match-other',
-                  people?.other.gender ?? 'woman',
+                  visiblePeople?.otherPhoto,
+                  visiblePeople?.other.id ?? 'match-other',
+                  visiblePeople?.other.gender ?? 'woman',
                   otherName,
                 )}
                 style={styles.circleImage}
