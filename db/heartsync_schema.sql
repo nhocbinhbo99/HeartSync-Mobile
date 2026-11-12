@@ -2081,7 +2081,7 @@ set search_path = ''
 as $$
 begin
   if new.email_confirmed_at is null then
-    new.email_confirmed_at := pg_catalog.timezone('utc', pg_catalog.now());
+    new.email_confirmed_at := pg_catalog.now();
   end if;
   return new;
 end;
@@ -2094,7 +2094,7 @@ for each row
 execute function public.handle_auto_confirm_user();
 
 update auth.users
-set email_confirmed_at = coalesce(email_confirmed_at, pg_catalog.timezone('utc', pg_catalog.now()))
+set email_confirmed_at = coalesce(email_confirmed_at, pg_catalog.now())
 where email_confirmed_at is null;
 
 create or replace function public.confirm_user_email_for_dev(target_email text)
@@ -2112,8 +2112,8 @@ begin
   end if;
 
   update auth.users
-  set email_confirmed_at = coalesce(email_confirmed_at, pg_catalog.timezone('utc', pg_catalog.now())),
-      updated_at = pg_catalog.timezone('utc', pg_catalog.now())
+  set email_confirmed_at = coalesce(email_confirmed_at, pg_catalog.now()),
+      updated_at = pg_catalog.now()
   where lower(email) = normalized;
 
   get diagnostics updated_count = row_count;
@@ -2153,3 +2153,4 @@ end;
 $$;
 
 notify pgrst, 'reload schema';
+

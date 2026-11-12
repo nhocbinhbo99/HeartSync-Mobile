@@ -51,7 +51,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000011', true);
 select is(public.reserve_ai_request('icebreaker', '30000000-0000-4000-8000-000000000011', '10000000-0000-4000-8000-000000000010')->>'state', 'reserved', 'active Match can reserve an Icebreaker');
 select is(public.fail_ai_request('30000000-0000-4000-8000-000000000011', 'AI_TEMPORARILY_UNAVAILABLE')->>'state', 'failed', 'provider outage refunds Icebreaker reservation');
-select like(public.get_ai_quotas()->'icebreaker'->>'reset_at', '^\\d{4}-\\d{2}-\\d{2}T00:00:00\\+07:00$', 'Icebreaker reset is returned at midnight Vietnam time');
+select matches(public.get_ai_quotas()->'icebreaker'->>'reset_at', '^[0-9]{4}-[0-9]{2}-[0-9]{2}T00:00:00[+]07:00$', 'Icebreaker reset is returned at midnight Vietnam time');
 reset role;
 
 set local role authenticated;
